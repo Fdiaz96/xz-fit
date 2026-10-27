@@ -2,7 +2,7 @@
 // (IndexedDB). Los identificadores internos siguen siendo "tendon-fuerte" para no perder los datos ya guardados.
 // Protocolo de tendones del video de Jeremy Ethier con Keith Baar y Coach Q; reglas en logic.js, bocetos en figures.js.
 
-const APP_VERSION = '1.20.1';
+const APP_VERSION = '1.20.2';
 const DAY_NAMES = { lu: 'Lu', ma: 'Ma', mi: 'Mi', ju: 'Ju', vi: 'Vi', sa: 'Sá', do: 'Do' };
 const SIDES = { der: 'derecha', izq: 'izquierda', ambos: 'ambos lados' };
 const REST_SECS = 90, ISO_REST = 60;
@@ -805,21 +805,20 @@ function renderTendons() {
     <div class="card pain"><div class="row"><div><h3>Modo dolor</h3><p class="muted small">Isométricos diarios, registro de dolor y entreno adaptado en las zonas que marques.</p></div>
     <label class="switch"><input type="checkbox" data-action="pain-mode" ${S.painMode ? 'checked' : ''} aria-label="Modo dolor"><i></i></label></div></div>
     <h2>¿Qué te duele?</h2>`;
-  for (const zd of ZONES) {
+  // Las zonas, con las mismas casillas que el alta: la marcada despliega debajo lado, fase y ejercicio.
+  h += `<div class="tiles list">${ZONES.map((zd) => {
     const z = S.zones[zd.id];
-    h += `<div class="card${z ? ' pain' : ''}"><div class="row"><div><h3>${esc(zd.name)}${z ? ` <span class="tag pain">${esc(PHASES[z.phase].short)}</span>` : ''}</h3><p class="muted small">${esc(zd.hint)}</p></div>
-      <label class="switch"><input type="checkbox" data-action="zone-toggle" data-zone="${zd.id}" ${z ? 'checked' : ''} aria-label="Me duele ${esc(zd.name)}"><i></i></label></div>`;
-    if (z) {
-      const ex = rehabEx(zd.id, z.phase), opts = z.phase < 3 ? rehabOptions(zd.id, z.phase) : [];
-      h += `<div class="chips" style="margin-top:10px">${Object.entries(SIDES).map(([k, v]) => `<button class="chip${z.side === k ? ' on' : ''}" data-action="zone-side" data-zone="${zd.id}" data-side="${k}">${v}</button>`).join('')}</div>
-        <p class="small" style="margin-top:10px"><b>${esc(PHASES[z.phase].name)}</b> · desde ${fmtDate(z.since)}<br><span class="muted">${esc(PHASES[z.phase].what)}</span></p>
-        ${z.phase < 3 ? `<div class="ex" data-action="ex-detail" data-ex="${ex.id}"><div class="thumb">${figureSVG(ex, { crop: true })}</div><div class="info"><h3>${esc(ex.name)}</h3><p class="muted small">${z.load ? fmtKg(z.load) + ' · ' : ''}${z.phase === 1 ? `${ISO_SETS} × ${z.secs || ISO_SECS} s` : `${LENTO_SETS} × ${LENTO_REPS}`}</p></div></div>` : ''}
-        ${opts.length > 1 ? `<p class="small muted" style="margin:8px 0 4px">Otras opciones para esta fase:</p><div class="chips">${opts.map((o) => `<button class="chip pain${o.id === ex.id ? ' on' : ''}" data-action="rehab-choice" data-zone="${zd.id}" data-ex="${o.id}">${esc(o.name)}</button>`).join('')}</div>` : ''}
-        <div class="btns" style="margin-top:8px">${z.phase > 1 ? `<button class="sec" data-action="phase" data-zone="${zd.id}" data-dir="-1">← Fase ${z.phase - 1}</button>` : ''}${z.phase < 3 ? `<button class="sec" data-action="phase" data-zone="${zd.id}" data-dir="1">Fase ${z.phase + 1} →</button>` : ''}</div>
-        <p class="faint small">${z.phase < 3 ? (phaseReady(S, zd.id, today()) ? '✓ Lista para avanzar.' : 'Para avanzar: 10 días en la fase y una semana con dolor ≤ 3 sin empeorar.') : ''}</p>`;
-    }
-    h += `</div>`;
-  }
+    const box = tile(`data-action="zone-toggle" data-zone="${zd.id}"`, !!z, esc(zd.name), esc(zd.hint));
+    if (!z) return box;
+    const ex = rehabEx(zd.id, z.phase), opts = z.phase < 3 ? rehabOptions(zd.id, z.phase) : [];
+    return box + `<div class="zone-detail">
+      <span class="small muted">¿De qué lado?</span><div class="chips" style="margin-top:6px">${Object.entries(SIDES).map(([k, v]) => `<button class="chip pain${z.side === k ? ' on' : ''}" data-action="zone-side" data-zone="${zd.id}" data-side="${k}">${v}</button>`).join('')}</div>
+      <p class="small" style="margin-top:12px"><b>${esc(PHASES[z.phase].name)}</b> · desde ${fmtDate(z.since)}<br><span class="muted">${esc(PHASES[z.phase].what)}</span></p>
+      ${z.phase < 3 ? `<div class="ex" data-action="ex-detail" data-ex="${ex.id}"><div class="thumb">${figureSVG(ex, { crop: true })}</div><div class="info"><h3>${esc(ex.name)}</h3><p class="muted small">${z.load ? fmtKg(z.load) + ' · ' : ''}${z.phase === 1 ? `${ISO_SETS} × ${z.secs || ISO_SECS} s` : `${LENTO_SETS} × ${LENTO_REPS}`}</p></div></div>` : ''}
+      ${opts.length > 1 ? `<p class="small muted" style="margin:8px 0 4px">Otras opciones para esta fase:</p><div class="chips">${opts.map((o) => `<button class="chip pain${o.id === ex.id ? ' on' : ''}" data-action="rehab-choice" data-zone="${zd.id}" data-ex="${o.id}">${esc(o.name)}</button>`).join('')}</div>` : ''}
+      <div class="btns" style="margin-top:8px">${z.phase > 1 ? `<button class="sec" data-action="phase" data-zone="${zd.id}" data-dir="-1">← Fase ${z.phase - 1}</button>` : ''}${z.phase < 3 ? `<button class="sec" data-action="phase" data-zone="${zd.id}" data-dir="1">Fase ${z.phase + 1} →</button>` : ''}</div>
+      <p class="faint small">${z.phase < 3 ? (phaseReady(S, zd.id, today()) ? '✓ Lista para avanzar.' : 'Para avanzar: 10 días en la fase y una semana con dolor ≤ 3 sin empeorar.') : ''}</p></div>`;
+  }).join('')}</div>`;
   h += `<h2>Ejercicios del fisio</h2><div class="card">${S.custom.length ? S.custom.map((c) => `<div class="row"><div><h3>${esc(c.name)}</h3><p class="muted small">${c.sets} × ${c.value} ${c.mode === 'segundos' ? 's' : 'reps'}${c.zone ? ' · ' + esc(zoneName(c.zone)) : ''}</p></div><button class="link" data-action="custom-edit" data-id="${c.id}">Editar</button></div>`).join('') : '<p class="muted small">Cargá los ejercicios que te dio tu fisio: aparecen en cada sesión de rehabilitación.</p>'}
     <button class="sec" style="margin-top:10px;width:100%" data-action="custom-edit">+ Agregar ejercicio</button></div>
     <p class="faint small">Esto no reemplaza a un profesional. Si el dolor es agudo, apareció de golpe, hay hinchazón o pérdida de fuerza, consultá antes de cargar el tendón.</p>`;

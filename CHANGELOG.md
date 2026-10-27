@@ -2,6 +2,10 @@
 
 Todos los cambios de XZ Fit (antes Tendón Fuerte), del más nuevo al más viejo.
 
+## 1.20.2 — Las zonas se marcan igual que en el alta
+
+- En la pestaña Dolor, las zonas son la misma lista de casillas que en el primer uso. La zona marcada despliega debajo el lado, la fase y su ejercicio. Las demás quedan como filas.
+
 ## 1.20.1 — Historial: primero tu entreno
 
 - El historial arranca con el peso por ejercicio y tus sesiones. El dolor por zona va al final y solo aparece si marcaste alguna zona.

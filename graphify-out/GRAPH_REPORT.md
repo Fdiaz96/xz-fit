@@ -1,17 +1,17 @@
 # Graph Report - TendonApp  (2026-10-27)
 
 ## Corpus Check
-- 67 files · ~92,045 words
+- 67 files · ~92,092 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 14 file(s) not represented in the graph (top: (none) 11, .woff2 1, .webmanifest 1)
 
 ## Summary
-- 720 nodes · 1357 edges · 48 communities (45 shown, 3 thin omitted)
+- 720 nodes · 1358 edges · 48 communities (45 shown, 3 thin omitted)
 - Extraction: 92% EXTRACTED · 8% INFERRED · 0% AMBIGUOUS · INFERRED: 108 edges (avg confidence: 0.89)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `82c1c4b3`
+- Built from commit: `8b92c301`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -303,7 +303,7 @@ _Questions this graph is uniquely positioned to answer:_
 - **What connects `Sugerencia de pasar a 3 dias (suggestThreeDays)`, `Eliminar sesion con Deshacer`, `Tarjeta de instalacion (beforeinstallprompt / iOS)` to the rest of the system?**
   _61 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `App UI y sesiones` be split into smaller, more focused modules?**
-  _Cohesion score 0.05577211394302849 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.05592203898050974 - nodes in this community are weakly interconnected._
 - **Why does `getEx()` connect `App UI y sesiones` to `Pruebas e2e`?**
   _High betweenness centrality (0.143) - this node is a cross-community bridge._
 - **Are the 4 inferred relationships involving `renderHome()` (e.g. with `render()` and `Dónde`) actually correct?**
