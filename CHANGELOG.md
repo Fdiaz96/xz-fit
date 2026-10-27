@@ -2,6 +2,13 @@
 
 Todos los cambios de XZ Fit (antes Tendón Fuerte), del más nuevo al más viejo.
 
+## 1.24.0 — Historial más claro
+
+- El gráfico de peso por ejercicio aparece siempre. Antes del primer entreno con pesas muestra una línea de ejemplo de cómo se va a ver.
+- Tocá el **?** al lado de cada gráfico para ver qué significa.
+- Si entrenás dos veces el mismo día, el gráfico muestra un solo punto con el peso más alto. Con un solo día anotado, el punto queda al centro.
+- En cada sesión, la cantidad de ejercicios se lee mejor y una flecha muestra que podés abrirla para ver el detalle.
+
 ## 1.23.1 — El entreno no salta arriba
 
 - Al tocar el ✓ de una serie (o cualquier otro botón del entreno) la pantalla se queda donde estabas, en vez de volver arriba de todo.

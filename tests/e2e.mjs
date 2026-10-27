@@ -67,9 +67,13 @@ await click('#view-tendons [data-action="zone-toggle"][data-zone="hombro"]');
 ok(await painTab.isVisible() && (await painTab.textContent()).trim() === 'Dolor', 'al marcar una zona aparece la pestaña "Dolor"');
 await click('#view-tendons [data-action="zone-toggle"][data-zone="hombro"]');
 ok(await painTab.isHidden() && await page.locator('#view-home').isVisible(), 'al desmarcar la última zona la pestaña se va y volvés a Hoy');
-// Historial sin entrenos: un solo vacío con el botón del día que toca, sin la sección de dolor
+// Historial sin entrenos: el botón del día que toca y el gráfico de peso de muestra, sin la sección de dolor
 await click('[data-tab="history"]');
-ok(await page.locator('#view-history .empty-hist [data-action="start-workout"]').count() === 1 && await page.locator('#view-history h2').count() === 0, 'historial nuevo: un solo vacío con botón para empezar, sin dolor');
+ok(await page.locator('#view-history .empty-hist [data-action="start-workout"]').count() === 1 && await page.locator('#view-history h2').allTextContents().then((t) => t.join() === 'Peso por ejercicio'), 'historial nuevo: botón para empezar y solo el gráfico de peso, sin dolor');
+ok(await page.locator('#view-history .chart.is-empty .ghost').count() === 1, 'el gráfico de peso aparece vacío con la línea de muestra');
+await click('#view-history [data-action="hist-help"][data-k="ex"]');
+ok(await page.locator('#view-history .help-note').isVisible(), 'el ? explica el gráfico de peso');
+await click('#view-history [data-action="hist-help"][data-k="ex"]');
 await click('#view-history .empty-hist [data-action="start-workout"]');
 ok(await page.locator('#wsheet[open]').count() === 1, 'el botón del historial arranca el entreno');
 await click('#wsheet [data-action="cancel-workout"]');

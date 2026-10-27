@@ -2,7 +2,7 @@
 // (IndexedDB). Los identificadores internos siguen siendo "tendon-fuerte" para no perder los datos ya guardados.
 // Protocolo de tendones del video de Jeremy Ethier con Keith Baar y Coach Q; reglas en logic.js, bocetos en figures.js.
 
-const APP_VERSION = '1.23.1';
+const APP_VERSION = '1.24.0';
 const DAY_NAMES = { lu: 'Lu', ma: 'Ma', mi: 'Mi', ju: 'Ju', vi: 'Vi', sa: 'Sá', do: 'Do' };
 const SIDES = { der: 'derecha', izq: 'izquierda', ambos: 'ambos lados' };
 const REST_SECS = 90, ISO_REST = 60;
@@ -939,11 +939,17 @@ function openCustom(id) {
 
 // ——— Historial ———
 let histZone = '', histEx = '';
+const histHelp = { ex: false, pain: false };
+// Título de sección con un "?" que abre la explicación del gráfico.
+const helpHead = (title, k) => `<div class="h2-row"><h2>${title}</h2><button class="help-q" data-action="hist-help" data-k="${k}" aria-expanded="${histHelp[k]}"><span aria-hidden="true">?</span><span class="sr">Qué muestra ${title.toLowerCase()}</span></button></div>`;
+// Un punto por día: el peso más alto de ese día (dos entrenos el mismo día no apilan puntos en la misma fecha).
 function weightHistory(exId) {
-  return S.sessions.filter((s) => s.type === 'entreno').map((s) => {
-    const it = s.items.find((i) => i.ex === exId && !i.capped);
-    return it && it.sets.length ? { x: s.date, y: Math.max(...it.sets.map((x) => x.w)) } : null;
-  }).filter(Boolean).reverse();
+  const byDay = {};
+  for (const s of S.sessions) {
+    const it = s.type === 'entreno' && s.items.find((i) => i.ex === exId && !i.capped);
+    if (it && it.sets.length) byDay[s.date] = Math.max(byDay[s.date] ?? 0, ...it.sets.map((x) => x.w));
+  }
+  return Object.entries(byDay).sort().map(([x, y]) => ({ x, y }));
 }
 function painHistory(zone) {
   const byDay = {};
@@ -962,13 +968,15 @@ function renderHistory() {
     h += `<div class="card acc empty-hist"><h3>Todavía no entrenaste</h3><p class="muted small">Tu progreso aparece acá después del primer entreno.</p>
       <button class="cta" data-action="start-workout" data-day="${day}">Empezar ${esc(plan.days[day].name.toLowerCase())}</button></div>`;
   }
-  if (exIds.length) h += `<h2>Peso por ejercicio</h2><div class="card acc"><select data-action="hist-ex" aria-label="Ejercicio">${exIds.map((e) => `<option value="${e}" ${e === histEx ? 'selected' : ''}>${esc(getEx(e)?.name || e)}</option>`).join('')}</select>
-    ${lineChart(weightHistory(histEx), { unit: 'kg', color: 'var(--acc)' })}</div>`;
-  if (S.sessions.length) h += `<h2>Sesiones</h2><div class="card">${S.sessions.slice(0, 60).map((s) => `<details class="sess-d"><summary class="sess"><span><span class="what">${s.type === 'entreno' ? `Entreno ${s.tpl}` : s.type === 'dolor' ? 'Registro de dolor' : `Rehabilitación de la ${s.slot}`}</span><br><span class="muted small">${fmtDate(s.date)}${s.min ? `, ${s.min} min y ${s.sets} series` : ''}${s.prs?.length ? ' 🏆' : ''}${s.pain ? '. Dolor: ' + Object.entries(s.pain).map(([z, v]) => `${zoneName(z).toLowerCase()} ${v}`).join(', ') : ''}</span></span><span class="tag ${s.type === 'entreno' ? 'acc' : 'pain'}">${s.items.length} ej.</span></summary>
+  // El gráfico de peso está siempre: sin entrenos con pesas muestra cómo se va a ver.
+  h += `${helpHead('Peso por ejercicio', 'ex')}<div class="card acc">${histHelp.ex ? `<div class="note acc help-note">Cada punto es el peso más alto que levantaste en ese ejercicio en un día. Si la línea sube, estás ganando fuerza. Tocá un punto para ver el número. Los días con peso bajado por dolor no cuentan.</div>` : ''}
+    ${exIds.length ? `<select data-action="hist-ex" aria-label="Ejercicio">${exIds.map((e) => `<option value="${e}" ${e === histEx ? 'selected' : ''}>${esc(getEx(e)?.name || e)}</option>`).join('')}</select>` : ''}
+    ${lineChart(weightHistory(histEx), { unit: 'kg', color: 'var(--acc)', empty: 'Cuando termines un entreno con pesas, acá vas a ver cómo sube cada ejercicio.' })}</div>`;
+  if (S.sessions.length) h += `<h2>Sesiones</h2><div class="card">${S.sessions.slice(0, 60).map((s) => `<details class="sess-d"><summary class="sess"><span><span class="what">${s.type === 'entreno' ? `Entreno ${s.tpl}` : s.type === 'dolor' ? 'Registro de dolor' : `Rehabilitación de la ${s.slot}`}</span><br><span class="muted small">${fmtDate(s.date)}${s.min ? `, ${s.min} min y ${s.sets} series` : ''}${s.prs?.length ? ' 🏆' : ''}${s.pain ? '. Dolor: ' + Object.entries(s.pain).map(([z, v]) => `${zoneName(z).toLowerCase()} ${v}`).join(', ') : ''}</span></span><span class="sess-n${s.type === 'entreno' ? '' : ' pain'}"><b>${s.items.length}</b><span>${s.items.length === 1 ? 'ejercicio' : 'ejercicios'}</span></span></summary>
       <ul class="small muted">${s.items.map((i) => `<li>${esc(getEx(i.ex)?.name || i.name || i.ex)}: ${i.sets.map((x) => (x.w ? `${x.w}×` : '') + (x.reps || (x.secs ? x.secs + 's' : '✓'))).join(', ')}</li>`).join('')}</ul>
       <button class="link danger small" data-action="del-session" data-id="${s.id}">Eliminar sesión</button></details>`).join('')}</div>`;
   // Dolor por zona va al final y solo si hay zonas o registros.
-  if (zones.length) h += `<h2>Dolor por zona</h2><div class="card pain"><select data-action="hist-zone" aria-label="Zona">${zones.map((z) => `<option value="${z}" ${z === histZone ? 'selected' : ''}>${esc(zoneName(z))}</option>`).join('')}</select>
+  if (zones.length) h += `${helpHead('Dolor por zona', 'pain')}<div class="card pain">${histHelp.pain ? `<div class="note pain help-note">Cada punto es el dolor más alto que anotaste ese día, de 0 a 10. La línea punteada es el ${PAIN_MAX}: hasta ahí el dolor es tolerable y podés seguir entrenando. Tocá un punto para ver el número.</div>` : ''}<select data-action="hist-zone" aria-label="Zona">${zones.map((z) => `<option value="${z}" ${z === histZone ? 'selected' : ''}>${esc(zoneName(z))}</option>`).join('')}</select>
     ${lineChart(painHistory(histZone), { yMax: 10, limit: PAIN_MAX, unit: '/10', color: 'var(--pain)' })}</div>`;
   $('view-history').innerHTML = h;
 }
@@ -990,7 +998,7 @@ function reportHTML() {
   const train = recent.filter((s) => s.type === 'entreno'), rehab = recent.filter((s) => s.type === 'rehab');
   const custom = S.custom.length ? `<h2>Ejercicios indicados por el fisio</h2><ul>${S.custom.map((c) => `<li>${esc(c.name)}: ${c.sets} × ${c.value} ${c.mode === 'segundos' ? 's' : 'reps'}${c.note ? ` — ${esc(c.note)}` : ''}</li>`).join('')}</ul>` : '';
   return `<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Informe XZ Fit</title>
-<style>:root{--pain:#E8590C;--acc:#5C940D;--line:#DEE2E6;--faint:#868E96;--card:#fff}body{font:15px/1.45 system-ui,sans-serif;color:#212529;max-width:760px;margin:24px auto;padding:0 16px}h1{margin:0}h2{margin:28px 0 6px;font-size:19px}.muted{color:#6C757D}table{border-collapse:collapse;width:100%;font-size:13px;margin-top:8px}th,td{border:1px solid var(--line);padding:5px;text-align:center}th{text-align:left;background:#F8F9FA}.chart svg{width:100%;max-width:520px;display:block}.chart .grid{stroke:var(--line)}.chart .axis{fill:var(--faint);font-size:11px}.chart .limit{stroke:var(--pain);stroke-dasharray:4 4;opacity:.7}.chart .series{fill:none;stroke-width:2}.chart .dot{stroke:#fff;stroke-width:2}.chart .hit{fill:transparent}.chart .empty{color:var(--faint);padding:12px 0}section{break-inside:avoid}@media print{button{display:none}}</style></head><body>
+<style>:root{--pain:#E8590C;--acc:#5C940D;--line:#DEE2E6;--faint:#868E96;--card:#fff}body{font:15px/1.45 system-ui,sans-serif;color:#212529;max-width:760px;margin:24px auto;padding:0 16px}h1{margin:0}h2{margin:28px 0 6px;font-size:19px}.muted{color:#6C757D}table{border-collapse:collapse;width:100%;font-size:13px;margin-top:8px}th,td{border:1px solid var(--line);padding:5px;text-align:center}th{text-align:left;background:#F8F9FA}.chart svg{width:100%;max-width:520px;display:block}.chart .grid{stroke:var(--line)}.chart .axis{fill:var(--faint);font-size:11px}.chart .limit{stroke:var(--pain);stroke-dasharray:4 4;opacity:.7}.chart .series{fill:none;stroke-width:2}.chart .dot{stroke:#fff;stroke-width:2}.chart .hit{fill:transparent}.chart .empty,.chart .chart-cap{color:var(--faint);padding:8px 0;margin:0}.chart .ghost{fill:none;stroke:var(--line);stroke-width:2;stroke-dasharray:5 5}section{break-inside:avoid}@media print{button{display:none}}</style></head><body>
 <h1>Informe de rehabilitación</h1>
 <p class="muted">${esc(S.profile.name || 'Paciente')}, del ${fmtDate(from)} al ${fmtDate(t)}. Generado con XZ Fit ${APP_VERSION}.</p>
 <p>Protocolo: isométricos (3 × 30–45 s, mañana y noche), luego isotónicos lentos 3 s/3 s y reintegración, con dolor tolerado hasta 3–4/10 y sin empeorar al día siguiente. Modo dolor ${S.painMode ? 'activo' : 'apagado'}.</p>
@@ -1002,21 +1010,28 @@ ${custom}
 }
 
 // Gráfico de una serie: fechas en x, valor en y; tocá un punto para ver el valor.
-function lineChart(pts, { yMax, limit, unit, color }) {
-  if (pts.length < 2) return `<div class="chart"><div class="empty">${pts.length ? `Un registro: ${pts[0].y}${unit === 'kg' ? ' kg' : unit}. Con dos ya se ve la línea.` : 'Sin registros todavía.'}</div></div>`;
-  const W_ = 320, H = 150, L = 28, Rr = 8, T = 10, B = 22;
-  const t0 = parseDay(pts[0].x), t1 = parseDay(pts[pts.length - 1].x), span = Math.max(1, t1 - t0);
-  const max = yMax ?? (Math.max(...pts.map((p) => p.y)) * 1.15 || 1);
-  const X = (k) => L + ((parseDay(k) - t0) / span) * (W_ - L - Rr), Y = (v) => T + (1 - v / max) * (H - T - B);
+// Sin puntos dibuja una línea de muestra con el aviso; con uno solo, el punto va al centro.
+function lineChart(pts, { yMax, limit, unit, color, empty = 'Sin registros todavía.' }) {
+  const W_ = 320, H = 150, L = 28, Rr = 8, T = 10, B = 22, fmt = (v) => `${v}${unit === 'kg' ? ' kg' : unit}`;
+  const max = yMax ?? (Math.max(0, ...pts.map((p) => p.y)) * 1.15 || 10);
+  const Y = (v) => T + (1 - v / max) * (H - T - B);
   const ticks = yMax === 10 ? [0, 5, 10] : [0, Math.round(max / 2), Math.round(max)];
+  const grid = (labels) => ticks.map((v) => `<line class="grid" x1="${L}" x2="${W_ - Rr}" y1="${Y(v)}" y2="${Y(v)}"/>${labels ? `<text class="axis" x="${L - 6}" y="${Y(v) + 4}" text-anchor="end">${v}</text>` : ''}`).join('')
+    + (limit != null ? `<line class="limit" x1="${L}" x2="${W_ - Rr}" y1="${Y(limit)}" y2="${Y(limit)}"/>` : '');
+  if (!pts.length) {
+    const ghost = [0.22, 0.3, 0.28, 0.45, 0.52, 0.66].map((v, i, a) => `${i ? 'L' : 'M'}${(L + 10 + (i / (a.length - 1)) * (W_ - L - Rr - 20)).toFixed(1)} ${Y(v * max).toFixed(1)}`).join('');
+    return `<div class="chart is-empty"><svg viewBox="0 0 ${W_} ${H}" aria-hidden="true">${grid(false)}<path class="ghost" d="${ghost}"/></svg><p class="empty">${esc(empty)}</p></div>`;
+  }
+  const t0 = parseDay(pts[0].x), t1 = parseDay(pts[pts.length - 1].x), span = t1 - t0;
+  const X = (k) => (span ? L + ((parseDay(k) - t0) / span) * (W_ - L - Rr) : (L + W_ - Rr) / 2);
   const d = pts.map((p, i) => `${i ? 'L' : 'M'}${X(p.x).toFixed(1)} ${Y(p.y).toFixed(1)}`).join('');
+  const dates = span ? `<text class="axis" x="${L}" y="${H - 4}">${fmtDate(pts[0].x)}</text><text class="axis" x="${W_ - Rr}" y="${H - 4}" text-anchor="end">${fmtDate(pts[pts.length - 1].x)}</text>`
+    : `<text class="axis" x="${X(pts[0].x)}" y="${H - 4}" text-anchor="middle">${fmtDate(pts[0].x)}</text>`;
   return `<div class="chart"><svg viewBox="0 0 ${W_} ${H}" role="img" aria-label="Gráfico de ${pts.length} registros">
-    ${ticks.map((v) => `<line class="grid" x1="${L}" x2="${W_ - Rr}" y1="${Y(v)}" y2="${Y(v)}"/><text class="axis" x="${L - 6}" y="${Y(v) + 4}" text-anchor="end">${v}</text>`).join('')}
-    ${limit != null ? `<line class="limit" x1="${L}" x2="${W_ - Rr}" y1="${Y(limit)}" y2="${Y(limit)}"/>` : ''}
-    <text class="axis" x="${L}" y="${H - 4}">${fmtDate(pts[0].x)}</text><text class="axis" x="${W_ - Rr}" y="${H - 4}" text-anchor="end">${fmtDate(pts[pts.length - 1].x)}</text>
+    ${grid(true)}${dates}
     <path class="series" d="${d}" stroke="${color}"/>
     ${pts.map((p) => `<circle class="dot" cx="${X(p.x)}" cy="${Y(p.y)}" r="4" fill="${color}"/><circle class="hit" cx="${X(p.x)}" cy="${Y(p.y)}" r="14" data-tip="${esc(fmtDate(p.x))}|${p.y}${unit === 'kg' ? ' kg' : unit}"/>`).join('')}
-  </svg></div>`;
+  </svg>${pts.length === 1 ? `<p class="chart-cap">Un día anotado: ${fmt(pts[0].y)}. Desde el segundo se ve la línea.</p>` : ''}</div>`;
 }
 function showTip(el) {
   const [date, val] = el.dataset.tip.split('|'), r = el.getBoundingClientRect(), tip = $('tip');
@@ -1243,6 +1258,7 @@ document.addEventListener('click', (e) => {
     'install': installApp,
     'install-hide': () => { S.hideInstall = true; persist(); render(); },
     'warm': () => { W.warm[+d.i].done = !W.warm[+d.i].done; renderWorkout(); },
+    'hist-help': () => { histHelp[d.k] = !histHelp[d.k]; renderHistory(); },
     'report': () => shareFile(`informe-xz-fit-${today()}.html`, reportHTML(), 'text/html'),
     'news-seen': () => { S.seenVersion = APP_VERSION; persist(); render(); },
     'pain-val': () => { P.vals[d.zone] = +d.n; renderPain(); },
