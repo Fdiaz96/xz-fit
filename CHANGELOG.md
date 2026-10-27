@@ -2,6 +2,13 @@
 
 Todos los cambios de XZ Fit (antes Tendón Fuerte), del más nuevo al más viejo.
 
+## 1.18.0 — Entreno nuevo: el plan y la sesión, más claros
+
+- **Pestaña Entreno**: cada día se ve como en el inicio, con el nombre en grande. El que toca hoy va subrayado en verde y con el botón lleno; los demás, con un botón con borde.
+- **Durante el entreno, sabés por dónde vas**: arriba hay una barra con un tramo por ejercicio y cuántas series llevás.
+- **El ejercicio en curso, marcado**: los ejercicios van numerados en orden, el que estás haciendo tiene borde verde y la serie que sigue queda resaltada. Los terminados se apagan y muestran ✓.
+- Los kilos y las repeticiones se anotan en casillas más grandes, fáciles de tocar y de leer con el celular en el piso.
+
 ## 1.17.0 — Inicio nuevo: el entreno del día en grande
 
 - **El día que toca, bien visible**: el inicio muestra "Día A" en grande y debajo la lista de ejercicios en el orden en que se hacen, con series, rango y el peso que toca. Tocá un ejercicio para ver cómo se hace.

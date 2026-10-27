@@ -75,7 +75,11 @@ button.quick-pain { width: 100%; margin: -12px 0 var(--gap); }
   color-scheme: light;
 }
 :root[data-theme="light"] .dots i.on { border-color: #9BCB00; }
-:root[data-theme="light"] .today h3 { border-bottom-color: #9BCB00; }
+:root[data-theme="light"] .today h3, :root[data-theme="light"] .plan-day.now h2 { border-bottom-color: #9BCB00; }
+:root[data-theme="light"] .wex.now, :root[data-theme="light"] button.cta.ghost { box-shadow: inset 0 0 0 2px #9BCB00; }
+:root[data-theme="light"] .set.next .ok, :root[data-theme="light"] .set.done .ok { border-color: #9BCB00; }
+:root[data-theme="light"] .w-track b { background: #9BCB00; }
+:root[data-theme="light"] .set input, :root[data-theme="light"] .set select { background: var(--card); }
 :root[data-theme="light"] .fig { background: #ECEFF3; }
 :root[data-theme="light"] .chart .dot { stroke: var(--card); }
 
@@ -164,14 +168,61 @@ button.warm-item.on .box { background: var(--acc); border-color: var(--acc); col
 .plate-row { display: grid; grid-template-columns: 1fr 1fr 40px; gap: 8px; align-items: end; }
 .plate-row button { height: 44px; border-radius: 10px; background: var(--card2); color: var(--danger); font-size: 18px; }
 
+/* Entreno (pestaña): cada día como la pizarra del inicio; el que toca va subrayado en lima y con el botón lleno */
+.train-sub { margin: 4px 0 8px; }
+.day-tabs { margin: 12px 0 0; }
+.plan-day { margin: 30px 0 0; }
+.plan-day h2 { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 0; padding-bottom: 6px; border-bottom: 3px solid var(--line); color: var(--muted); }
+.plan-day .day-name { font-size: clamp(44px, 14vw, 64px); line-height: .9; font-weight: 700; letter-spacing: -.01em; }
+.plan-day .sep { display: none; }
+.plan-day .day-now { font: 600 15px/1.4 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; text-transform: none; letter-spacing: 0; color: var(--acc-fg); }
+.plan-day.now h2 { color: var(--text); border-bottom-color: var(--acc); }
+.plan-list { list-style: none; margin: 0 0 16px; padding: 0; }
+.plan-list .ex { padding: 10px 0; border-bottom: 1px solid var(--line); }
+.plan-list .ex[data-action] { cursor: pointer; }
+.plan-list .thumb { width: 60px; }
+.plan-list .dose { font-size: 14px; color: var(--muted); margin: 2px 0 0; }
+.plan-list .dose em { font-style: normal; color: var(--pain-fg); margin-left: 8px; white-space: nowrap; }
+.plan-list .missing h3, .plan-list .missing .dose { color: var(--faint); }
+.plan-list .stall { font-size: 13px; color: var(--acc-fg); margin: 2px 0 0; }
+.plan-list .stall .link { padding: 0; }
+.plan-list .w { min-width: 48px; display: flex; flex-direction: column; align-items: flex-end; }
+.plan-list .w .num { font-size: 26px; line-height: 1; }
+.plan-list .w .unit { font-size: 12px; color: var(--muted); white-space: nowrap; }
+button.cta.ghost { background: none; color: var(--acc-fg); box-shadow: inset 0 0 0 2px var(--acc); }
+button.add-ex { width: 100%; }
+
+/* Entreno en curso: barra de series arriba, el ejercicio actual marcado en lima y la próxima serie resaltada */
+.w-head { flex-wrap: wrap; row-gap: 8px; padding-bottom: 10px; }
+.w-title { display: flex; flex-direction: column; align-items: center; line-height: 1.1; }
+.w-count { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.w-track { flex-basis: 100%; display: flex; gap: 3px; height: 6px; }
+.w-track i { display: block; min-width: 6px; border-radius: 3px; background: var(--card2); overflow: hidden; }
+.w-track b { display: block; height: 100%; background: var(--acc); transition: width .3s; }
+.wex .ex { align-items: flex-start; }
+.wex .info h3 { font-size: 21px; line-height: 1.15; }
+.wex .thumb { width: 64px; }
+.wex-n { flex: none; width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; font: 600 17px/1 'Oswald', sans-serif; background: var(--card2); color: var(--muted); }
+.wex.now { box-shadow: inset 0 0 0 2px var(--acc); }
+.wex.now .wex-n { background: var(--acc); color: var(--acc-ink); }
+.wex.done { background: none; box-shadow: inset 0 0 0 1px var(--line); }
+.wex.done h3 { color: var(--muted); }
+.wex.done .wex-n { color: var(--acc-fg); }
+.target { display: flex; align-items: baseline; flex-wrap: wrap; column-gap: 10px; margin: 4px 0 0; font-size: 14px; color: var(--muted); }
+.target .num { font: 700 22px/1.1 'Oswald', sans-serif; color: var(--text); }
+
 /* Series */
-.sets { margin-top: 10px; }
-.set { display: grid; grid-template-columns: 34px 1fr 1fr 1fr 48px; gap: 6px; align-items: center; margin-top: 6px; }
-.set.head { color: var(--faint); font-size: 12px; text-transform: uppercase; margin-top: 0; }
-.set input, .set select { padding: 8px 6px; text-align: center; }
-.set .n { color: var(--muted); font-family: 'Oswald'; text-align: center; }
-.set .ok { width: 44px; height: 40px; border-radius: 10px; background: var(--card2); font-size: 20px; }
-.set.done .ok { background: var(--acc); color: var(--acc-ink); }
+.sets { margin-top: 12px; }
+.set { display: grid; grid-template-columns: 40px 1fr 1fr 1fr 48px; gap: 6px; align-items: center; margin: 4px -6px 0; padding: 4px 6px; border-radius: 12px; }
+.set.head { color: var(--faint); font-size: 12px; margin-top: 0; padding-block: 0; }
+.set.head span { text-align: center; }
+.set input, .set select { height: 48px; padding: 0 4px; text-align: center; text-align-last: center; background: var(--bg); font: 600 22px 'Oswald', sans-serif; font-variant-numeric: tabular-nums; }
+.set .n { color: var(--muted); font: 600 18px 'Oswald', sans-serif; text-align: center; }
+.set .ok { width: 48px; height: 48px; border-radius: 12px; border: 2px solid var(--line); color: var(--faint); font-size: 22px; }
+.set.next { background: var(--card2); }
+.set.next .ok { border-color: var(--acc); color: var(--acc-fg); }
+.set.done .n { color: var(--acc-fg); }
+.set.done .ok { background: var(--acc); border-color: var(--acc); color: var(--acc-ink); }
 .set.done input, .set.done select { opacity: .6; }
 .note { font-size: 13px; padding: 8px 10px; border-radius: 10px; background: var(--card2); margin-top: 8px; }
 .note.pain { background: var(--note-pain-bg); color: var(--note-pain-fg); }
