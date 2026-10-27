@@ -2,7 +2,7 @@
 // (IndexedDB). Los identificadores internos siguen siendo "tendon-fuerte" para no perder los datos ya guardados.
 // Protocolo de tendones del video de Jeremy Ethier con Keith Baar y Coach Q; reglas en logic.js, bocetos en figures.js.
 
-const APP_VERSION = '1.25.0';
+const APP_VERSION = '1.26.0';
 const DAY_NAMES = { lu: 'Lu', ma: 'Ma', mi: 'Mi', ju: 'Ju', vi: 'Vi', sa: 'Sá', do: 'Do' };
 const SIDES = { der: 'derecha', izq: 'izquierda', ambos: 'ambos lados' };
 const REST_SECS = 90, ISO_REST = 60;
@@ -376,35 +376,43 @@ function planCard() {
 }
 let PS = null;   // plan elegido en la hoja, antes de confirmar
 function openPlans(sel = activePlan(S).id) { PS = sel; renderPlans(); if (!$('plansheet').open) $('plansheet').showModal(); }
-function renderPlans() {
-  const cur = activePlan(S).id, chosen = PLANS[PS];
+// Planes agrupados por tipo, uno por tarjeta con su semana tipo. Lo usan la hoja "Elegí tu plan" y el primer uso:
+// sel es el elegido, action el data-action del radio, cur el plan actual (null en el alta) y tag la marca junto al nombre.
+function planOptions(sel, { action, cur = null, tag = {} }) {
   const opt = (p) => {
     // Para mostrar, la versión guardada del plan (con los cambios del usuario) si existe; si no, la que se armaría hoy.
     const items = resolvePlan(p, S.equip, engineOpts()), saved = S.routine[p.id]?.length === p.days.length ? S.routine[p.id] : items;
     const names = (day) => day.filter((it) => getEx(it.ex)).map((it) => getEx(it.ex).name).join(', ');
     const missing = saved.flat().filter((it) => !possible(it.ex, S.equip, getEx)).length;
-    return `<div class="plan-opt"><label class="tile"><input type="radio" name="plan" data-action="plan-sel" value="${p.id}" ${p.id === PS ? 'checked' : ''}><span>
-        <b>${esc(p.name)}${p.id === cur ? ' <em class="tag-now">el tuyo</em>' : ''}</b>
+    return `<div class="plan-opt"><label class="tile"><input type="radio" name="plan" data-action="${action}" value="${p.id}" ${p.id === sel ? 'checked' : ''}><span>
+        <b>${esc(p.name)}${tag[p.id] ? ` <em class="tag-now">${tag[p.id]}</em>` : ''}</b>
         <small>${p.days.length} días por semana, ${p.mins} min por sesión. ${esc(p.for)}</small>
         ${weekStrip(p, p.week)}
         ${missing ? `<small class="warn">Con tu equipo, ${missing === 1 ? '1 ejercicio queda' : `${missing} ejercicios quedan`} como "falta equipo".</small>` : ''}
-        ${p.id !== cur && S.routine[p.id] ? '<small>Vuelve con los cambios que le hiciste.</small>' : ''}
+        ${cur && p.id !== cur && S.routine[p.id] ? '<small>Vuelve con los cambios que le hiciste.</small>' : ''}
       </span></label>
       <details class="cues"><summary>Ver ejercicios</summary><ul>${p.days.map((d, i) => `<li><b>${esc(d.name)}:</b> ${esc(names(saved[i]))}</li>`).join('')}</ul>
       <p class="small"><a href="${p.source.url}" target="_blank" rel="noopener">${esc(p.source.title)}</a></p></details></div>`;
   };
+  return Object.entries(PLAN_KINDS).map(([kind, title]) => `<h2>${esc(title)}</h2>${Object.values(PLANS).filter((p) => p.kind === kind).map(opt).join('')}`).join('');
+}
+function renderPlans() {
+  const cur = activePlan(S).id, chosen = PLANS[PS];
   let h = `<div class="dlg"><div class="dlg-head"><button class="link" data-action="close" data-dlg="plansheet">Cancelar</button><strong>Elegí tu plan</strong><span></span></div>
     <p class="muted small">La app arma los ejercicios de cada día con tu equipo. Después podés cambiar cualquiera en Editar rutina.</p>`;
-  for (const [kind, title] of Object.entries(PLAN_KINDS)) h += `<h2>${esc(title)}</h2>${Object.values(PLANS).filter((p) => p.kind === kind).map(opt).join('')}`;
+  h += planOptions(PS, { action: 'plan-sel', cur, tag: { [cur]: 'el tuyo' } });
   h += `<div class="plan-foot">${PS === cur ? '<button class="cta" disabled>Es tu plan actual</button>'
     : `<button class="cta" data-action="plan-use">Usar ${esc(chosen.name)}</button><p class="small muted">Entrenás ${daysText(chosen.week)} y el primer entreno es ${esc(chosen.days[0].name)}. Tus pesos y tu historial se mantienen.</p>`}</div></div>`;
   dlg('plansheet').html = h;
 }
+// Plan sugerido en el primer uso según la experiencia: cuerpo completo 3 días para quien empieza, torso y pierna para el resto.
+const recommendedPlan = (exp) => (exp === 'novato' ? 'fb3' : 'tp4');
+// Elegir plan: su id y sus días de entreno propuestos (en el alta, sin tocar rotación ni rampa: onbNext las inicia).
+function setPlan(id) { S.plan.id = id; S.rem.train = [...PLANS[id].week]; S.profile.days = PLANS[id].week.length; }
 // Cambiar de plan reinicia la rotación y la rampa de entrada; la rutina del plan anterior queda guardada por si se vuelve.
 function usePlan() {
   const plan = PLANS[PS];
-  S.plan = { ...S.plan, id: plan.id, pos: 0, since: today(), deload: '' };
-  S.rem.train = [...plan.week]; S.profile.days = plan.week.length;
+  setPlan(plan.id); S.plan = { ...S.plan, pos: 0, since: today(), deload: '' };
   editDay = 0; PS = null;
   $('plansheet').close(); persist(); render();
   toast(`Plan cambiado a ${plan.name}. Entrenás ${daysText(plan.week)}.`);
@@ -1198,7 +1206,8 @@ function setPath(path, raw) {
 
 // ——— Primer uso ———
 let onbStep = 0;
-const ONB_STEPS = 4;
+const ONB_STEPS = 5;
+let onbPlanSet = false;   // en el alta, el plan recomendado se marca una sola vez; después manda lo que elija la persona
 function renderOnb() {
   const p = S.profile;
   const steps = `<div class="steps">${Array.from({ length: ONB_STEPS }, (_, i) => `<i class="${i <= onbStep ? 'on' : ''}"></i>`).join('')}</div>`;
@@ -1218,10 +1227,16 @@ function renderOnb() {
     <span class="small muted">Sexo</span><div class="chips" style="margin:4px 0 8px">${[['h', 'Hombre'], ['m', 'Mujer'], ['x', 'Prefiero no decir']].map(([k, v]) => `<button class="chip${p.sex === k ? ' on' : ''}" data-action="set-sex" data-v="${k}">${v}</button>`).join('')}</div>
     <div class="grid3">${unitField('Peso', `id="o-weight" data-set="profile.weight" inputmode="decimal" value="${esc(p.weight)}"`, 'kg')}${unitField('Altura', `data-set="profile.height" inputmode="numeric" value="${esc(p.height)}"`, 'cm')}${unitField('Edad', `data-set="profile.age" inputmode="numeric" value="${esc(p.age)}"`, 'años')}</div>
     <span class="small muted">¿Cuánto hace que entrenás con pesas?</span><div class="chips" style="margin:4px 0 16px">${EXPERIENCE.map((x) => `<button class="chip${p.exp === x.id ? ' on' : ''}" data-action="set-exp" data-v="${x.id}">${x.name}</button>`).join('')}</div>
-    <span class="small muted">¿Qué días entrenás?</span>${weekFields()}
-    <span class="small muted" style="display:block;margin-top:16px">¿Cómo querés los pesos?</span>${weightModeFields()}<p class="faint small">Lo cambiás cuando quieras en Ajustes.</p>`;
+    <span class="small muted">¿Cómo querés los pesos?</span>${weightModeFields()}<p class="faint small">Lo cambiás cuando quieras en Ajustes.</p>`;
   if (onbStep === 2) body = `<h1>Tu equipo</h1><p class="muted small">Marcá lo que tenés. La rutina usa solo eso y redondea los pesos a lo que podés cargar.</p>${equipFields()}`;
-  if (onbStep === 3) body = `<h1>¿Te duele algo?</h1><p class="muted small">Opcional. Si marcás una zona, la app la cuida: baja la carga de los ejercicios que la exigen y te propone ejercicios para recuperar el tendón. Si no te duele nada, seguí.</p>
+  if (onbStep === 3) {
+    const rec = recommendedPlan(p.exp);
+    if (!onbPlanSet) { setPlan(rec); onbPlanSet = true; }
+    body = `<h1>Tu plan</h1><p class="muted small">Elegí cómo repartir la semana. Cada plan trae sus días de entreno y la app arma los ejercicios de cada día con tu equipo.</p>
+      ${planOptions(S.plan.id, { action: 'onb-plan', tag: { [rec]: 'recomendado' } })}
+      <p class="faint small">Lo cambiás cuando quieras en Entreno → Editar rutina, y los días en Ajustes.</p>`;
+  }
+  if (onbStep === 4) body = `<h1>¿Te duele algo?</h1><p class="muted small">Opcional. Si marcás una zona, la app la cuida: baja la carga de los ejercicios que la exigen y te propone ejercicios para recuperar el tendón. Si no te duele nada, seguí.</p>
     <div class="tiles list">${ZONES.map((z) => { const zz = S.zones[z.id]; return tile(`data-action="zone-toggle" data-zone="${z.id}"`, !!zz, esc(z.name), esc(z.hint)) + (!zz ? '' : `<div class="zone-detail">
       <span class="small muted">¿Cuánto duele hoy al usarla?</span><div class="chips scale" style="margin-top:6px">${Array.from({ length: 11 }, (_, n) => `<button class="chip pain${zz.pain0 === n ? ' on' : ''}" data-action="zone-pain" data-zone="${z.id}" data-n="${n}">${n}</button>`).join('')}</div>
       <div class="scale-ends small faint"><span>Nada</span><span>El peor dolor</span></div>
@@ -1352,7 +1367,7 @@ document.addEventListener('click', (e) => {
     'ics': () => shareFile('xz-fit.ics', icsText(S.rem, S.painMode, today()), 'text/calendar'),
     'export': exportData,
     'import': () => $('import-file').click(),
-    'reset': () => { if (confirm('¿Borrar todos los datos? No se puede deshacer.') && confirm('¿Seguro? Se pierde todo el historial.')) { S = DEFAULT(); resetRoutine(); persist(); onbStep = 0; renderOnb(); $('onb').showModal(); } },
+    'reset': () => { if (confirm('¿Borrar todos los datos? No se puede deshacer.') && confirm('¿Seguro? Se pierde todo el historial.')) { S = DEFAULT(); resetRoutine(); persist(); onbStep = 0; onbPlanSet = false; renderOnb(); $('onb').showModal(); } },
     'onb-next': onbNext,
     'edit-routine': () => { editRoutine = !editRoutine; if (editRoutine) editDay = dayIndex(activePlan(S), S.plan.pos); render(); },
     'edit-day': () => { editDay = +d.day; render(); },
@@ -1414,6 +1429,7 @@ document.addEventListener('change', (e) => {
     persist(); $('onb').open ? renderOnb() : render(); return;
   }
   if (a === 'plan-sel') { PS = el.value; renderPlans(); }
+  if (a === 'onb-plan') { setPlan(el.value); persist(); renderOnb(); }
   if (a === 'weights-mode') { S.prefs.weights = el.value; persist(); $('onb').open ? renderOnb() : render(); }
   if (a === 'pref-toggle') { S.prefs[el.dataset.k] = el.checked; persist(); if (el.checked && el.dataset.k !== 'auto') cue('go', 'Así suena'); }
   if (a === 'hist-zone') { histZone = el.value; renderHistory(); }
