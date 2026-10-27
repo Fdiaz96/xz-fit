@@ -2,6 +2,10 @@
 
 Todos los cambios de XZ Fit (antes Tendón Fuerte), del más nuevo al más viejo.
 
+## 1.18.3 — La app se presenta por el entreno
+
+- La descripción de la app (la que se ve al compartir el link, al buscarla o al instalarla) ahora habla de la rutina de fuerza guiada, no de rehabilitación de tendones.
+
 ## 1.18.2 — Bienvenida nueva
 
 - **Primera pantalla**: ahora presenta la app como lo que es para casi todos, una rutina de fuerza guiada. Muestra qué hace (rutina con tu equipo, peso sugerido, progresión y descarga) y deja la adaptación por dolor como una función más. El botón dice "Armar mi rutina".

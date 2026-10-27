@@ -1,7 +1,7 @@
 {
   "name": "XZ Fit",
   "short_name": "XZ Fit",
-  "description": "Entreno con mancuernas y rehabilitación de tendones.",
+  "description": "Tu rutina de fuerza, guiada serie por serie.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
