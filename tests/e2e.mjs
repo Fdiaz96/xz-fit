@@ -257,7 +257,7 @@ ok(await page.locator('#view-train .plan-card h3').textContent() === 'Full body 
 await shot('plan-editor');
 await click('#view-train [data-action="plan-open"]');
 await page.waitForSelector('#plansheet[open]');
-ok(JSON.stringify(await page.locator('#plansheet h2').allTextContents()) === JSON.stringify(['Cuerpo completo', 'Por grupos musculares']), 'la hoja agrupa los planes en cuerpo completo y por grupos');
+ok(JSON.stringify(await page.locator('#plansheet h2').allTextContents()) === JSON.stringify(['Cuerpo completo', 'Por grupos musculares', 'A tu medida']), 'la hoja agrupa los planes en cuerpo completo, por grupos y a tu medida');
 ok(await page.locator('#plansheet .plan-foot .cta').isDisabled(), 'con el plan actual elegido no hay nada que confirmar');
 await page.locator('#plansheet [data-action="plan-sel"][value="fb3"]').check({ force: true }); await page.waitForTimeout(80);
 await shot('plan-sheet');
@@ -274,6 +274,17 @@ await click('#view-train [data-action="plan-open"]');
 await page.locator('#plansheet [data-action="plan-sel"][value="fb2"]').check({ force: true }); await page.waitForTimeout(80);
 await click('#plansheet [data-action="plan-use"]');
 ok(JSON.stringify((await dayRoutine(0))[1]) === JSON.stringify(pinnedBench), 'volver a Full body 2 días recupera la rutina editada');
+// Cambiar solo los días del plan actual no reinicia la rotación
+await page.evaluate(() => { S.plan.pos = 1; });
+await click('#view-train [data-action="plan-open"]');
+await click('#plansheet [data-action="plan-day"][data-v="ju"]'); await click('#plansheet [data-action="plan-day"][data-v="vi"]');
+ok(await page.locator('#plansheet .plan-foot .cta').textContent() === 'Guardar los días', 'con el mismo plan el botón guarda los días');
+await click('#plansheet [data-action="plan-use"]');
+ps = await state();
+ok(ps.rem.train.join() === 'lu,vi' && ps.plan.id === 'fb2' && ps.plan.pos === 1, 'guarda lunes y viernes sin reiniciar el día que toca');
+await click('[data-tab="settings"]');
+ok(await page.locator('#view-settings [data-action="plan-open"]').count() === 1 && await page.locator('#view-settings .week-strip .on').count() === 2, 'Ajustes muestra los días del plan y abre el cambio de plan');
+await trainTab();
 await click('[data-action="edit-routine"]');
 
 // CK-12: quitar el banco con el press en banco fijado avisa una sola vez
@@ -311,13 +322,39 @@ await page.check('#onb [data-action="eq-rings"]');
 await shot('03-equipo');
 await click('[data-action="onb-next"]');
 // Paso del plan: viene marcado el recomendado (novato → Full body 3 días) con sus días, y se puede elegir otro
-ok(await page.locator('#onb [data-action="onb-plan"]').count() === 4 && await page.locator('#onb [data-action="onb-plan"][value="fb3"]').isChecked(), 'el primer uso ofrece los 4 planes con Full body 3 días recomendado');
+ok(await page.locator('#onb [data-action="onb-plan"]').count() === 5 && await page.locator('#onb [data-action="onb-plan"][value="fb3"]').isChecked(), 'el primer uso ofrece los 4 planes y el personalizado con Full body 3 días recomendado');
 ok((await state()).rem.train.join() === 'lu,mi,vi' && (await state()).profile.days === 3, 'el plan recomendado trae lunes, miércoles y viernes');
 await page.locator('#onb [data-action="onb-plan"][value="gr5"]').check({ force: true }); await page.waitForTimeout(80);
 ok((await state()).plan.id === 'gr5' && (await state()).rem.train.join() === 'lu,ma,mi,ju,vi', 'elegir por grupos 5 días cambia los días a lunes a viernes');
 await shot('03b-plan');
 await page.locator('#onb [data-action="onb-plan"][value="fb2"]').check({ force: true }); await page.waitForTimeout(80);
 ok((await state()).plan.id === 'fb2' && (await state()).rem.train.join() === 'lu,ju', 'Full body 2 días: lunes y jueves');
+// Los días del plan elegido se tocan: la cantidad la pone el plan, cuáles los decide la persona
+const onbDay = (k) => click(`#onb [data-action="onb-day"][data-v="${k}"]`);
+await onbDay('ma');
+ok((await state()).rem.train.join() === 'lu,ju' && (await toastText()).includes('usa 2 días'), 'con los 2 días marcados no suma un tercero y explica cómo cambiarlo');
+await onbDay('ju');
+ok((await page.locator('#onb .day-hint').textContent()).includes('Elegí 1 día más'), 'al sacar un día pide elegir otro');
+await click('[data-action="onb-next"]');
+ok(await page.locator('#onb [data-action="onb-plan"]').count() > 0 && (await toastText()).includes('Elegí 1 día más'), 'no avanza con días de menos');
+await onbDay('sa');
+ok((await state()).rem.train.join() === 'lu,sa' && (await state()).profile.days === 2, 'Full body 2 días en lunes y sábado');
+// A tu medida: cuántos días y cuáles; el plan sale de la cantidad
+await page.locator('#onb [data-action="onb-plan"][value="custom"]').check({ force: true }); await page.waitForTimeout(80);
+ok((await state()).plan.custom && (await state()).rem.train.join() === 'lu,sa' && (await state()).plan.id === 'fb2', 'a tu medida conserva los días marcados: 2 días arma Full body 2 días');
+await onbDay('mi');
+ok((await state()).plan.id === 'fb3' && (await state()).profile.days === 3, 'a tu medida con 3 días arma Full body 3 días');
+for (const k of ['ma', 'ju', 'vi']) await onbDay(k);
+ok((await state()).plan.id === 'ppl6' && (await state()).rem.train.length === 6, 'a tu medida con 6 días arma empuje, tracción y pierna');
+await onbDay('do');
+ok((await state()).rem.train.length === 6 && (await toastText()).includes('descanso'), 'no deja entrenar los 7 días');
+await shot('03c-medida');
+for (const k of ['ma', 'mi', 'ju', 'vi', 'sa']) await onbDay(k);
+ok((await state()).plan.id === 'fb1' && (await page.locator('#onb .plan-opt.on').textContent()).includes('Full body 1 día'), 'a tu medida con 1 día arma Full body 1 día');
+await onbDay('lu');
+ok((await state()).rem.train.join() === 'lu' && (await toastText()).includes('al menos un día'), 'no deja la semana sin días');
+await page.locator('#onb [data-action="onb-plan"][value="fb2"]').check({ force: true }); await page.waitForTimeout(80);
+ok(!(await state()).plan.custom && (await state()).rem.train.join() === 'lu,ju', 'volver a un plan de la lista trae sus días');
 await click('[data-action="onb-back"]'); await click('[data-action="onb-next"]');
 ok(await page.locator('#onb [data-action="onb-plan"][value="fb2"]').isChecked(), 'volver atrás no pisa el plan elegido con el recomendado');
 await click('[data-action="onb-next"]');

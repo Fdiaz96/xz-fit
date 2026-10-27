@@ -2,7 +2,7 @@
 // (IndexedDB). Los identificadores internos siguen siendo "tendon-fuerte" para no perder los datos ya guardados.
 // Protocolo de tendones del video de Jeremy Ethier con Keith Baar y Coach Q; reglas en logic.js, bocetos en figures.js.
 
-const APP_VERSION = '1.26.0';
+const APP_VERSION = '1.27.0';
 const DAY_NAMES = { lu: 'Lu', ma: 'Ma', mi: 'Mi', ju: 'Ju', vi: 'Vi', sa: 'Sá', do: 'Do' };
 const SIDES = { der: 'derecha', izq: 'izquierda', ambos: 'ambos lados' };
 const REST_SECS = 90, ISO_REST = 60;
@@ -29,7 +29,7 @@ const DEFAULT = () => ({
   equip: { db: { min: 2, max: 24, step: 2 }, kb: [], rings: false, bench: false, bar: false, band: false, machines: [] },
   routine: {}, exlib: [],
   zones: {}, lifts: {}, sessions: [], checks: [], custom: [],
-  plan: { id: 'fb2', pos: 0, since: '', bw: false, deload: '', deloadOffer: '' },
+  plan: { id: 'fb2', custom: false, pos: 0, since: '', bw: false, deload: '', deloadOffer: '' },
   rem: { am: '08:00', pm: '20:00', train: ['lu', 'ju'], trainAt: '19:00' },
   prefs: { sound: true, voice: false, rest: 90, auto: true, theme: 'dark', weights: 'auto' }, seenVersion: '',
 });
@@ -357,66 +357,116 @@ function renderTrain() {
 }
 function routineSet(day, items) { S.routine[activePlan(S).id][day] = items; persist(); render(); }
 
-// ——— Plan de entrenamiento (Editar rutina → Cambiar plan) ———
+// ——— Plan de entrenamiento (primer uso, Editar rutina → Cambiar plan y Ajustes) ———
 // "Lu, Mi y Vi"
 const daysText = (keys) => { const n = keys.map((k) => DAY_NAMES[k]); return n.length > 1 ? `${n.slice(0, -1).join(', ')} y ${n.at(-1)}` : n[0] || ''; };
 // Semana tipo: los días de entrenamiento con la sigla del día del plan que toca, en orden de rotación.
-function weekStrip(plan, days) {
+// Con action, cada día es un botón para marcarlo o desmarcarlo.
+function weekStrip(plan, days, action) {
   let i = 0;
-  return `<div class="week-strip" role="img" aria-label="${esc(`Entrenás ${daysText(days)}`)}">${Object.entries(DAY_NAMES).map(([k, v]) => {
+  const cells = Object.entries(DAY_NAMES).map(([k, v]) => {
     const on = days.includes(k), sigla = on ? plan.days[i++ % plan.days.length].short : '';
-    return `<span class="${on ? 'on' : ''}"><small>${v}</small><b>${esc(sigla)}</b></span>`;
-  }).join('')}</div>`;
+    const inner = `<small>${v}</small><b>${esc(sigla)}</b>`;
+    return action ? `<button class="${on ? 'on' : ''}" data-action="${action}" data-v="${k}" aria-pressed="${on}" aria-label="${v}">${inner}</button>` : `<span class="${on ? 'on' : ''}">${inner}</span>`;
+  }).join('');
+  return action ? `<div class="week-strip edit">${cells}</div>` : `<div class="week-strip" role="img" aria-label="${esc(`Entrenás ${daysText(days)}`)}">${cells}</div>`;
+}
+// Elección de plan en curso: { id, days }. id es un plan de la lista o 'custom' (a tu medida: los días deciden el plan).
+const MAX_DAYS = 6;   // el séptimo día siempre es de descanso
+const choicePlan = (c) => PLANS[c.id === 'custom' ? PLAN_BY_DAYS[c.days.length] || 'fb2' : c.id];
+const currentChoice = () => ({ id: S.plan.custom ? 'custom' : activePlan(S).id, days: [...S.rem.train] });
+// Cambiar de plan en la lista propone sus días; pasar a "a tu medida" conserva los días marcados.
+const pickChoice = (c, id) => ({ id, days: id === 'custom' ? c.days.slice(0, MAX_DAYS) : [...PLANS[id].week] });
+// Tocar un día: lo saca o lo suma. Un plan de la lista tiene una cantidad fija de días; a tu medida, de 1 a 6.
+// Devuelve la elección nueva o un texto con lo que falta.
+function toggleChoiceDay(c, k) {
+  if (c.days.includes(k)) return c.id === 'custom' && c.days.length === 1 ? 'Elegí al menos un día.' : { ...c, days: c.days.filter((d) => d !== k) };
+  const max = c.id === 'custom' ? MAX_DAYS : PLANS[c.id].days.length;
+  if (c.days.length >= max) return c.id === 'custom' ? 'Dejá al menos un día de descanso por semana.' : `${PLANS[c.id].name} usa ${max} días. Tocá uno marcado para sacarlo y después elegí el nuevo.`;
+  return { ...c, days: Object.keys(DAY_NAMES).filter((d) => c.days.includes(d) || d === k) };
+}
+// Qué falta para confirmar ('' si está completa).
+function choiceMissing(c) {
+  if (c.id === 'custom') return c.days.length ? '' : 'Elegí al menos un día.';
+  const left = PLANS[c.id].days.length - c.days.length;
+  return left > 0 ? `Elegí ${left} ${left === 1 ? 'día más' : 'días más'} para ${PLANS[c.id].name}.` : '';
+}
+// Guarda la elección en el estado; con restart, la rotación y la rampa vuelven a empezar si cambia el plan (en el alta las inicia onbNext).
+function applyChoice(c, restart = false) {
+  const plan = choicePlan(c);
+  if (restart && plan.id !== activePlan(S).id) S.plan = { ...S.plan, pos: 0, since: today(), deload: '' };
+  S.plan = { ...S.plan, id: plan.id, custom: c.id === 'custom' };
+  S.rem.train = [...c.days]; S.profile.days = c.days.length;
 }
 function planCard() {
   const plan = activePlan(S);
-  return `<div class="plan-card"><div class="row"><div><span class="small muted">Tu plan</span><h3>${esc(plan.name)}</h3></div><button class="sec" data-action="plan-open">Cambiar plan</button></div>
+  return `<div class="plan-card"><div class="row"><div><span class="small muted">Tu plan${S.plan.custom ? ', a tu medida' : ''}</span><h3>${esc(plan.name)}</h3></div><button class="sec" data-action="plan-open">Cambiar plan</button></div>
     ${weekStrip(plan, S.rem.train)}
-    <p class="small muted">Rota ${esc(plan.days.map((d) => d.name).join(', '))}. Si faltás un día, seguís con el que toca. Los días los cambiás en Ajustes.</p></div>`;
+    <p class="small muted">Rota ${esc(plan.days.map((d) => d.name).join(', '))}. Si faltás un día, seguís con el que toca. Los días los cambiás en Cambiar plan.</p></div>`;
 }
-let PS = null;   // plan elegido en la hoja, antes de confirmar
-function openPlans(sel = activePlan(S).id) { PS = sel; renderPlans(); if (!$('plansheet').open) $('plansheet').showModal(); }
-// Planes agrupados por tipo, uno por tarjeta con su semana tipo. Lo usan la hoja "Elegí tu plan" y el primer uso:
-// sel es el elegido, action el data-action del radio, cur el plan actual (null en el alta) y tag la marca junto al nombre.
-function planOptions(sel, { action, cur = null, tag = {} }) {
+// Los ejercicios de cada día del plan: la versión guardada (con los cambios del usuario) si existe; si no, la que se armaría hoy.
+function planExercises(p) {
+  const saved = S.routine[p.id]?.length === p.days.length ? S.routine[p.id] : resolvePlan(p, S.equip, engineOpts());
+  const names = (day) => day.filter((it) => getEx(it.ex)).map((it) => getEx(it.ex).name).join(', ');
+  return { saved, html: `<details class="cues"><summary>Ver ejercicios</summary><ul>${p.days.map((d, i) => `<li><b>${esc(d.name)}:</b> ${esc(names(saved[i]))}</li>`).join('')}</ul>
+      <p class="small"><a href="${p.source.url}" target="_blank" rel="noopener">${esc(p.source.title)}</a></p></details>` };
+}
+const missingNote = (saved) => {
+  const n = saved.flat().filter((it) => !possible(it.ex, S.equip, getEx)).length;
+  return n ? `<small class="warn">Con tu equipo, ${n === 1 ? '1 ejercicio queda' : `${n} ejercicios quedan`} como "falta equipo".</small>` : '';
+};
+// Planes agrupados por tipo y al final el plan a tu medida. Lo usan la hoja "Elegí tu plan" y el primer uso.
+// El elegido muestra su semana con los días para tocar. action/dayAction son los data-action del radio y de los días,
+// cur el plan actual (null en el alta) y tag la marca junto al nombre.
+function planOptions(c, { action, dayAction, cur = null, tag = {} }) {
+  const days = (p) => {
+    const miss = choiceMissing(c);
+    return `${weekStrip(p, c.days, dayAction)}<p class="small ${miss ? 'warn' : 'muted'} day-hint">${esc(miss) || 'Tocá los días para elegir cuáles entrenás.'}</p>`;
+  };
   const opt = (p) => {
-    // Para mostrar, la versión guardada del plan (con los cambios del usuario) si existe; si no, la que se armaría hoy.
-    const items = resolvePlan(p, S.equip, engineOpts()), saved = S.routine[p.id]?.length === p.days.length ? S.routine[p.id] : items;
-    const names = (day) => day.filter((it) => getEx(it.ex)).map((it) => getEx(it.ex).name).join(', ');
-    const missing = saved.flat().filter((it) => !possible(it.ex, S.equip, getEx)).length;
-    return `<div class="plan-opt"><label class="tile"><input type="radio" name="plan" data-action="${action}" value="${p.id}" ${p.id === sel ? 'checked' : ''}><span>
+    const on = c.id === p.id, ex = planExercises(p);
+    return `<div class="plan-opt${on ? ' on' : ''}"><label class="tile"><input type="radio" name="plan" data-action="${action}" value="${p.id}" ${on ? 'checked' : ''}><span>
         <b>${esc(p.name)}${tag[p.id] ? ` <em class="tag-now">${tag[p.id]}</em>` : ''}</b>
         <small>${p.days.length} días por semana, ${p.mins} min por sesión. ${esc(p.for)}</small>
-        ${weekStrip(p, p.week)}
-        ${missing ? `<small class="warn">Con tu equipo, ${missing === 1 ? '1 ejercicio queda' : `${missing} ejercicios quedan`} como "falta equipo".</small>` : ''}
+        ${on ? '' : weekStrip(p, p.week)}${missingNote(ex.saved)}
         ${cur && p.id !== cur && S.routine[p.id] ? '<small>Vuelve con los cambios que le hiciste.</small>' : ''}
-      </span></label>
-      <details class="cues"><summary>Ver ejercicios</summary><ul>${p.days.map((d, i) => `<li><b>${esc(d.name)}:</b> ${esc(names(saved[i]))}</li>`).join('')}</ul>
-      <p class="small"><a href="${p.source.url}" target="_blank" rel="noopener">${esc(p.source.title)}</a></p></details></div>`;
+      </span></label>${on ? days(p) : ''}${ex.html}</div>`;
   };
-  return Object.entries(PLAN_KINDS).map(([kind, title]) => `<h2>${esc(title)}</h2>${Object.values(PLANS).filter((p) => p.kind === kind).map(opt).join('')}`).join('');
+  let h = Object.entries(PLAN_KINDS).map(([kind, title]) => `<h2>${esc(title)}</h2>${Object.values(PLANS).filter((p) => p.kind === kind).map(opt).join('')}`).join('');
+  const on = c.id === 'custom', mine = on && choicePlan(c), ex = mine && planExercises(mine), n = c.days.length;
+  h += `<h2>A tu medida</h2><div class="plan-opt${on ? ' on' : ''}"><label class="tile"><input type="radio" name="plan" data-action="${action}" value="custom" ${on ? 'checked' : ''}><span>
+      <b>Personalizado${tag.custom ? ` <em class="tag-now">${tag.custom}</em>` : ''}</b>
+      <small>${on ? `${n} ${n === 1 ? 'día' : 'días'} por semana: la app arma ${esc(mine.name)}. ${esc(mine.for)}` : 'Elegís cuántos días entrenás y cuáles. La app arma el plan que mejor encaja, de 1 a 6 días.'}</small>
+      ${on ? missingNote(ex.saved) : ''}
+    </span></label>${on ? days(mine) + ex.html : ''}</div>`;
+  return h;
 }
+let PC = null;   // elección en la hoja "Elegí tu plan", antes de confirmar
+function openPlans(id) { PC = id ? pickChoice(currentChoice(), id) : currentChoice(); renderPlans(); if (!$('plansheet').open) $('plansheet').showModal(); }
 function renderPlans() {
-  const cur = activePlan(S).id, chosen = PLANS[PS];
+  const now = currentChoice(), same = PC.id === now.id && PC.days.join() === now.days.join(), miss = choiceMissing(PC), plan = choicePlan(PC);
+  const keeps = plan.id === activePlan(S).id;
   let h = `<div class="dlg"><div class="dlg-head"><button class="link" data-action="close" data-dlg="plansheet">Cancelar</button><strong>Elegí tu plan</strong><span></span></div>
     <p class="muted small">La app arma los ejercicios de cada día con tu equipo. Después podés cambiar cualquiera en Editar rutina.</p>`;
-  h += planOptions(PS, { action: 'plan-sel', cur, tag: { [cur]: 'el tuyo' } });
-  h += `<div class="plan-foot">${PS === cur ? '<button class="cta" disabled>Es tu plan actual</button>'
-    : `<button class="cta" data-action="plan-use">Usar ${esc(chosen.name)}</button><p class="small muted">Entrenás ${daysText(chosen.week)} y el primer entreno es ${esc(chosen.days[0].name)}. Tus pesos y tu historial se mantienen.</p>`}</div></div>`;
+  h += planOptions(PC, { action: 'plan-sel', dayAction: 'plan-day', cur: activePlan(S).id, tag: { [now.id]: 'el tuyo' } });
+  h += `<div class="plan-foot">${same ? '<button class="cta" disabled>Es tu plan actual</button>'
+    : miss ? `<button class="cta" disabled>Usar ${esc(plan.name)}</button><p class="small warn">${esc(miss)}</p>`
+    : `<button class="cta" data-action="plan-use">${keeps ? 'Guardar los días' : `Usar ${esc(plan.name)}`}</button><p class="small muted">Entrenás ${daysText(PC.days)}${keeps ? ' y seguís con el día que te toca' : ` y el primer entreno es ${esc(plan.days[0].name)}`}. Tus pesos y tu historial se mantienen.</p>`}</div></div>`;
   dlg('plansheet').html = h;
+}
+// Tocar un día en la hoja o en el alta: actualiza la elección o explica por qué no.
+function choiceDay(c, k, then) { const r = toggleChoiceDay(c, k); if (typeof r === 'string') return toast(r); then(r); }
+function usePlan() {
+  if (choiceMissing(PC)) return toast(choiceMissing(PC));
+  const before = activePlan(S).id;
+  applyChoice(PC, true);
+  const plan = activePlan(S);
+  if (plan.id !== before) editDay = 0;
+  PC = null; $('plansheet').close(); persist(); render();
+  toast(plan.id !== before ? `Plan cambiado a ${plan.name}. Entrenás ${daysText(S.rem.train)}.` : `Días guardados: ${daysText(S.rem.train)}.`);
 }
 // Plan sugerido en el primer uso según la experiencia: cuerpo completo 3 días para quien empieza, torso y pierna para el resto.
 const recommendedPlan = (exp) => (exp === 'novato' ? 'fb3' : 'tp4');
-// Elegir plan: su id y sus días de entreno propuestos (en el alta, sin tocar rotación ni rampa: onbNext las inicia).
-function setPlan(id) { S.plan.id = id; S.rem.train = [...PLANS[id].week]; S.profile.days = PLANS[id].week.length; }
-// Cambiar de plan reinicia la rotación y la rampa de entrada; la rutina del plan anterior queda guardada por si se vuelve.
-function usePlan() {
-  const plan = PLANS[PS];
-  setPlan(plan.id); S.plan = { ...S.plan, pos: 0, since: today(), deload: '' };
-  editDay = 0; PS = null;
-  $('plansheet').close(); persist(); render();
-  toast(`Plan cambiado a ${plan.name}. Entrenás ${daysText(plan.week)}.`);
-}
 
 // Selector de ejercicios (agregar o cambiar uno de la rutina)
 let PK = null;   // { day, i }
@@ -1103,12 +1153,6 @@ function showTip(el) {
 
 // Campo numérico con la unidad adentro.
 const unitField = (label, attrs, unit) => `<label class="field"><span>${label}</span><div class="unit"><input type="number" ${attrs}><em>${unit}</em></div></label>`;
-// Días de entreno: definen los días por semana, el "hoy toca" y los recordatorios.
-function weekFields() {
-  const n = S.rem.train.length;
-  return `<div class="chips week">${Object.entries(DAY_NAMES).map(([k, v]) => `<button class="chip${S.rem.train.includes(k) ? ' on' : ''}" data-action="rem-day" data-v="${k}" aria-pressed="${S.rem.train.includes(k)}">${v}</button>`).join('')}</div>
-    <p class="small week-sum"><b>${n} ${n === 1 ? 'día' : 'días'} por semana.</b> <span class="muted">Esos días el inicio te muestra qué toca.</span></p>`;
-}
 // ——— Ajustes ———
 function renderSettings() {
   const p = S.profile, e = S.equip;
@@ -1117,7 +1161,8 @@ function renderSettings() {
     <label class="field"><span>Nombre</span><input data-set="profile.name" value="${esc(p.name)}"></label>
     <span class="small muted">Sexo</span><div class="chips" style="margin:4px 0 8px">${[['h', 'Hombre'], ['m', 'Mujer'], ['x', 'Prefiero no decir']].map(([k, v]) => `<button class="chip${p.sex === k ? ' on' : ''}" data-action="set-sex" data-v="${k}">${v}</button>`).join('')}</div>
     <div class="grid3">${unitField('Peso', `data-set="profile.weight" inputmode="decimal" value="${esc(p.weight)}"`, 'kg')}${unitField('Altura', `data-set="profile.height" inputmode="numeric" value="${esc(p.height)}"`, 'cm')}${unitField('Edad', `data-set="profile.age" inputmode="numeric" value="${esc(p.age)}"`, 'años')}</div>
-    <span class="small muted">Días de entreno</span>${weekFields()}
+    <span class="small muted">Días de entreno: ${esc(activePlan(S).name)}</span>${weekStrip(activePlan(S), S.rem.train)}
+    <button class="sec" style="width:100%" data-action="plan-open">Cambiar plan o días</button>
     <span class="small muted" style="display:block;margin-top:12px">Experiencia</span><div class="chips" style="margin-top:4px">${EXPERIENCE.map((x) => `<button class="chip${p.exp === x.id ? ' on' : ''}" data-action="set-exp" data-v="${x.id}">${x.name}</button>`).join('')}</div>
     <p class="faint small">Con sexo, peso, edad y experiencia estimamos tu peso inicial. La altura casi no cambia el cálculo.</p></div>
   <h2>Pesos</h2>${weightModeFields()}
@@ -1231,10 +1276,10 @@ function renderOnb() {
   if (onbStep === 2) body = `<h1>Tu equipo</h1><p class="muted small">Marcá lo que tenés. La rutina usa solo eso y redondea los pesos a lo que podés cargar.</p>${equipFields()}`;
   if (onbStep === 3) {
     const rec = recommendedPlan(p.exp);
-    if (!onbPlanSet) { setPlan(rec); onbPlanSet = true; }
-    body = `<h1>Tu plan</h1><p class="muted small">Elegí cómo repartir la semana. Cada plan trae sus días de entreno y la app arma los ejercicios de cada día con tu equipo.</p>
-      ${planOptions(S.plan.id, { action: 'onb-plan', tag: { [rec]: 'recomendado' } })}
-      <p class="faint small">Lo cambiás cuando quieras en Entreno → Editar rutina, y los días en Ajustes.</p>`;
+    if (!onbPlanSet) { applyChoice(pickChoice(currentChoice(), rec)); onbPlanSet = true; }
+    body = `<h1>Tu plan</h1><p class="muted small">Elegí cómo repartir la semana. Cada plan trae sus días de entreno, que podés cambiar, y la app arma los ejercicios de cada día con tu equipo.</p>
+      ${planOptions(currentChoice(), { action: 'onb-plan', dayAction: 'onb-day', tag: { [rec]: 'recomendado' } })}
+      <p class="faint small">Lo cambiás cuando quieras en Entreno → Editar rutina.</p>`;
   }
   if (onbStep === 4) body = `<h1>¿Te duele algo?</h1><p class="muted small">Opcional. Si marcás una zona, la app la cuida: baja la carga de los ejercicios que la exigen y te propone ejercicios para recuperar el tendón. Si no te duele nada, seguí.</p>
     <div class="tiles list">${ZONES.map((z) => { const zz = S.zones[z.id]; return tile(`data-action="zone-toggle" data-zone="${z.id}"`, !!zz, esc(z.name), esc(z.hint)) + (!zz ? '' : `<div class="zone-detail">
@@ -1247,6 +1292,7 @@ function renderOnb() {
 }
 function onbNext() {
   if (onbStep === 1 && !(Number(S.profile.weight) > 0)) return toast('Poné tu peso para estimar las cargas.');
+  if (onbStep === 3 && choiceMissing(currentChoice())) return toast(choiceMissing(currentChoice()));
   if (onbStep < ONB_STEPS - 1) { onbStep++; renderOnb(); $('onb').querySelector('.dlg').scrollTop = 0; return; }
   // La rutina se arma con el equipo elegido en el alta, y el plan (con su rampa de entrada) empieza hoy.
   resetRoutine(); S.plan.pos = 0; S.plan.since = today();
@@ -1344,6 +1390,8 @@ document.addEventListener('click', (e) => {
     'three-days': () => openPlans('fb3'),
     'plan-open': () => openPlans(),
     'plan-use': usePlan,
+    'plan-day': () => choiceDay(PC, d.v, (c) => { PC = c; renderPlans(); }),
+    'onb-day': () => choiceDay(currentChoice(), d.v, (c) => { applyChoice(c); persist(); renderOnb(); }),
     'zone-side': () => { S.zones[d.zone].side = d.side; persist(); $('onb').open ? renderOnb() : render(); },
     'zone-pain': () => { S.zones[d.zone].pain0 = +d.n; persist(); renderOnb(); },
     'custom-edit': () => openCustom(d.id),
@@ -1363,7 +1411,6 @@ document.addEventListener('click', (e) => {
     'undo': () => { const f = toastUndo; toastUndo = null; $('toast').hidden = true; f?.(); },
     'set-sex': () => { S.profile.sex = d.v; persist(); $('onb').open ? renderOnb() : render(); },
     'set-exp': () => { S.profile.exp = d.v; persist(); $('onb').open ? renderOnb() : render(); },
-    'rem-day': () => { const t = S.rem.train; if (t.length === 1 && t[0] === d.v) return toast('Elegí al menos un día.'); S.rem.train = t.includes(d.v) ? t.filter((x) => x !== d.v) : Object.keys(DAY_NAMES).filter((k) => t.includes(k) || k === d.v); S.profile.days = S.rem.train.length; persist(); $('onb').open ? renderOnb() : render(); },
     'ics': () => shareFile('xz-fit.ics', icsText(S.rem, S.painMode, today()), 'text/calendar'),
     'export': exportData,
     'import': () => $('import-file').click(),
@@ -1428,8 +1475,8 @@ document.addEventListener('change', (e) => {
     if (i === 'bar') S.equip.db.plates.bar = v >= 0 ? v : 0; else if (v >= 0) S.equip.db.plates.items[+i][k] = v;
     persist(); $('onb').open ? renderOnb() : render(); return;
   }
-  if (a === 'plan-sel') { PS = el.value; renderPlans(); }
-  if (a === 'onb-plan') { setPlan(el.value); persist(); renderOnb(); }
+  if (a === 'plan-sel') { PC = el.value === currentChoice().id ? currentChoice() : pickChoice(PC, el.value); renderPlans(); }
+  if (a === 'onb-plan') { applyChoice(pickChoice(currentChoice(), el.value)); persist(); renderOnb(); }
   if (a === 'weights-mode') { S.prefs.weights = el.value; persist(); $('onb').open ? renderOnb() : render(); }
   if (a === 'pref-toggle') { S.prefs[el.dataset.k] = el.checked; persist(); if (el.checked && el.dataset.k !== 'auto') cue('go', 'Así suena'); }
   if (a === 'hist-zone') { histZone = el.value; renderHistory(); }

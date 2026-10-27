@@ -239,10 +239,12 @@ eq(L('[...new Set(Object.values(SLOTS).flatMap((s) => s.ex))].filter((id) => !EX
   ['curl_iso', 'dead_bug', 'iso_pared', 'plancha', 'remo_aros_iso', 'sentadilla_pared'], 'sin rango solo los por tiempo, isométricos y dead_bug');
 eq(L('repRange(EXERCISES.dead_bug)'), [8, 12], 'dead_bug usa 8–12 por defecto');
 eq(L('repRange({})'), [8, 12], 'ejercicio propio sin rango usa 8–12');
-eq(L('Object.keys(PLANS)'), ['fb2', 'fb3', 'tp4', 'gr5'], 'catálogo: dos de cuerpo completo y dos por grupos');
-ok(L('Object.values(PLANS).every((p) => PLAN_KINDS[p.kind] && p.week.length === p.days.length && p.days.every((d) => d.short && d.slots.every((s) => !!SLOTS[s.slot])))'),
+eq(L('Object.keys(PLANS)'), ['fb2', 'fb3', 'tp4', 'gr5', 'fb1', 'ppl6'], 'catálogo: dos de cuerpo completo, dos por grupos y dos solo para el plan a tu medida');
+eq(L('Object.values(PLANS).filter((p) => PLAN_KINDS[p.kind]).map((p) => p.id)'), ['fb2', 'fb3', 'tp4', 'gr5'], 'la lista muestra 4 planes; fb1 y ppl6 los arma el plan a tu medida');
+eq(L('Object.entries(PLAN_BY_DAYS).map(([n, id]) => PLANS[id].days.length === Number(n))'), [true, true, true, true, true, true], 'a tu medida: de 1 a 6 días, cada cantidad da un plan con esa cantidad de días');
+ok(L('Object.values(PLANS).every((p) => (PLAN_KINDS[p.kind] || p.kind === "medida") && p.week.length === p.days.length && p.days.every((d) => d.short && d.slots.every((s) => !!SLOTS[s.slot])))'),
   'cada plan tiene tipo, un día de semana por día del plan, sigla y huecos existentes');
-for (const id of ['fb3', 'tp4', 'gr5']) {
+for (const id of ['fb3', 'tp4', 'gr5', 'fb1', 'ppl6']) {
   ok(L(`resolvePlan(PLANS.${id}, defEq).every((d) => d.every((it) => possible(it.ex, defEq)))`), `${id}: con mancuernas solas se arman todos los ejercicios`);
   ok(L(`resolvePlan(PLANS.${id}, defEq).every((d) => new Set(d.map((it) => it.ex)).size === d.length)`), `${id}: ningún ejercicio se repite en el mismo día`);
   ok(L(`resolvePlan(PLANS.${id}, fullEq).every((d) => d.every((it) => possible(it.ex, fullEq)))`), `${id}: con todo el equipo se arman todos los ejercicios`);

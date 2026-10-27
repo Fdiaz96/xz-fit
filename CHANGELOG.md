@@ -2,6 +2,13 @@
 
 Todos los cambios de XZ Fit (antes Tendón Fuerte), del más nuevo al más viejo.
 
+## 1.27.0 — Tus días y un plan a tu medida
+
+- En el plan que elegís, tocá los días de la semana para decidir cuáles entrenás. El plan pone la cantidad (por ejemplo, 2 días en Full body 2 días) y vienen marcados sus días por defecto si no cambiás nada.
+- Nuevo plan **Personalizado**, al final de la lista: elegís cuántos días entrenás (de 1 a 6) y cuáles, y la app arma el plan que mejor encaja. Con 1 día, Full body 1 día; con 2, 3, 4 o 5, los planes de la lista; con 6, empuje, tracción y pierna.
+- Funciona igual en el primer uso y en Entreno → Editar rutina → Cambiar plan. Si solo cambiás los días, seguís con el entreno que te tocaba.
+- En Ajustes, los días de entreno muestran tu plan y se cambian desde **Cambiar plan o días**.
+
 ## 1.26.0 — Elegís el plan desde el primer uso
 
 - Al entrar por primera vez, después de cargar tu equipo, hay un paso **Tu plan** con los cuatro planes y sus días de entreno ya puestos. Viene marcado el recomendado para tu experiencia: Full body 3 días si recién empezás y Torso y pierna 4 días si ya entrenás.

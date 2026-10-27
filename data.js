@@ -411,6 +411,7 @@ const SLOTS = {
 // Planes: lista de días, cada día una lista de huecos con sus series. `ex` fija la preferencia cuando un hueco se repite en el plan.
 // `kind` agrupa los planes en el selector, `week` son los días de entrenamiento que propone y `short` es la sigla del día en la semana tipo.
 // Full body 2 días equivale a TEMPLATES.A/B (mismo orden de huecos).
+// Los de tipo 'medida' no se listan: solo los arma el plan a tu medida según la cantidad de días (PLAN_BY_DAYS).
 const PLAN_KINDS = { fb: 'Cuerpo completo', grupos: 'Por grupos musculares' };
 const PLANS = {
   fb2: {
@@ -542,7 +543,44 @@ const PLANS = {
       },
     ],
   },
+  fb1: {
+    id: 'fb1',
+    name: 'Full body 1 día',
+    kind: 'medida', week: ['mi'], mins: '45–55',
+    for: 'Una sesión por semana con los movimientos básicos de todo el cuerpo.',
+    source: { title: 'Mono Culturista: rangos por ejercicio, 3 series por ejercicio', url: 'https://www.youtube.com/@MonoCulturista', videos: ['ioDqs84m9-Y'] },
+    days: [
+      {
+        name: 'Día A', short: 'A',
+        slots: [
+          { slot: 'rodilla', sets: 3 }, { slot: 'empuje_h', sets: 3 }, { slot: 'traccion_h', sets: 3, ex: 'remo_silla' },
+          { slot: 'bisagra', sets: 3, ex: 'rdl' }, { slot: 'empuje_v', sets: 3 }, { slot: 'abdominal', sets: 3 },
+        ],
+      },
+    ],
+  },
+  ppl6: {
+    id: 'ppl6',
+    name: 'Empuje, tracción y pierna 6 días',
+    kind: 'medida', week: ['lu', 'ma', 'mi', 'ju', 'vi', 'sa'], mins: '30–40',
+    for: 'Empuje, tracción y pierna dos veces por semana, sesiones cortas.',
+    source: { title: 'Mono Culturista: 3 series por ejercicio, cada músculo al menos 2 veces por semana', url: 'https://www.youtube.com/@MonoCulturista', videos: ['bJ2N1LdXkeo'] },
+    days: [
+      { name: 'Empuje A', short: 'EA', slots: [{ slot: 'empuje_h', sets: 3 }, { slot: 'empuje_v', sets: 3 }, { slot: 'lateral', sets: 3 }, { slot: 'triceps', sets: 3 }] },
+      { name: 'Tracción A', short: 'TA', slots: [{ slot: 'traccion_v', sets: 3 }, { slot: 'traccion_h', sets: 3, ex: 'remo_silla' }, { slot: 'deltoides_post', sets: 3 }, { slot: 'biceps', sets: 3 }] },
+      { name: 'Pierna A', short: 'PA', slots: [{ slot: 'rodilla', sets: 3 }, { slot: 'bisagra', sets: 3, ex: 'rdl' }, { slot: 'gemelos', sets: 3 }, { slot: 'abdominal', sets: 3 }] },
+      { name: 'Empuje B', short: 'EB', slots: [{ slot: 'empuje_inc', sets: 3 }, { slot: 'empuje_v', sets: 3 }, { slot: 'lateral', sets: 3, ex: 'elev_frontal' }, { slot: 'triceps', sets: 3, ex: 'press_frances' }] },
+      { name: 'Tracción B', short: 'TB', slots: [{ slot: 'traccion_h', sets: 3, ex: 'remo_inclinado' }, { slot: 'traccion_v', sets: 3 }, { slot: 'deltoides_post', sets: 3 }, { slot: 'biceps', sets: 3, ex: 'curl_concentrado' }] },
+      {
+        name: 'Pierna B', short: 'PB',
+        slots: [{ slot: 'unilateral', sets: 3, ex: 'bulgara' }, { slot: 'bisagra', sets: 3, ex: 'pm_una_pierna' }, { slot: 'gluteo', sets: 3 }, { slot: 'gemelos', sets: 3 }, { slot: 'abdominal', sets: 3, ex: 'dead_bug' }],
+      },
+    ],
+  },
 };
+
+// Plan a tu medida: con cuántos días entrenás decide el plan (el séptimo día siempre es de descanso).
+const PLAN_BY_DAYS = { 1: 'fb1', 2: 'fb2', 3: 'fb3', 4: 'tp4', 5: 'gr5', 6: 'ppl6' };
 
 const EXPERIENCE = [
   { id: 'novato', name: 'Menos de 6 meses', mult: 1 },
