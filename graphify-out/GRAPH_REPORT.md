@@ -11,7 +11,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `5e012cb0`
+- Built from commit: `e99d8b0b`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -78,10 +78,10 @@
 10. `patch()` - 16 edges
 
 ## Surprising Connections (you probably didn't know these)
+- `Dónde` --references--> `renderTrain()`  [INFERRED]
+  .specs/tasks/done/ux-11-editar-rutina-botones.md → app.js
 - `Dónde` --references--> `toast()`  [INFERRED]
   .specs/tasks/todo/ux-12-avisos-abajo.md → app.js
-- `Dónde` --references--> `renderTrain()`  [INFERRED]
-  .specs/tasks/todo/ux-11-editar-rutina-botones.md → app.js
 - `Dónde` --references--> `renderWorkout()`  [INFERRED]
   .specs/tasks/done/ux-01-calibracion-una-vez.md → app.js
 - `Dónde` --references--> `renderWorkout()`  [INFERRED]

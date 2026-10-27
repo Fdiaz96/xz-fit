@@ -2,6 +2,10 @@
 
 Todos los cambios de XZ Fit (antes Tendón Fuerte), del más nuevo al más viejo.
 
+## 1.20.6 — Los avisos aparecen abajo
+
+- Los avisos (como "Modo dolor activado.") ahora aparecen abajo, sobre la barra de pestañas o sobre el descanso, y ya no tapan la fecha ni los títulos. En las hojas que suben desde abajo siguen arriba, para no tapar los botones.
+
 ## 1.20.5 — Editar la rutina sin adivinar íconos
 
 - En Editar rutina, cada ejercicio tiene una fila con subir y bajar, y los botones "Cambiar" y "Quitar" con texto y más grandes.
