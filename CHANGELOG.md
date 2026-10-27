@@ -2,6 +2,14 @@
 
 Todos los cambios de XZ Fit (antes Tendón Fuerte), del más nuevo al más viejo.
 
+## 1.19.0 — Primer uso más claro: perfil, equipo y dolor
+
+- **Días de entreno, de 1 a 7**: ya no hay que elegir "2 o 3 días". Marcás los días que entrenás y la app cuenta cuántos son por semana. También en Ajustes → Perfil.
+- **Tu perfil**: peso, altura y edad en una fila, con la unidad dentro del campo.
+- **Tu equipo**: separado en pesos libres, accesorios y máquinas. Banco, barra, bandas y aros se marcan tocando la casilla entera.
+- **¿Te duele algo?**: las zonas son una lista que se marca de un toque. Al marcar una, debajo aparece cuánto duele y de qué lado. Explica qué hace la app con esa zona, y el botón final dice "Ver mi rutina".
+- En el alta ya no aparece el aviso de cambiar el press al marcar Banco.
+
 ## 1.18.3 — La app se presenta por el entreno
 
 - La descripción de la app (la que se ve al compartir el link, al buscarla o al instalarla) ahora habla de la rutina de fuerza guiada, no de rehabilitación de tendones.

@@ -2,7 +2,7 @@
 // (IndexedDB). Los identificadores internos siguen siendo "tendon-fuerte" para no perder los datos ya guardados.
 // Protocolo de tendones del video de Jeremy Ethier con Keith Baar y Coach Q; reglas en logic.js, bocetos en figures.js.
 
-const APP_VERSION = '1.18.3';
+const APP_VERSION = '1.19.0';
 const DAY_NAMES = { lu: 'Lu', ma: 'Ma', mi: 'Mi', ju: 'Ju', vi: 'Vi', sa: 'Sá', do: 'Do' };
 const SIDES = { der: 'derecha', izq: 'izquierda', ambos: 'ambos lados' };
 const REST_SECS = 90, ISO_REST = 60;
@@ -47,6 +47,7 @@ function withDefaults(d) {
   const { budget, week, next, ...plan } = { ...base.plan, ...d.plan };   // el presupuesto semanal y la alternancia A/B ya no existen
   const out = { ...base, ...rest, profile: { ...base.profile, ...d.profile }, equip: { ...base.equip, ...d.equip },
     plan: { ...plan, id: PLANS[plan.id] ? plan.id : 'fb2' }, routine: { ...d.routine }, rem: { ...base.rem, ...d.rem }, prefs: { ...base.prefs, ...d.prefs }, exlib: d.exlib || [] };
+  if (out.rem.train.length) out.profile.days = out.rem.train.length;   // los días por semana son los días elegidos
   if ('routine' in d) return out;
   // Datos anteriores a los planes (v1.0 a v1.14): la rutina A/B pasa tal cual y fijada, se conserva el día que tocaba
   // y el plan empieza con el primer entreno guardado, así quien ya entrenaba no recibe la rampa de entrada.
@@ -897,6 +898,14 @@ function showTip(el) {
   tip.style.left = `${r.left + r.width / 2}px`; tip.style.top = `${r.top + r.height / 2 - 6}px`;
 }
 
+// Campo numérico con la unidad adentro.
+const unitField = (label, attrs, unit) => `<label class="field"><span>${label}</span><div class="unit"><input type="number" ${attrs}><em>${unit}</em></div></label>`;
+// Días de entreno: definen los días por semana, el "hoy toca" y los recordatorios.
+function weekFields() {
+  const n = S.rem.train.length;
+  return `<div class="chips week">${Object.entries(DAY_NAMES).map(([k, v]) => `<button class="chip${S.rem.train.includes(k) ? ' on' : ''}" data-action="rem-day" data-v="${k}" aria-pressed="${S.rem.train.includes(k)}">${v}</button>`).join('')}</div>
+    <p class="small week-sum"><b>${n} ${n === 1 ? 'día' : 'días'} por semana.</b> <span class="muted">Esos días el inicio te muestra qué toca.</span></p>`;
+}
 // ——— Ajustes ———
 function renderSettings() {
   const p = S.profile, e = S.equip;
@@ -904,13 +913,11 @@ function renderSettings() {
   <h2>Perfil</h2><div class="card">
     <label class="field"><span>Nombre</span><input data-set="profile.name" value="${esc(p.name)}"></label>
     <span class="small muted">Sexo</span><div class="chips" style="margin:4px 0 8px">${[['h', 'Hombre'], ['m', 'Mujer'], ['x', 'Prefiero no decir']].map(([k, v]) => `<button class="chip${p.sex === k ? ' on' : ''}" data-action="set-sex" data-v="${k}">${v}</button>`).join('')}</div>
-    <div class="grid2"><label class="field"><span>Peso (kg)</span><input data-set="profile.weight" type="number" inputmode="decimal" value="${esc(p.weight)}"></label>
-    <label class="field"><span>Altura (cm)</span><input data-set="profile.height" type="number" inputmode="numeric" value="${esc(p.height)}"></label>
-    <label class="field"><span>Edad</span><input data-set="profile.age" type="number" inputmode="numeric" value="${esc(p.age)}"></label>
-    <label class="field"><span>Días por semana</span><select data-set="profile.days">${[2, 3].map((d) => `<option ${p.days === d ? 'selected' : ''}>${d}</option>`).join('')}</select></label></div>
-    <span class="small muted">Experiencia</span><div class="chips" style="margin-top:4px">${EXPERIENCE.map((x) => `<button class="chip${p.exp === x.id ? ' on' : ''}" data-action="set-exp" data-v="${x.id}">${x.name}</button>`).join('')}</div>
+    <div class="grid3">${unitField('Peso', `data-set="profile.weight" inputmode="decimal" value="${esc(p.weight)}"`, 'kg')}${unitField('Altura', `data-set="profile.height" inputmode="numeric" value="${esc(p.height)}"`, 'cm')}${unitField('Edad', `data-set="profile.age" inputmode="numeric" value="${esc(p.age)}"`, 'años')}</div>
+    <span class="small muted">Días de entreno</span>${weekFields()}
+    <span class="small muted" style="display:block;margin-top:12px">Experiencia</span><div class="chips" style="margin-top:4px">${EXPERIENCE.map((x) => `<button class="chip${p.exp === x.id ? ' on' : ''}" data-action="set-exp" data-v="${x.id}">${x.name}</button>`).join('')}</div>
     <p class="faint small">Con sexo, peso, edad y experiencia estimamos tu peso inicial; la serie de calibración lo ajusta. La altura casi no cambia el cálculo.</p></div>
-  <h2>Equipo</h2><div class="card">${equipFields()}</div>
+  <h2>Equipo</h2>${equipFields()}
   <h2>Tema</h2><div class="card"><div class="chips">${[['dark', 'Oscuro'], ['light', 'Claro'], ['system', 'Según el sistema']].map(([k, n]) => `<button class="chip${(S.prefs.theme || 'dark') === k ? ' on' : ''}" data-action="theme" data-v="${k}">${n}</button>`).join('')}</div><p class="faint small">El claro se lee mejor a pleno sol.</p></div>
   <h2>Durante la sesión</h2><div class="card">
     <div class="row"><div><h3>Sonidos</h3><p class="muted small">Pitidos al empezar, en los últimos 3 s y al terminar.</p></div><label class="switch acc"><input type="checkbox" data-action="pref-toggle" data-k="sound" ${S.prefs.sound ? 'checked' : ''} aria-label="Sonidos"><i></i></label></div>
@@ -921,8 +928,7 @@ function renderSettings() {
   <h2>Recordatorios</h2><div class="card">
     <p class="muted small">Se agregan a tu calendario: es la forma más confiable de recibir avisos sin servidor.</p>
     <div class="grid2"><label class="field"><span>Isométricos mañana</span><input type="time" data-set="rem.am" value="${S.rem.am}"></label><label class="field"><span>Isométricos noche</span><input type="time" data-set="rem.pm" value="${S.rem.pm}"></label></div>
-    <span class="small muted">Días de entreno</span><div class="chips" style="margin:4px 0">${Object.entries(DAY_NAMES).map(([k, v]) => `<button class="chip${S.rem.train.includes(k) ? ' on' : ''}" data-action="rem-day" data-v="${k}">${v}</button>`).join('')}</div>
-    <label class="field"><span>Hora del entreno</span><input type="time" data-set="rem.trainAt" value="${S.rem.trainAt}"></label>
+    <label class="field"><span>Hora del entreno (los días se eligen en Perfil)</span><input type="time" data-set="rem.trainAt" value="${S.rem.trainAt}"></label>
     <button class="sec" style="width:100%" data-action="ics">📅 Agregar al calendario</button>
     ${S.painMode ? '' : '<p class="faint small">Los isométricos se incluyen solo con el modo dolor activado.</p>'}</div>
   <h2>Copia de seguridad</h2><div class="card">
@@ -938,18 +944,21 @@ function renderSettings() {
   $('view-settings').innerHTML = h;
   navigator.storage?.persisted?.().then((ok) => { const el = $('persist-status'); if (el) el.textContent = ok ? '✓ Almacenamiento persistente: el navegador no borra los datos por falta de espacio.' : 'El navegador podría borrar los datos si falta espacio: instalá la app y guardá copias.'; });
 }
+// Casilla grande que se marca entera (accesorios, zonas con dolor).
+const tile = (attrs, on, name, hint = '') => `<label class="tile"><input type="checkbox" ${attrs} ${on ? 'checked' : ''}><span><b>${name}</b>${hint ? `<small>${hint}</small>` : ''}</span></label>`;
 function equipFields(prefix = '') {
   const e = S.equip;
-  return `<div class="row"><h3>Mancuernas</h3><label class="switch acc"><input type="checkbox" data-action="eq-db" ${e.db ? 'checked' : ''} aria-label="Tengo mancuernas"><i></i></label></div>
-    ${e.db ? `<div class="row" style="margin-top:6px"><div><b>Son de discos</b><br><span class="small muted">Cargá barra y discos: la app calcula los pesos posibles y qué poner de cada lado.</span></div><label class="switch acc"><input type="checkbox" data-action="eq-plates" ${e.db.plates?.on ? 'checked' : ''} aria-label="Mancuernas de discos"><i></i></label></div>` : ''}
+  return `<h3 class="grp">Pesos libres</h3><div class="card">
+    <div class="row"><div><h3>Mancuernas</h3>${e.db ? '' : '<p class="muted small" style="margin:0">No tengo</p>'}</div><label class="switch acc"><input type="checkbox" data-action="eq-db" ${e.db ? 'checked' : ''} aria-label="Tengo mancuernas"><i></i></label></div>
+    ${e.db && !e.db.plates?.on ? `<div class="grid3">${[['Más liviana', 'min', 0.5], ['Más pesada', 'max', 0.5], ['De a', 'step', 0.25]].map(([n, k, st]) => unitField(n, `inputmode="decimal" step="${st}" data-set="equip.db.${k}" value="${e.db[k]}"`, 'kg')).join('')}</div>` : ''}
+    ${e.db ? `<div class="row sub"><div><b>Son de discos</b><br><span class="small muted">Cargás barra y discos: la app calcula los pesos posibles y qué poner de cada lado.</span></div><label class="switch acc"><input type="checkbox" data-action="eq-plates" ${e.db.plates?.on ? 'checked' : ''} aria-label="Mancuernas de discos"><i></i></label></div>` : ''}
     ${e.db?.plates?.on ? platesFields() : ''}
-    ${e.db && !e.db.plates?.on ? `<div class="grid2" style="grid-template-columns:1fr 1fr 1fr"><label class="field"><span>Mínimo (kg)</span><input type="number" inputmode="decimal" step="0.5" data-set="equip.db.min" value="${e.db.min}"></label><label class="field"><span>Máximo (kg)</span><input type="number" inputmode="decimal" step="0.5" data-set="equip.db.max" value="${e.db.max}"></label><label class="field"><span>Salto (kg)</span><input type="number" inputmode="decimal" step="0.25" data-set="equip.db.step" value="${e.db.step}"></label></div>` : ''}
-    <label class="field"><span>Pesas rusas (kg, separadas por coma)</span><input data-set="equip.kb" ${prefix} value="${e.kb.join(', ')}" placeholder="Ej.: 12, 20"></label>
-    <div class="row"><h3>Aros o TRX</h3><label class="switch acc"><input type="checkbox" data-action="eq-rings" ${e.rings ? 'checked' : ''} aria-label="Tengo aros"><i></i></label></div>
-    ${[['bench', 'Banco'], ['bar', 'Barra de dominadas'], ['band', 'Bandas elásticas']].map(([k, n]) => `<div class="row"><h3>${n}</h3><label class="switch acc"><input type="checkbox" data-action="eq-flag" data-k="${k}" ${e[k] ? 'checked' : ''} aria-label="Tengo ${n.toLowerCase()}"><i></i></label></div>`).join('')}
-    <h3 style="margin-top:14px">Máquinas y otros equipos</h3>
-    ${(e.machines || []).map((m) => `<div class="row"><div><b>${esc(m.name)}</b><br><span class="small muted">${m.min}–${m.max} kg, de a ${m.step}</span></div><button class="link" data-action="mach-edit" data-id="${m.id}">Editar</button></div>`).join('') || '<p class="faint small">Polea, prensa, barra con discos… cualquier cosa con su rango de peso.</p>'}
-    <button class="sec" style="width:100%;margin-top:8px" data-action="mach-edit">+ Agregar máquina</button>`;
+    <hr><h3>Pesas rusas</h3><label class="field"><span>Los pesos que tenés, separados por coma</span><div class="unit"><input data-set="equip.kb" ${prefix} value="${e.kb.join(', ')}" placeholder="Ej.: 12, 20"><em>kg</em></div></label></div>
+  <h3 class="grp">Accesorios</h3><div class="tiles">
+    ${[['bench', 'Banco'], ['bar', 'Barra de dominadas'], ['band', 'Bandas elásticas']].map(([k, n]) => tile(`data-action="eq-flag" data-k="${k}"`, e[k], n)).join('')}${tile('data-action="eq-rings"', e.rings, 'Aros o TRX')}</div>
+  <h3 class="grp">Máquinas y otros equipos</h3><div class="card">
+    ${(e.machines || []).map((m) => `<div class="row"><div><b>${esc(m.name)}</b><br><span class="small muted">${m.min}–${m.max} kg, de a ${m.step}</span></div><button class="link" data-action="mach-edit" data-id="${m.id}">Editar</button></div>`).join('') || '<p class="muted small" style="margin:0">Polea, prensa, barra con discos: cualquier cosa con su rango de peso.</p>'}
+    <button class="sec" style="width:100%;margin-top:10px" data-action="mach-edit">+ Agregar máquina</button></div>`;
 }
 // Mancuernas de discos: barra, lista de discos (peso y cantidad total) y los pesos que se pueden armar.
 function platesFields() {
@@ -986,12 +995,7 @@ function setPath(path, raw) {
   let v = raw;
   if (path === 'equip.kb') v = raw.split(/[,;\s]+/).map((x) => Number(x.replace(',', '.'))).filter((x) => x > 0).sort((a, b) => a - b);
   else if (path.startsWith('equip.db.')) { v = Number(String(raw).replace(',', '.')); if (!(v > 0)) return; }
-  else if (path === 'profile.days') v = Number(raw);
   o[last] = v;
-  if (path === 'profile.days') {
-    if (S.rem.train.length !== v) S.rem.train = { 2: ['lu', 'ju'], 3: ['lu', 'mi', 'vi'] }[v] || S.rem.train;
-    if ($('onb').open) renderOnb();
-  }
   persist();
 }
 
@@ -1012,22 +1016,20 @@ function renderOnb() {
       <li class="care"><strong>Si algo te duele, se adapta.</strong> Baja la carga de esa zona y suma ejercicios para recuperar tendones.</li>
     </ul>
     <p class="muted small">Te toma un minuto. Tus datos quedan solo en este teléfono.</p>`;
-  if (onbStep === 1) body = `<h1>Tu perfil</h1><p class="muted small">Sirve para estimar cuánto levantar al principio.</p>
-    <label class="field"><span>Nombre o apodo</span><input data-set="profile.name" value="${esc(p.name)}"></label>
+  if (onbStep === 1) body = `<h1>Tu perfil</h1><p class="muted small">Con esto estimamos el peso de tu primera serie. Después se ajusta con lo que levantes.</p>
+    <label class="field"><span>Nombre o apodo</span><input data-set="profile.name" value="${esc(p.name)}" autocomplete="nickname"></label>
     <span class="small muted">Sexo</span><div class="chips" style="margin:4px 0 8px">${[['h', 'Hombre'], ['m', 'Mujer'], ['x', 'Prefiero no decir']].map(([k, v]) => `<button class="chip${p.sex === k ? ' on' : ''}" data-action="set-sex" data-v="${k}">${v}</button>`).join('')}</div>
-    <div class="grid2"><label class="field"><span>Peso (kg)</span><input id="o-weight" data-set="profile.weight" type="number" inputmode="decimal" value="${esc(p.weight)}"></label>
-    <label class="field"><span>Altura (cm)</span><input data-set="profile.height" type="number" inputmode="numeric" value="${esc(p.height)}"></label>
-    <label class="field"><span>Edad</span><input data-set="profile.age" type="number" inputmode="numeric" value="${esc(p.age)}"></label>
-    <label class="field"><span>Días por semana</span><select data-set="profile.days">${[2, 3].map((d) => `<option ${p.days === d ? 'selected' : ''}>${d}</option>`).join('')}</select></label></div>
-    <span class="small muted">¿Cuánto hace que entrenás con pesas?</span><div class="chips" style="margin-top:4px">${EXPERIENCE.map((x) => `<button class="chip${p.exp === x.id ? ' on' : ''}" data-action="set-exp" data-v="${x.id}">${x.name}</button>`).join('')}</div>
-    <span class="small muted" style="display:block;margin-top:12px">¿Qué días pensás entrenar? (para "hoy toca" y los recordatorios)</span><div class="chips" style="margin-top:4px">${Object.entries(DAY_NAMES).map(([k, v]) => `<button class="chip${S.rem.train.includes(k) ? ' on' : ''}" data-action="rem-day" data-v="${k}">${v}</button>`).join('')}</div>`;
-  if (onbStep === 2) body = `<h1>Tu equipo</h1><p class="muted small">La app muestra solo lo que podés hacer y redondea los pesos a lo que tenés.</p><div class="card">${equipFields()}</div>`;
-  if (onbStep === 3) body = `<h1>¿Te duele algo?</h1><p class="muted small">Opcional. Marcá las zonas y cuánto duelen hoy al usarlas. El modo dolor queda apagado: lo activás cuando quieras.</p>
-    <p class="faint small">Usa el protocolo de isométricos del video de Jeremy Ethier con el investigador Keith Baar y el fisioterapeuta Coach Q. No reemplaza a un profesional.</p>
-    ${ZONES.map((z) => { const zz = S.zones[z.id]; return `<div class="card${zz ? ' pain' : ''}"><div class="row"><div><h3>${esc(z.name)}</h3><p class="muted small">${esc(z.hint)}</p></div><label class="switch"><input type="checkbox" data-action="zone-toggle" data-zone="${z.id}" ${zz ? 'checked' : ''} aria-label="Me duele ${esc(z.name)}"><i></i></label></div>
-      ${zz ? `<div class="chips scale" style="margin-top:8px">${Array.from({ length: 11 }, (_, n) => `<button class="chip pain${zz.pain0 === n ? ' on' : ''}" data-action="zone-pain" data-zone="${z.id}" data-n="${n}">${n}</button>`).join('')}</div>
-        <div class="chips" style="margin-top:8px">${Object.entries(SIDES).map(([k, v]) => `<button class="chip pain${zz.side === k ? ' on' : ''}" data-action="zone-side" data-zone="${z.id}" data-side="${k}">${v}</button>`).join('')}</div>` : ''}</div>`; }).join('')}`;
-  dlg('onb').html = `<div class="dlg">${steps}${body}<div class="btns" style="margin-top:16px">${onbStep ? '<button class="sec" data-action="onb-back">Atrás</button>' : ''}<button class="cta" data-action="onb-next">${onbStep === 0 ? 'Armar mi rutina' : onbStep === ONB_STEPS - 1 ? 'Listo' : 'Siguiente'}</button></div></div>`;
+    <div class="grid3">${unitField('Peso', `id="o-weight" data-set="profile.weight" inputmode="decimal" value="${esc(p.weight)}"`, 'kg')}${unitField('Altura', `data-set="profile.height" inputmode="numeric" value="${esc(p.height)}"`, 'cm')}${unitField('Edad', `data-set="profile.age" inputmode="numeric" value="${esc(p.age)}"`, 'años')}</div>
+    <span class="small muted">¿Cuánto hace que entrenás con pesas?</span><div class="chips" style="margin:4px 0 16px">${EXPERIENCE.map((x) => `<button class="chip${p.exp === x.id ? ' on' : ''}" data-action="set-exp" data-v="${x.id}">${x.name}</button>`).join('')}</div>
+    <span class="small muted">¿Qué días entrenás?</span>${weekFields()}`;
+  if (onbStep === 2) body = `<h1>Tu equipo</h1><p class="muted small">Marcá lo que tenés. La rutina usa solo eso y redondea los pesos a lo que podés cargar.</p>${equipFields()}`;
+  if (onbStep === 3) body = `<h1>¿Te duele algo?</h1><p class="muted small">Opcional. Si marcás una zona, la app la cuida: baja la carga de los ejercicios que la exigen y te propone ejercicios para recuperar el tendón. Si no te duele nada, seguí.</p>
+    <div class="tiles list">${ZONES.map((z) => { const zz = S.zones[z.id]; return tile(`data-action="zone-toggle" data-zone="${z.id}"`, !!zz, esc(z.name), esc(z.hint)) + (!zz ? '' : `<div class="zone-detail">
+      <span class="small muted">¿Cuánto duele hoy al usarla?</span><div class="chips scale" style="margin-top:6px">${Array.from({ length: 11 }, (_, n) => `<button class="chip pain${zz.pain0 === n ? ' on' : ''}" data-action="zone-pain" data-zone="${z.id}" data-n="${n}">${n}</button>`).join('')}</div>
+      <div class="scale-ends small faint"><span>Nada</span><span>El peor dolor</span></div>
+      <span class="small muted">¿De qué lado?</span><div class="chips" style="margin-top:6px">${Object.entries(SIDES).map(([k, v]) => `<button class="chip pain${zz.side === k ? ' on' : ''}" data-action="zone-side" data-zone="${z.id}" data-side="${k}">${v}</button>`).join('')}</div></div>`); }).join('')}</div>
+    <p class="faint small">El modo dolor queda apagado hasta que lo actives desde el inicio. Usa el protocolo de isométricos del video de Jeremy Ethier con el investigador Keith Baar y el fisioterapeuta Coach Q. No reemplaza a un profesional.</p>`;
+  dlg('onb').html = `<div class="dlg">${steps}${body}<div class="btns" style="margin-top:16px">${onbStep ? '<button class="sec" data-action="onb-back">Atrás</button>' : ''}<button class="cta" data-action="onb-next">${onbStep === 0 ? 'Armar mi rutina' : onbStep === ONB_STEPS - 1 ? 'Ver mi rutina' : 'Siguiente'}</button></div></div>`;
   calmMotion($('onb'));
 }
 function onbNext() {
@@ -1122,7 +1124,7 @@ document.addEventListener('click', (e) => {
       if (Number(d.dir) > 0 && !phaseReady(S, d.zone, today()) && !confirm('Todavía no cumple el criterio (10 días y una semana con dolor ≤ 3). ¿Avanzar igual?')) return;
       S.zones[d.zone] = { ...z, phase: to, since: today() }; persist(); render();
     },
-    'three-days': () => { S.profile.days = 3; persist(); render(); toast('3 días por semana: el plan sigue rotando.'); },
+    'three-days': () => { if (S.rem.train.length < 3) S.rem.train = ['lu', 'mi', 'vi']; S.profile.days = 3; persist(); render(); toast('3 días por semana: el plan sigue rotando.'); },
     'zone-side': () => { S.zones[d.zone].side = d.side; persist(); $('onb').open ? renderOnb() : render(); },
     'zone-pain': () => { S.zones[d.zone].pain0 = +d.n; persist(); renderOnb(); },
     'custom-edit': () => openCustom(d.id),
@@ -1142,7 +1144,7 @@ document.addEventListener('click', (e) => {
     'undo': () => { const f = toastUndo; toastUndo = null; $('toast').hidden = true; f?.(); },
     'set-sex': () => { S.profile.sex = d.v; persist(); $('onb').open ? renderOnb() : render(); },
     'set-exp': () => { S.profile.exp = d.v; persist(); $('onb').open ? renderOnb() : render(); },
-    'rem-day': () => { const t = S.rem.train; S.rem.train = t.includes(d.v) ? t.filter((x) => x !== d.v) : Object.keys(DAY_NAMES).filter((k) => t.includes(k) || k === d.v); persist(); $('onb').open ? renderOnb() : render(); },
+    'rem-day': () => { const t = S.rem.train; if (t.length === 1 && t[0] === d.v) return toast('Elegí al menos un día.'); S.rem.train = t.includes(d.v) ? t.filter((x) => x !== d.v) : Object.keys(DAY_NAMES).filter((k) => t.includes(k) || k === d.v); S.profile.days = S.rem.train.length; persist(); $('onb').open ? renderOnb() : render(); },
     'ics': () => shareFile('xz-fit.ics', icsText(S.rem, S.painMode, today()), 'text/calendar'),
     'export': exportData,
     'import': () => $('import-file').click(),
@@ -1190,7 +1192,7 @@ document.addEventListener('change', (e) => {
   if (a === 'eq-rings') { S.equip.rings = el.checked; persist(); if (!$('onb').open) render(); }
   if (a === 'eq-flag') {
     S.equip[el.dataset.k] = el.checked; persist(); if (!$('onb').open) render();
-    if (el.checked && el.dataset.k === 'bench' && S.routine[activePlan(S).id]?.flat().some((it) => it.ex === 'press_suelo')) toast('Con banco podés cambiar el press en el suelo por press en banco: Entreno → Editar rutina.');
+    if (el.checked && el.dataset.k === 'bench' && !$('onb').open && S.routine[activePlan(S).id]?.flat().some((it) => it.ex === 'press_suelo')) toast('Con banco podés cambiar el press en el suelo por press en banco: Entreno → Editar rutina.');
     if (el.checked && el.dataset.k === 'bar') toast('Las dominadas quedan disponibles en Entreno → Editar rutina (cuidado con el codo).');
   }
   if (a === 'eq-plates') {

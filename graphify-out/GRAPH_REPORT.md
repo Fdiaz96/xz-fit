@@ -1,17 +1,17 @@
 # Graph Report - TendonApp  (2026-10-27)
 
 ## Corpus Check
-- 48 files · ~85,919 words
+- 48 files · ~86,212 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 14 file(s) not represented in the graph (top: (none) 11, .woff2 1, .webmanifest 1)
 
 ## Summary
-- 620 nodes · 1232 edges · 34 communities (31 shown, 3 thin omitted)
+- 623 nodes · 1241 edges · 34 communities (31 shown, 3 thin omitted)
 - Extraction: 93% EXTRACTED · 7% INFERRED · 0% AMBIGUOUS · INFERRED: 83 edges (avg confidence: 0.87)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `d7809e15`
+- Built from commit: `221d808d`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -96,7 +96,7 @@
 
 ### Community 0 - "App UI y sesiones"
 Cohesion: 0.06
-Nodes (105): activeZones(), altEx(), answerCheck(), applyTheme(), askPain(), calmMotion(), cue(), customFig() (+97 more)
+Nodes (108): activeZones(), altEx(), answerCheck(), applyTheme(), askPain(), calmMotion(), cue(), customFig() (+100 more)
 
 ### Community 1 - "Specs de features (datos, editor, calor)"
 Cohesion: 0.05
@@ -233,7 +233,7 @@ _Questions this graph is uniquely positioned to answer:_
 - **What connects `Sugerencia de pasar a 3 dias (suggestThreeDays)`, `Eliminar sesion con Deshacer`, `Tarjeta de instalacion (beforeinstallprompt / iOS)` to the rest of the system?**
   _61 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `App UI y sesiones` be split into smaller, more focused modules?**
-  _Cohesion score 0.061455525606469004 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.05963302752293578 - nodes in this community are weakly interconnected._
 - **Why does `getEx()` connect `App UI y sesiones` to `Pruebas e2e`?**
   _High betweenness centrality (0.133) - this node is a cross-community bridge._
 - **Should `Specs de features (datos, editor, calor)` be split into smaller, more focused modules?**

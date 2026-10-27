@@ -251,10 +251,12 @@ await page.fill('#onb [data-set="profile.name"]', 'Fede'); await page.dispatchEv
 await page.fill('#o-weight', '80'); await page.dispatchEvent('#o-weight', 'change');
 await page.fill('#onb [data-set="profile.age"]', '30'); await page.dispatchEvent('#onb [data-set="profile.age"]', 'change');
 await page.fill('#onb [data-set="profile.height"]', '178'); await page.dispatchEvent('#onb [data-set="profile.height"]', 'change');
-await page.selectOption('#onb [data-set="profile.days"]', '3');
-ok((await state()).rem.train.join() === 'lu,mi,vi', 'con 3 días propone lunes, miércoles y viernes');
-await page.selectOption('#onb [data-set="profile.days"]', '2');
-ok((await state()).rem.train.join() === 'lu,ju', 'con 2 días, lunes y jueves');
+await click('#onb [data-action="rem-day"][data-v="mi"]');
+ok((await state()).profile.days === 3, 'los días por semana salen de los días elegidos');
+await click('#onb [data-action="rem-day"][data-v="mi"]');
+await click('#onb [data-action="rem-day"][data-v="ju"]'); await click('#onb [data-action="rem-day"][data-v="lu"]');
+ok((await state()).rem.train.join() === 'lu' && (await toastText()).includes('al menos'), 'no deja la semana sin días');
+await click('#onb [data-action="rem-day"][data-v="ju"]');
 await click('#onb [data-action="rem-day"][data-v="ju"]'); await click('#onb [data-action="rem-day"][data-v="vi"]');
 ok((await state()).rem.train.join() === 'lu,vi', 'elige los días de entreno en el primer uso');
 await click('#onb [data-action="rem-day"][data-v="vi"]'); await click('#onb [data-action="rem-day"][data-v="ju"]');

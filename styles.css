@@ -123,6 +123,34 @@ input, select, textarea { font: inherit; color: var(--text); background: var(--c
 input::placeholder, textarea::placeholder { color: var(--faint); opacity: .55; }
 input:focus, select:focus, textarea:focus { outline: 2px solid var(--acc); border-color: transparent; }
 .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 10px; }
+.grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0 10px; }
+input[type=number] { -moz-appearance: textfield; appearance: textfield; }
+input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.unit { position: relative; }
+.unit input { padding-right: 44px; }
+.unit em { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); font-style: normal; font-size: 13px; color: var(--faint); pointer-events: none; }
+.chips.week { display: grid; grid-template-columns: repeat(7, 1fr); margin-top: 6px; }
+.chips.week .chip { min-width: 0; padding: 10px 0; }
+.week-sum { margin: 8px 0 0; }
+h3.grp { font-size: 15px; color: var(--muted); margin: 18px 0 8px; }
+.card hr { border: 0; border-top: 1px solid var(--line); margin: 14px 0 12px; }
+.card .row.sub { margin-top: 12px; }
+.tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: var(--gap); }
+.tiles.list { grid-template-columns: 1fr; }
+.tile { position: relative; display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 12px 14px; border-radius: 12px; background: var(--card); border: 2px solid transparent; cursor: pointer; }
+.tile input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
+.tile > span { flex: 1; }
+.tile b { display: block; font-size: 15px; }
+.tile small { display: block; margin-top: 2px; font-size: 13px; line-height: 1.35; color: var(--muted); }
+.tile::after { content: ''; flex: none; width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--line); box-sizing: border-box; }
+.tile:has(input:checked) { border-color: var(--acc); }
+.tile:has(input:checked)::after { border-color: var(--acc); background: var(--acc) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M6 12.5l4 4 8-9' fill='none' stroke='%230E0F11' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 16px no-repeat; }
+.tile:has(input:focus-visible) { outline: 2px solid var(--acc-fg); outline-offset: 2px; }
+.tiles.list .tile:has(input:checked) { border-color: var(--pain); }
+.tiles.list .tile:has(input:checked)::after { border-color: var(--pain); background-color: var(--pain); }
+.tiles.list .tile:has(+ .zone-detail) { border-bottom-color: transparent; border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+.zone-detail { margin-top: -8px; padding: 4px 14px 14px; background: var(--card); border: 2px solid var(--pain); border-top: 0; border-radius: 0 0 12px 12px; }
+.scale-ends { display: flex; justify-content: space-between; margin: 4px 0 12px; }
 .switch { position: relative; width: 52px; height: 32px; flex: none; }
 .switch input { opacity: 0; position: absolute; inset: 0; margin: 0; cursor: pointer; z-index: 1; }
 .switch i { position: absolute; inset: 0; border-radius: 99px; background: var(--card2); border: 1px solid var(--line); transition: .2s; }
