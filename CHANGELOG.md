@@ -2,6 +2,14 @@
 
 Todos los cambios de XZ Fit (antes Tendón Fuerte), del más nuevo al más viejo.
 
+## 1.16.0 — "Hoy no puedo": cambiá un ejercicio solo por hoy
+
+- **Hoy no puedo**: en el entreno, cada ejercicio tiene este botón para cuando hoy no lo podés hacer (llueve y no podés colgar los aros, la máquina está ocupada, te molesta).
+- **Elegí el motivo**: "Hoy no puedo usar aros" (o mancuernas, banco, la máquina…) cambia ese ejercicio y todos los del día que usan ese equipo por otro del mismo movimiento. "Otro motivo" te da el siguiente ejercicio del mismo movimiento. También podés saltearlo.
+- **Es solo por hoy**: tu rutina y tu equipo quedan igual y el próximo entreno vuelve el ejercicio de siempre. La tarjeta te lo recuerda ("Solo por hoy: en vez de …").
+- Si con lo que tenés hoy no hay otra opción para ese movimiento, el ejercicio se saltea y te avisamos.
+- El peso y la progresión se anotan en el ejercicio que hiciste de verdad.
+
 ## 1.15.0 — Motor de planes: Full body 2 días con rotación y rango por ejercicio
 
 - **Inicio**: la tarjeta de entreno dice, por ejemplo, "Día A · 6 ejercicios". Tenés los mismos ejercicios de siempre, repartidos en Día A y Día B.

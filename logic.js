@@ -103,6 +103,23 @@ function resolveDay(items, equip, opts = {}) {
   });
   return { items: day, notices, changed: day.some((it, i) => it !== items[i]) };
 }
+// Equipo que usa el ejercicio con este equipo (claves de equip; una máquina es 'm:<id>'). Peso corporal no usa nada.
+function equipUsed(ex, equip) {
+  const impl = implFor(ex, equip);
+  if (!impl) return [];
+  return [...new Set([...(ex.needs || []), ...(impl === 'bw' ? [] : [impl])])];
+}
+// Copia del equipo sin lo que hoy no está disponible ("hoy no puedo": llueve y no hay aros, la máquina está ocupada…).
+function withoutEquip(equip, keys) {
+  const out = { ...equip };
+  for (const k of keys) {
+    if (k.startsWith('m:')) out.machines = (out.machines || []).filter((m) => 'm:' + m.id !== k);
+    else if (k === 'kb') out.kb = [];
+    else if (k === 'db') out.db = null;
+    else out[k] = false;
+  }
+  return out;
+}
 // Sin aros, el ejercicio de aros se reemplaza por su alternativa (NO_RINGS); el resto queda igual.
 const ringsSwap = (id, equip) => (!equip.rings && NO_RINGS[id] ? NO_RINGS[id] : id);
 // Migración: las plantillas A/B del usuario pasan tal cual y fijadas; sin aros se guarda el reemplazo que ya veía.

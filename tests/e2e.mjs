@@ -409,6 +409,32 @@ ok((await page.locator('#view-train').textContent()).includes('Falta equipo'), '
 await openDay(0, 'train');
 ok(await cards().count() === 5 && !(await page.locator('#wsheet').textContent()).includes('Elevaciones laterales'), 'CK-26: el entreno empieza con 5 ítems, sin el faltante');
 await click('#wsheet [data-action="cancel-workout"]');
+// Hoy no puedo: llueve y no hay aros → el remo en aros del Día B cambia solo en esta sesión
+await bootSaved({ equip: { db: { min: 2, max: 24, step: 2 }, rings: true } });
+const routineB = dayIds(await state(), 1);
+await openDay(1, 'train');
+ok(routineB.includes('remo_aros') && (await page.locator('#wsheet').textContent()).includes('Remo invertido en aros'), 'el Día B con aros trae remo en aros');
+await click(`#wsheet [data-action="swap-today"][data-i="${await cards().evaluateAll((els) => els.findIndex((e) => e.textContent.includes('Remo invertido en aros')))}"]`);
+await page.waitForSelector('#swapsheet[open]');
+ok((await page.locator('#swapsheet').textContent()).includes('Hoy no puedo usar aros'), 'la hoja ofrece "Hoy no puedo usar aros"');
+await click('#swapsheet [data-action="swap-why"][data-off="rings"]');
+const wText = await page.locator('#wsheet').textContent();
+ok(!wText.includes('Remo invertido en aros') && wText.includes('Solo por hoy: en vez de remo invertido en aros'), `el remo en aros se cambia solo por hoy (${await toastText()})`);
+ok(await page.evaluate(() => W.items.every((it) => implFor(it.ex, { ...S.equip, rings: false }))), 'ningún ejercicio de la sesión usa aros');
+const otherI = await cards().evaluateAll((els) => els.findIndex((e) => !e.textContent.includes('Solo por hoy')));
+const otherName = await page.evaluate((i) => W.items[i].ex.name, otherI);
+await click(`#wsheet [data-action="swap-today"][data-i="${otherI}"]`);
+await click('#swapsheet [data-action="swap-why"][data-off=""]');
+ok(await page.evaluate((n) => !W.items.some((it) => it.ex.name === n), otherName), `otro motivo: ${otherName} se cambia por otro del mismo hueco o se saltea (${await toastText()})`);
+await click(`#wsheet [data-action="swap-today"][data-i="0"]`);
+await click('#swapsheet [data-action="swap-why"][data-off="skip"]');
+const firstFrom = await page.evaluate(() => W.items[0].from ?? null);
+ok(await page.evaluate(() => W.items.some((it) => it.from === 'remo_aros')), 'saltear otro ejercicio no deshace el cambio de los aros');
+await finishQuick();
+s = await state();
+ok((s.sessions[0].items[0].from ?? null) === firstFrom, 'la sesión guarda de qué ejercicio se cambió');
+ok(JSON.stringify(dayIds(s, 1)) === JSON.stringify(routineB) && s.equip.rings === true, 'la rutina y el equipo guardados no cambian');
+await closeSummary();
 ok(errors.length === errorsBefore4b, `rotación, rango y sesiones sin errores de JavaScript${errors.length > errorsBefore4b ? ': ' + errors.slice(errorsBefore4b).join(' | ') : ''}`);
 
 // progress() recibe el rango del ejercicio: laterales (12–20) suben con 3 × 20 y se quedan con 3 × 12

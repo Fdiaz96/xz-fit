@@ -2,7 +2,7 @@
 // (IndexedDB). Los identificadores internos siguen siendo "tendon-fuerte" para no perder los datos ya guardados.
 // Protocolo de tendones del video de Jeremy Ethier con Keith Baar y Coach Q; reglas en logic.js, bocetos en figures.js.
 
-const APP_VERSION = '1.15.0';
+const APP_VERSION = '1.16.0';
 const DAY_NAMES = { lu: 'Lu', ma: 'Ma', mi: 'Mi', ju: 'Ju', vi: 'Vi', sa: 'Sá', do: 'Do' };
 const SIDES = { der: 'derecha', izq: 'izquierda', ambos: 'ambos lados' };
 const REST_SECS = 90, ISO_REST = 60;
@@ -149,29 +149,29 @@ function syncRoutine() {
   };
 }
 // Cada ejercicio del día del plan, ya adaptado al equipo y al modo dolor; las series salen del hueco (rampa y descarga).
-function planFor(day) {
-  const plan = activePlan(S), spec = plan.days[day], t = today();
+const planFor = (day) => dayItems(day).map((it) => planItem(day, it));
+// Un ítem del día (ejercicio y hueco de la rutina) listo para entrenar; equip permite el equipo de hoy ("hoy no puedo").
+function planItem(day, it, equip = S.equip) {
+  const spec = activePlan(S).days[day], t = today();
   const deload = S.plan.deload === weekKey(t), weeks = weeksSince(S.plan.since, t);
-  return dayItems(day).map((it) => {
-    const orig = getEx(it.ex);
-    const r = restriction(S, orig, t);
-    const ex = r?.mode === 'alt' ? altEx(orig) : orig;
-    const impl = implFor(ex, S.equip);
-    const steps = weightSteps(S.equip, impl);
-    const slot = daySlot(spec, it.slot), range = repRange(ex, slot);
-    const item = { ex, orig, r, impl, steps, sets: setsFor(slot?.sets ?? DEFAULT_SETS, weeks, deload), range, missing: !impl, deload };
-    if (ex.kind === 'peso') {
-      const lift = S.lifts[ex.id];
-      item.calib = !lift;
-      item.base = lift ? roundDown(steps, lift.w) || lift.w : ex.ratio ? startWeight(S.profile, ex, steps, range) : roundDown(steps, ex.start || 0);
-      item.w = r ? painCap(item.base, steps) : item.base;
-      if (deload && !item.calib) item.w = roundDown(steps, item.w * 0.9);
-      item.capped = !!r && item.w < item.base;
-      item.stalled = !r && !deload && stalled(S, ex.id);
-    } else if (ex.kind === 'tiempo') item.secs = S.lifts[ex.id]?.secs || 30;
-    else if (ex.kind === 'iso') { item.secs = 30; item.w = ex.load0 ? roundDown(steps, ex.load0) : 0; }
-    return item;
-  });
+  const orig = getEx(it.ex);
+  const r = restriction(S, orig, t);
+  const ex = r?.mode === 'alt' ? altEx(orig) : orig;
+  const impl = implFor(ex, equip);
+  const steps = weightSteps(equip, impl);
+  const slot = daySlot(spec, it.slot), range = repRange(ex, slot);
+  const item = { ex, orig, r, impl, steps, slot: it.slot, sets: setsFor(slot?.sets ?? DEFAULT_SETS, weeks, deload), range, missing: !impl, deload };
+  if (ex.kind === 'peso') {
+    const lift = S.lifts[ex.id];
+    item.calib = !lift;
+    item.base = lift ? roundDown(steps, lift.w) || lift.w : ex.ratio ? startWeight(S.profile, ex, steps, range) : roundDown(steps, ex.start || 0);
+    item.w = r ? painCap(item.base, steps) : item.base;
+    if (deload && !item.calib) item.w = roundDown(steps, item.w * 0.9);
+    item.capped = !!r && item.w < item.base;
+    item.stalled = !r && !deload && stalled(S, ex.id);
+  } else if (ex.kind === 'tiempo') item.secs = S.lifts[ex.id]?.secs || 30;
+  else if (ex.kind === 'iso') { item.secs = 30; item.w = ex.load0 ? roundDown(steps, ex.load0) : 0; }
+  return item;
 }
 // Mantenimiento: zonas en fase 3 suman 3 isométricos de 30 s al final del entreno.
 function maintenanceItems() {
@@ -313,9 +313,8 @@ function openPicker(day, i) {
   if (!$('pickersheet').open) $('pickersheet').showModal();
 }
 function missingLabel(e) {
-  const names = { bench: 'banco', bar: 'barra de dominadas', band: 'bandas', rings: 'aros', db: 'mancuernas', kb: 'pesas rusas' };
-  const miss = (e.needs || []).filter((n) => !S.equip[n]).map((n) => names[n]);
-  if (!miss.length) miss.push(e.impl?.startsWith('m:') ? 'la máquina' : names[e.impl] || e.impl);
+  const miss = (e.needs || []).filter((n) => !S.equip[n]).map((n) => EQUIP_NAMES[n]);
+  if (!miss.length) miss.push(e.impl?.startsWith('m:') ? 'la máquina' : EQUIP_NAMES[e.impl] || e.impl);
   return miss.join(', ');
 }
 function pickExercise(id) {
@@ -417,7 +416,7 @@ function openExercise(id) {
 }
 
 // Sesión de entreno en curso
-let W = null;   // { plan, day, dayName, items, started, warm }
+let W = null;   // { plan, day, dayName, items, started, warm, off, out }
 function startWorkout(day) {
   const items = [...planFor(day).filter((p) => !p.missing), ...maintenanceItems()].map((p) => ({
     ...p, rows: Array.from({ length: p.sets }, () => ({ w: p.w || 0, reps: '', rir: '', secs: p.secs || '', done: false })),
@@ -427,7 +426,7 @@ function startWorkout(day) {
   const warm = [{ txt: 'Movilidad 3–5 min: círculos de hombros, muñecas y cadera, sentadillas sin peso.' }];
   if (S.painMode) for (const [zone, z] of Object.entries(S.zones)) if (z.phase < 3) warm.push({ txt: `Isométrico de ${zoneName(zone).toLowerCase()}: 1 × 30–45 s (${rehabEx(zone, 1).name.toLowerCase()}). Suele bajar el dolor para entrenar.` });
   if (first) for (const x of warmupSets(first.w, first.steps)) warm.push({ txt: `${first.ex.name}: ${x.reps} reps con ${fmtKg(x.w)} (aproximación, no cuenta).` });
-  W = { plan: activePlan(S).id, day, dayName: activePlan(S).days[day].name, items, started: Date.now(), warm: warm.map((x) => ({ ...x, done: false })) };
+  W = { plan: activePlan(S).id, day, dayName: activePlan(S).days[day].name, items, started: Date.now(), warm: warm.map((x) => ({ ...x, done: false })), off: [], out: [] };
   renderWorkout(); $('wsheet').showModal(); calmMotion($('wsheet')); keepAwake(true);
 }
 function renderWorkout() {
@@ -438,6 +437,7 @@ function renderWorkout() {
     if (it.r?.mode === 'cap') notes.push(`<div class="note pain">Modo dolor (${it.r.zones.map(zoneName).join(', ')}): al 60 % → ${fmtKg(it.w)}.</div>`);
     if (it.r?.mode === 'alt') notes.push(`<div class="note pain">Modo dolor: ${esc(zoneName(it.r.zones[0]))} está sensible, hoy va ${esc(it.ex.name.toLowerCase())} en vez de ${esc(it.orig.name.toLowerCase())}.</div>`);
     if (it.maint) notes.push(`<div class="note pain">Mantenimiento de ${esc(zoneName(it.maint).toLowerCase())} (fase 3).</div>`);
+    if (it.from) notes.push(`<div class="note">Solo por hoy: en vez de ${esc(getEx(it.from).name.toLowerCase())}.</div>`);
     const head = `<div class="set head"><span>#</span><span>${weighted ? 'kg' : ''}</span><span>${timed ? 'seg' : 'reps'}</span><span>${k === 'peso' ? 'RIR' : ''}</span><span></span></div>`;
     const rows = it.rows.map((r, j) => `<div class="set${r.done ? ' done' : ''}">
       <span class="n">${j + 1}</span>
@@ -446,7 +446,7 @@ function renderWorkout() {
       ${k === 'peso' ? `<select data-w="${i}.${j}.rir" aria-label="Repeticiones en reserva"><option value="">–</option>${[0, 1, 2, 3, 4].map((n) => `<option ${String(r.rir) === String(n) ? 'selected' : ''}>${n}</option>`).join('')}</select>` : '<span></span>'}
       <button class="ok" data-action="set-done" data-i="${i}" data-j="${j}" aria-label="Serie hecha">✓</button></div>`).join('');
     return `<div class="card${it.r || it.maint ? ' pain' : ''}"><div class="ex"><div class="thumb" data-action="ex-detail" data-ex="${it.ex.id}" title="Ver en grande">${figureSVG(it.ex, { crop: true })}</div>
-      <div class="info"><h3>${esc(it.ex.name)}</h3><p class="muted small">${it.sets} × ${setLabel(it)}${weighted ? ` · ${fmtKg(it.w)}` : ''}</p>${it.impl === 'db' && platesFor(S.equip, it.w) ? `<p class="plates">Por lado: ${platesLabel(it.w)}</p>` : ''}</div></div>
+      <div class="info"><h3>${esc(it.ex.name)}</h3><p class="muted small">${it.sets} × ${setLabel(it)}${weighted ? ` · ${fmtKg(it.w)}` : ''}</p>${it.impl === 'db' && platesFor(S.equip, it.w) ? `<p class="plates">Por lado: ${platesLabel(it.w)}</p>` : ''}${it.maint || it.rows.some((r) => r.done) ? '' : `<button class="link small" data-action="swap-today" data-i="${i}">Hoy no puedo</button>`}</div></div>
       ${notes.join('')}<details class="cues"><summary>Cómo se hace</summary><ul>${it.ex.cues.map((c) => `<li>${esc(c)}</li>`).join('')}</ul></details>
       <div class="sets">${head}${rows}</div></div>`;
   }).join('');
@@ -475,8 +475,42 @@ function setDone(i, j) {
   renderWorkout();
   if (r.done && it.rows.some((x) => !x.done)) startRest(k === 'iso' ? ISO_REST : S.prefs.rest || REST_SECS);
 }
+// "Hoy no puedo": el ejercicio se cambia solo en esta sesión por otro del mismo hueco; la rutina no se toca.
+const EQUIP_NAMES = { bench: 'banco', bar: 'barra de dominadas', band: 'bandas', rings: 'aros', db: 'mancuernas', kb: 'pesas rusas' };
+const equipName = (k) => (k.startsWith('m:') ? S.equip.machines.find((m) => 'm:' + m.id === k)?.name || 'la máquina' : EQUIP_NAMES[k]);
+function openSwapToday(i) {
+  const it = W.items[i], keys = equipUsed(it.ex, withoutEquip(S.equip, W.off));
+  const opt = (off, txt) => `<button class="sec" style="width:100%" data-action="swap-why" data-i="${i}" data-off="${off}">${esc(txt)}</button>`;
+  dlg('swapsheet').html = `<div class="dlg"><div class="dlg-head"><button class="link" data-action="close" data-dlg="swapsheet">Cancelar</button><strong>Hoy no puedo</strong><span></span></div>
+    <p class="muted">${esc(it.ex.name)}: ¿qué pasa? Lo cambiamos solo por hoy, tu rutina queda igual.</p>
+    ${it.slot && SLOTS[it.slot] ? keys.map((k) => opt(k, `Hoy no puedo usar ${equipName(k)}`)).join('') + opt('', 'Otro motivo: dame otro ejercicio') : ''}
+    <button class="link danger" data-action="swap-why" data-i="${i}" data-off="skip">Saltear este ejercicio</button></div>`;
+  $('swapsheet').showModal();
+}
+function swapToday(i, off) {
+  $('swapsheet').close();
+  const target = W.items[i], name = target.ex.name;
+  if (off === 'skip') { W.items.splice(i, 1); renderWorkout(); return toast(`Hoy sin ${name.toLowerCase()}.`); }
+  if (off) W.off.push(off); else W.out.push(target.ex.id, target.orig?.id);
+  const equip = withoutEquip(S.equip, W.off), opts = engineOpts();
+  const changed = [], skipped = [];
+  // Lo que ya tiene series hechas queda; el resto que no se puede hoy (o el elegido) se re-resuelve en su hueco.
+  W.items = W.items.flatMap((it, j) => {
+    const redo = j === i || (!it.maint && !it.rows.some((r) => r.done) && !implFor(it.ex, equip));
+    if (!redo) return [it];
+    const others = W.items.filter((_, k) => k !== j).map((x) => x.ex.id);
+    const to = SLOTS[it.slot] ? resolveSlot(it.slot, equip, { ...opts, exclude: [...others, ...W.out] }) : null;
+    const next = to && planItem(W.day, { slot: it.slot, ex: to }, equip);
+    if (!next || next.missing) { skipped.push(it.ex.name); return []; }
+    changed.push(next.ex.name);
+    return [{ ...next, from: it.from || it.orig?.id || it.ex.id, rows: Array.from({ length: next.sets }, () => ({ w: next.w || 0, reps: '', rir: '', secs: next.secs || '', done: false })) }];
+  });
+  renderWorkout();
+  const lower = (xs) => xs.map((x) => x.toLowerCase()).join(', ');
+  toast([changed.length ? `Hoy va ${lower(changed)}${changed.length === 1 ? ` en vez de ${name.toLowerCase()}` : ''}.` : '', skipped.length ? `Sin opción con lo que tenés hoy: se saltea ${lower(skipped)}.` : ''].filter(Boolean).join(' '));
+}
 function finishWorkout() {
-  const items = W.items.map((it) => ({ ex: it.ex.id, name: it.ex.name, reps: hasRepRange(it.ex) ? it.range : undefined, maint: it.maint || undefined, capped: !!it.r || !!it.deload, sets: it.rows.filter((r) => r.done).map((r) => ({ w: Number(r.w) || 0, reps: Number(r.reps) || 0, rir: r.rir === '' ? null : Number(r.rir), secs: Number(r.secs) || 0 })) }))
+  const items = W.items.map((it) => ({ ex: it.ex.id, name: it.ex.name, from: it.from, reps: hasRepRange(it.ex) ? it.range : undefined, maint: it.maint || undefined, capped: !!it.r || !!it.deload, sets: it.rows.filter((r) => r.done).map((r) => ({ w: Number(r.w) || 0, reps: Number(r.reps) || 0, rir: r.rir === '' ? null : Number(r.rir), secs: Number(r.secs) || 0 })) }))
     .filter((x) => x.sets.length);
   if (!items.length) return toast('Marcá al menos una serie como hecha.');
   const prs = [], ups = [];
@@ -1008,6 +1042,8 @@ document.addEventListener('click', (e) => {
     'cancel-workout': () => { if (confirm('¿Salir sin guardar el entreno?')) { stopRest(); W = null; $('wsheet').close(); keepAwake(false); } },
     'finish-workout': finishWorkout,
     'set-done': () => setDone(+d.i, +d.j),
+    'swap-today': () => openSwapToday(+d.i),
+    'swap-why': () => swapToday(+d.i, d.off),
     'skip-rest': stopRest,
     'ex-detail': () => openExercise(d.ex),
     'recalibrate': () => { if (confirm('¿Borrar el peso de trabajo y volver a calibrar?')) { delete S.lifts[d.ex]; persist(); $('exsheet').close(); render(); } },

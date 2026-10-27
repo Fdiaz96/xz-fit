@@ -374,5 +374,16 @@ eq(L(`weekStats({ ...wk3, plan: undefined }, '${T}').target`), 2, 'semana: sin p
 eq(L(`weekStats({ ...wk3, plan: { id: 'zzz' } }, '${T}').target`), 2, 'semana: plan inexistente → fb2 (objetivo 2)');
 eq(L(`streak(wk3, '${T}')`), 0, 'la racha sigue usando los días del perfil (1 de 3 no cumple la semana)');
 
+// "Hoy no puedo": equipo que usa el ejercicio y equipo del día sin lo que falta
+ctx.ringsEq = { ...defEq, rings: true, bench: true, machines: [{ id: 'p1', name: 'Polea', min: 5, max: 20, step: 2.5 }] };
+eq(L('equipUsed(EXERCISES.remo_aros, ringsEq)'), ['rings'], 'equipUsed: remo en aros usa aros');
+eq(L('equipUsed(EXERCISES.press_banco, ringsEq)'), ['bench', 'db'], 'equipUsed: press en banco usa banco y mancuernas');
+eq(L('equipUsed(EXERCISES.flexiones, ringsEq)'), [], 'equipUsed: peso corporal no usa nada');
+eq(L('equipUsed(EXERCISES.remo_aros, defEq)'), [], 'equipUsed: si no se puede hacer, nada');
+eq(L('withoutEquip(ringsEq, ["rings"]).rings'), false, 'withoutEquip saca los aros');
+eq(L('[withoutEquip(ringsEq, ["db"]).db, withoutEquip({ ...ringsEq, kb: [12] }, ["kb"]).kb.length, withoutEquip(ringsEq, ["m:p1"]).machines.length]'), [null, 0, 0], 'withoutEquip saca mancuernas, pesas rusas y máquinas');
+eq(L('ringsEq.rings && ringsEq.machines.length'), 1, 'withoutEquip no toca el equipo original');
+eq(L('resolveSlot("traccion_h", withoutEquip(ringsEq, ["rings"]), { exclude: ["remo_aros"] })'), 'remo_silla', 'sin aros hoy, el remo pasa a remo en silla');
+
 console.log(failures ? `\n${failures} fallaron` : '\nTodo OK');
 process.exit(failures ? 1 : 0);
