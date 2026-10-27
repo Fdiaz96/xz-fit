@@ -1,17 +1,17 @@
 # Graph Report - TendonApp  (2026-10-27)
 
 ## Corpus Check
-- 64 files · ~90,490 words
+- 65 files · ~90,944 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 14 file(s) not represented in the graph (top: (none) 11, .woff2 1, .webmanifest 1)
 
 ## Summary
-- 709 nodes · 1338 edges · 48 communities (45 shown, 3 thin omitted)
+- 711 nodes · 1340 edges · 48 communities (45 shown, 3 thin omitted)
 - Extraction: 92% EXTRACTED · 8% INFERRED · 0% AMBIGUOUS · INFERRED: 108 edges (avg confidence: 0.89)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `fc3d6245`
+- Built from commit: `18af85c0`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -110,7 +110,7 @@
 
 ### Community 0 - "App UI y sesiones"
 Cohesion: 0.05
-Nodes (116): activeZones(), altEx(), answerCheck(), applyTheme(), askPain(), calmMotion(), cue(), customFig() (+108 more)
+Nodes (115): activeZones(), altEx(), answerCheck(), applyTheme(), askPain(), calmMotion(), cue(), customFig() (+107 more)
 
 ### Community 1 - "Specs de features (datos, editor, calor)"
 Cohesion: 0.05
@@ -149,8 +149,8 @@ Cohesion: 0.13
 Nodes (18): A/B templates migration recipe (withDefaults), NO_RINGS substitution, Migration of v1.0-v1.14 data in withDefaults, Step 02: Plan engine (pure rules), defEq test fixture (copy of DEFAULT().equip), resolvePlan(), routineFromTemplates(), slotOf() (+10 more)
 
 ### Community 10 - "package.json"
-Cohesion: 0.10
-Nodes (18): author, description, devDependencies, playwright@^1.64.1, directories, test, keywords, license (+10 more)
+Cohesion: 0.09
+Nodes (19): author, description, devDependencies, playwright@^1.64.1, directories, test, keywords, license (+11 more)
 
 ### Community 11 - "Arquitectura y modelo de datos"
 Cohesion: 0.17
@@ -273,8 +273,8 @@ Cohesion: 0.40
 Nodes (4): Criterios de aceptación, Problema, Propuesta, UX 5: explicar "al 60 %" y "a calibrar"
 
 ### Community 44 - "UX 6: la pestaña Tendones solo cuando importa"
-Cohesion: 0.40
-Nodes (4): Criterios de aceptación, Problema, Propuesta, UX 6: la pestaña Tendones solo cuando importa
+Cohesion: 0.33
+Nodes (5): Criterios de aceptación, Dónde, Problema, Propuesta, UX 6: la pestaña Tendones solo cuando importa
 
 ### Community 45 - "UX 10: pesos con unidad y coherentes entre inicio y Entreno"
 Cohesion: 0.40
@@ -290,7 +290,7 @@ Nodes (5): bootSaved(), buildV114(), putData(), saveV114(), wipeDb()
 
 ## Knowledge Gaps
 - **61 isolated node(s):** `Sugerencia de pasar a 3 dias (suggestThreeDays)`, `Eliminar sesion con Deshacer`, `Tarjeta de instalacion (beforeinstallprompt / iOS)`, `Service worker sw.js (red primero, cache tendon-v<version>)`, `Tema claro/oscuro (applyTheme, tf-theme)` (+56 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 236 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 237 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
 - **3 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
@@ -303,9 +303,9 @@ _Questions this graph is uniquely positioned to answer:_
 - **What connects `Sugerencia de pasar a 3 dias (suggestThreeDays)`, `Eliminar sesion con Deshacer`, `Tarjeta de instalacion (beforeinstallprompt / iOS)` to the rest of the system?**
   _61 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `App UI y sesiones` be split into smaller, more focused modules?**
-  _Cohesion score 0.05345501955671447 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.05408193339227822 - nodes in this community are weakly interconnected._
 - **Why does `getEx()` connect `App UI y sesiones` to `Pruebas e2e`?**
-  _High betweenness centrality (0.136) - this node is a cross-community bridge._
+  _High betweenness centrality (0.138) - this node is a cross-community bridge._
 - **Should `Specs de features (datos, editor, calor)` be split into smaller, more focused modules?**
   _Cohesion score 0.053313587560162905 - nodes in this community are weakly interconnected._
 - **Why does `index.html (XZ Fit app shell)` connect `Shell HTML, PWA y fuente` to `App UI y sesiones`, `Reglas puras logic.js`, `Figuras 3D (figures.js)`, `Catálogos data.js`?**

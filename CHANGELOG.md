@@ -2,6 +2,10 @@
 
 Todos los cambios de XZ Fit (antes Tendón Fuerte), del más nuevo al más viejo.
 
+## 1.19.5 — El primer día no es de descanso
+
+- Si terminás el alta un día que no entrenás, el inicio ya no dice "día de descanso": te recibe con "Tu primer entreno" y te cuenta que con la primera serie calibramos tus pesos.
+
 ## 1.19.4 — Cambiar un ejercicio, más discreto
 
 - En el entreno, "Hoy no puedo" ahora dice "Cambiar por hoy". Está en gris, a la derecha de "Cómo se hace", y ya no compite con la serie que tenés que anotar.

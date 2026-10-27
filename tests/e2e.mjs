@@ -301,6 +301,12 @@ await shot('08-tendones');
 
 // 4. Entreno A con calibración
 await click('[data-tab="home"]');
+// Primer día: aunque hoy no sea día de entreno, el inicio no habla de descanso
+const remTrain = await page.evaluate(() => { const r = [...S.rem.train]; S.rem.train = r.filter((d) => d !== weekdayKey(today())); render(); return r; });
+const firstMsg = await page.locator('#view-home .today .day-msg').textContent();
+ok(firstMsg.includes('Tu primer entreno') && !(await page.locator('#view-home .today').textContent()).includes('descanso') && await page.locator('#view-home .today.on').count() === 1, 'el primer día dice "Tu primer entreno", con acento y sin "descanso"');
+ok(!(await page.locator('#view-home .today .plan-line').textContent()).includes('Primer entreno'), 'el primer entreno no se repite en la línea del plan');
+await page.evaluate((r) => { S.rem.train = r; render(); }, remTrain);
 await click('#view-home [data-action="start-workout"]');
 await page.waitForSelector('#wsheet[open]');
 ok((await page.locator('#wsheet .warm').textContent()).includes('Isométrico de codo lateral'), 'la entrada en calor incluye el isométrico de la zona sensible');
@@ -336,6 +342,7 @@ ok((await page.locator('#sumsheet').textContent()).includes('series') && s.sessi
 await shot('18-resumen');
 await click('#sumsheet [data-action="close"]');
 ok((await page.locator('#view-home .week .dots i.on').count()) === 1, 'Inicio muestra 1 entreno hecho esta semana');
+ok((await page.locator('#view-home .today .day-msg').textContent()).includes('Entreno de hoy hecho'), 'después del primer entreno vuelven los mensajes de siempre');
 ok(s.lifts.goblet && s.lifts.goblet.w === 12, 'el goblet queda calibrado');
 ok(s.plan.pos === 1, 'el próximo entreno es el B (Día B)');
 

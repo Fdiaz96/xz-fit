@@ -2,7 +2,7 @@
 // (IndexedDB). Los identificadores internos siguen siendo "tendon-fuerte" para no perder los datos ya guardados.
 // Protocolo de tendones del video de Jeremy Ethier con Keith Baar y Coach Q; reglas en logic.js, bocetos en figures.js.
 
-const APP_VERSION = '1.19.4';
+const APP_VERSION = '1.19.5';
 const DAY_NAMES = { lu: 'Lu', ma: 'Ma', mi: 'Mi', ju: 'Ju', vi: 'Vi', sa: 'Sá', do: 'Do' };
 const SIDES = { der: 'derecha', izq: 'izquierda', ambos: 'ambos lados' };
 const REST_SECS = 90, ISO_REST = 60;
@@ -244,10 +244,13 @@ function renderHome() {
   const plan = activePlan(S), day = dayIndex(plan, S.plan.pos), doable = planFor(day).filter((p) => !p.missing);
   const last = S.sessions.find((s) => s.type === 'entreno');
   const doneToday = last?.date === t, trainDay = S.rem.train.includes(weekdayKey(t));
-  const dayMsg = doneToday ? '✓ Entreno de hoy hecho' : trainDay ? 'Hoy toca entrenar' : 'Hoy es día de descanso, podés entrenar igual';
+  // Sin entrenos guardados, el día no importa: el primero siempre se presenta en positivo.
+  const first = !last, onMsg = first || doneToday || trainDay;
+  const dayMsg = first ? `Tu primer entreno.${doable.some((p) => p.calib) ? ' Con la primera serie de cada ejercicio calibramos tus pesos.' : ''}`
+    : doneToday ? '✓ Entreno de hoy hecho' : trainDay ? 'Hoy toca entrenar' : 'Hoy es día de descanso, podés entrenar igual';
   const load = (p) => p.ex.kind !== 'peso' ? '' : p.calib ? '<span class="load quiet">a calibrar</span>' : `<span class="load">${p.w ? `${String(p.w).replace('.', ',')} kg` : 'sin peso'}</span>`;
-  h += `<section class="card today${doneToday || trainDay ? ' on' : ''}">
-    <p class="plan-line"><span>${esc(plan.name)}</span><span>${last ? `Último: ${fmtDate(last.date)}` : 'Primer entreno'}</span></p>
+  h += `<section class="card today${onMsg ? ' on' : ''}">
+    <p class="plan-line"><span>${esc(plan.name)}</span>${last ? `<span>Último: ${fmtDate(last.date)}</span>` : ''}</p>
     <p class="day-msg">${dayMsg}${S.plan.deload === weekKey(t) ? '. Semana de descarga.' : ''}</p>
     <h3><span class="day-name">${esc(plan.days[day].name)}</span><span class="sep"> · </span><span class="day-count">${doable.length} ejercicios</span></h3>
     <ol class="board">${doable.map((p) => `<li><button data-action="ex-detail" data-ex="${p.ex.id}"><span class="name">${esc(p.ex.name)}${p.r ? `<em>${p.r.mode === 'alt' ? 'variante amable' : 'al 60 %'}</em>` : ''}</span><span class="dose">${p.sets} × ${setLabel(p)}</span>${load(p)}</button></li>`).join('')}</ol>
