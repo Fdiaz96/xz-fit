@@ -2,6 +2,11 @@
 
 Todos los cambios de XZ Fit (antes Tendón Fuerte), del más nuevo al más viejo.
 
+## 1.22.0 — Confirmás la serie con un toque
+
+- Podés tocar el ✓ sin anotar las repeticiones: se guardan las sugeridas (las que ves en gris). La serie de calibración sigue pidiendo las reales.
+- Si tenés menos de 6 meses entrenando, el rango de repeticiones es más chico y alrededor del mismo centro (por ejemplo 7–11 en vez de 6–12). El peso no cambia.
+
 ## 1.21.2 — Sin peso repetido en el título
 
 - En el entreno, el peso ya no aparece al lado de las series del ejercicio: lo ves y lo cambiás en cada serie.

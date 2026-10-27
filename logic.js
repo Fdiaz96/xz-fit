@@ -157,6 +157,8 @@ const estimate1RM = (profile, ex) => (Number(profile.weight) || 70) * (ex.ratio 
 // Rango de repeticiones de un ejercicio: el del hueco del plan, si no el del ejercicio, si no el de siempre (8–12).
 const repRange = (ex, spec) => spec?.reps ?? ex?.reps ?? [REPS_MIN, REPS_MAX];
 const repCenter = ([lo, hi]) => Math.round((lo + hi) / 2);
+// Para quien recién empieza, el rango se achica a 4 repeticiones alrededor del mismo centro (6–12 → 7–11): mismo peso, meta más clara.
+const noviceRange = (range) => { const c = repCenter(range); return [Math.max(range[0], c - 2), Math.min(range[1], c + 2)]; };
 // Peso sugerido la primera vez (serie de calibración al centro del rango: 10 repeticiones con 8–12).
 const startWeight = (profile, ex, steps, range = [REPS_MIN, REPS_MAX]) => roundDown(steps, START_FACTOR * weightForReps(estimate1RM(profile, ex), repCenter(range)));
 // Después de la serie de calibración: reps hechas + reps en reserva → 1RM estimado → peso de trabajo (centro del rango dejando 2).

@@ -397,7 +397,7 @@ const finishQuick = async () => {
 const closeSummary = () => click('#sumsheet [data-action="close"]');
 
 // CK-19, CK-21, CK-25 y calibración con el rango: Día A con 3 días en el perfil y plan de 20 días
-await bootSaved({ profile: { days: 3 }, sessions: [{ ago: 20 }], equip: { db: { min: 2, max: 24, step: 2 } }, extra: { prefs: { weights: 'calib' } } });
+await bootSaved({ profile: { days: 3, exp: 'medio' }, sessions: [{ ago: 20 }], equip: { db: { min: 2, max: 24, step: 2 } }, extra: { prefs: { weights: 'calib' } } });
 await openDay(0);
 ok(await cards().count() === 6, 'Día A: 6 ejercicios en el entreno');
 const setCounts = await cards().evaluateAll((els) => els.map((e) => e.querySelectorAll('.set:not(.head)').length));
@@ -535,10 +535,21 @@ const finishLaterales = async (reps) => {
   await closeSummary();
   return lift;
 };
-await bootSaved({ sessions: [{ ago: 20 }], lifts: { lateral: { w: 4, e1rm: 8 } }, equip: { db: { min: 2, max: 24, step: 2 } } });
+await bootSaved({ profile: { exp: 'medio' }, sessions: [{ ago: 20 }], lifts: { lateral: { w: 4, e1rm: 8 } }, equip: { db: { min: 2, max: 24, step: 2 } } });
 ok(await finishLaterales(20) === 6, 'progress con rango: laterales 3 × 20 (tope de 12–20) suben un salto, de 4 a 6 kg');
-await bootSaved({ sessions: [{ ago: 20 }], lifts: { lateral: { w: 4, e1rm: 8 } }, equip: { db: { min: 2, max: 24, step: 2 } } });
+await bootSaved({ profile: { exp: 'medio' }, sessions: [{ ago: 20 }], lifts: { lateral: { w: 4, e1rm: 8 } }, equip: { db: { min: 2, max: 24, step: 2 } } });
 ok(await finishLaterales(12) === 4, 'progress con rango: laterales 3 × 12 (mínimo, no el tope) no cambian de peso');
+
+// Novato: rango más chico (6–12 → 7–11) y el ✓ sin reps anotadas guarda las sugeridas
+await bootSaved({ sessions: [{ ago: 20 }], lifts: { goblet: { w: 14, e1rm: 22 } }, equip: { db: { min: 2, max: 24, step: 2 } } });
+await openDay(0);
+ok((await card('Sentadilla goblet').textContent()).includes('× 7–11'), 'novato: la goblet muestra "× 7–11" en vez de 6–12');
+{
+  const i = await cards().evaluateAll((els) => els.findIndex((e) => e.textContent.includes('Sentadilla goblet')));
+  await click(`#wsheet [data-action="set-done"][data-i="${i}"][data-j="0"]`);
+  ok(await page.evaluate((i) => W.items[i].rows[0].done && W.items[i].rows[0].reps === 9, i), '✓ sin reps anotadas: la serie queda hecha con las 9 sugeridas');
+  await page.evaluate(() => { $('wsheet').close(); W = null; keepAwake(false); });
+}
 
 // Modo dolor con la zona en brote: el remo pasa a su variante (sin aros, el isométrico del curl)
 await bootSaved({ extra: { painMode: true, zones: { codo_lat: { side: 'der', pain0: 5, phase: 1, since: '2026-10-01', load: 2, secs: 30 } } } });

@@ -2,7 +2,7 @@
 // (IndexedDB). Los identificadores internos siguen siendo "tendon-fuerte" para no perder los datos ya guardados.
 // Protocolo de tendones del video de Jeremy Ethier con Keith Baar y Coach Q; reglas en logic.js, bocetos en figures.js.
 
-const APP_VERSION = '1.21.2';
+const APP_VERSION = '1.22.0';
 const DAY_NAMES = { lu: 'Lu', ma: 'Ma', mi: 'Mi', ju: 'Ju', vi: 'Vi', sa: 'Sá', do: 'Do' };
 const SIDES = { der: 'derecha', izq: 'izquierda', ambos: 'ambos lados' };
 const REST_SECS = 90, ISO_REST = 60;
@@ -187,7 +187,7 @@ function planItem(day, it, equip = S.equip) {
   const ex = r?.mode === 'alt' ? altEx(orig) : orig;
   const impl = implFor(ex, equip);
   const steps = weightSteps(equip, impl);
-  const slot = daySlot(spec, it.slot), range = repRange(ex, slot);
+  const slot = daySlot(spec, it.slot), range = S.profile.exp === 'novato' ? noviceRange(repRange(ex, slot)) : repRange(ex, slot);
   const item = { ex, orig, r, impl, steps, slot: it.slot, sets: setsFor(slot?.sets ?? DEFAULT_SETS, weeks, deload), range, missing: !impl, deload };
   if (ex.kind === 'peso') {
     const lift = S.lifts[ex.id], mode = weightMode();
@@ -543,7 +543,11 @@ function renderWorkout() {
 function setDone(i, j) {
   const it = W.items[i], r = it.rows[j], k = it.ex.kind;
   if (!r.done) {
-    if ((k === 'peso' || k === 'reps') && !(Number(r.reps) > 0)) return toast('Anotá las repeticiones que hiciste.');
+    // Sin reps anotadas valen las sugeridas (el centro del rango), salvo en la serie de calibración, que necesita las reales.
+    if ((k === 'peso' || k === 'reps') && !(Number(r.reps) > 0)) {
+      if (it.calib && j === 0 && k === 'peso') return toast('Anotá las repeticiones que hiciste.');
+      r.reps = repCenter(it.range);
+    }
     if (k === 'peso' && it.pick && !(Number(r.w) > 0)) return toast('Anotá el peso que usaste.');
     if ((k === 'tiempo' || k === 'iso') && !(Number(r.secs) > 0)) r.secs = it.secs;
   }
