@@ -1,17 +1,17 @@
 # Graph Report - TendonApp  (2026-10-27)
 
 ## Corpus Check
-- 65 files · ~91,159 words
+- 66 files · ~91,655 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 14 file(s) not represented in the graph (top: (none) 11, .woff2 1, .webmanifest 1)
 
 ## Summary
-- 714 nodes · 1349 edges · 48 communities (45 shown, 3 thin omitted)
+- 718 nodes · 1355 edges · 49 communities (46 shown, 3 thin omitted)
 - Extraction: 92% EXTRACTED · 8% INFERRED · 0% AMBIGUOUS · INFERRED: 108 edges (avg confidence: 0.89)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `d92298a1`
+- Built from commit: `bfb95d16`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -64,12 +64,13 @@
 - UX 10: pesos con unidad y coherentes entre inicio y Entreno
 - UX 13: textos sin jerga ni cadenas con puntos medios
 - saveV114
+- UX 8: zonas con dolor con el mismo componente que el alta
 
 ## God Nodes (most connected - your core abstractions)
 1. `Training Plan Engine skill (SKILL.md)` - 30 edges
 2. `figureSVG()` - 28 edges
-3. `esc()` - 22 edges
-4. `render()` - 22 edges
+3. `render()` - 23 edges
+4. `esc()` - 22 edges
 5. `renderHome()` - 18 edges
 6. `CHANGELOG.md (XZ Fit)` - 18 edges
 7. `today()` - 17 edges
@@ -106,11 +107,11 @@
 - **Plans of the 'planes de entrenamiento' roadmap built on the plan engine** — _specs_tasks_done_motor_de_planes_feature_plans_fb2, _specs_tasks_draft_plan_full_body_3_dias_feature_fb3, _specs_tasks_draft_plan_torso_pierna_4_dias_feature_tp4, _specs_tasks_draft_plan_empuje_traccion_4_dias_feature_et4, _specs_tasks_draft_plan_grupos_5_dias_feature_gr5, _specs_tasks_draft_plan_isometricos_feature_iso [INFERRED 0.95]
 - **Exportaciones via shareFile (Web Share o descarga)** — _specs_tasks_done_datos_locales_copia_feature_backup_restore, _specs_tasks_done_informe_fisio_feature_physio_report, _specs_tasks_done_recordatorios_calendario_feature_ics_calendar [INFERRED 0.95]
 
-## Communities (48 total, 3 thin omitted)
+## Communities (49 total, 3 thin omitted)
 
 ### Community 0 - "App UI y sesiones"
 Cohesion: 0.06
-Nodes (114): activeZones(), altEx(), answerCheck(), applyTheme(), askPain(), bodyPart(), calmMotion(), cue() (+106 more)
+Nodes (115): activeZones(), altEx(), answerCheck(), applyTheme(), askPain(), bodyPart(), calmMotion(), cue() (+107 more)
 
 ### Community 1 - "Specs de features (datos, editor, calor)"
 Cohesion: 0.05
@@ -130,7 +131,7 @@ Nodes (45): add3(), box(), CAM, CAM_YAWS, CAM_YAWS_FRONT, camCache, camera(), ca
 
 ### Community 5 - "Pruebas e2e"
 Cohesion: 0.07
-Nodes (20): altRow, backup, backupPath, editedTpl, errors, first, ics, jalon (+12 more)
+Nodes (21): altRow, backup, backupPath, editedTpl, errors, first, ics, jalon (+13 more)
 
 ### Community 6 - "Pruebas unitarias"
 Cohesion: 0.09
@@ -149,8 +150,8 @@ Cohesion: 0.13
 Nodes (18): A/B templates migration recipe (withDefaults), NO_RINGS substitution, Migration of v1.0-v1.14 data in withDefaults, Step 02: Plan engine (pure rules), defEq test fixture (copy of DEFAULT().equip), resolvePlan(), routineFromTemplates(), slotOf() (+10 more)
 
 ### Community 10 - "package.json"
-Cohesion: 0.09
-Nodes (19): author, description, devDependencies, playwright@^1.64.1, directories, test, keywords, license (+11 more)
+Cohesion: 0.08
+Nodes (20): author, description, devDependencies, playwright@^1.64.1, directories, test, keywords, license (+12 more)
 
 ### Community 11 - "Arquitectura y modelo de datos"
 Cohesion: 0.17
@@ -273,8 +274,8 @@ Cohesion: 0.40
 Nodes (4): Criterios de aceptación, Problema, Propuesta, UX 5: explicar "al 60 %" y "a calibrar"
 
 ### Community 44 - "UX 6: la pestaña Tendones solo cuando importa"
-Cohesion: 0.16
-Nodes (9): Criterios de aceptación, Dónde, Problema, Propuesta, UX 6: la pestaña Tendones solo cuando importa, Criterios de aceptación, Problema, Propuesta (+1 more)
+Cohesion: 0.33
+Nodes (5): Criterios de aceptación, Dónde, Problema, Propuesta, UX 6: la pestaña Tendones solo cuando importa
 
 ### Community 45 - "UX 10: pesos con unidad y coherentes entre inicio y Entreno"
 Cohesion: 0.40
@@ -288,9 +289,13 @@ Nodes (4): Criterios de aceptación, Problema, Propuesta, UX 13: textos sin jerg
 Cohesion: 0.40
 Nodes (5): bootSaved(), buildV114(), putData(), saveV114(), wipeDb()
 
+### Community 48 - "UX 8: zonas con dolor con el mismo componente que el alta"
+Cohesion: 0.40
+Nodes (4): Criterios de aceptación, Problema, Propuesta, UX 8: zonas con dolor con el mismo componente que el alta
+
 ## Knowledge Gaps
 - **61 isolated node(s):** `Sugerencia de pasar a 3 dias (suggestThreeDays)`, `Eliminar sesion con Deshacer`, `Tarjeta de instalacion (beforeinstallprompt / iOS)`, `Service worker sw.js (red primero, cache tendon-v<version>)`, `Tema claro/oscuro (applyTheme, tf-theme)` (+56 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 237 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 239 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
 - **3 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
@@ -303,9 +308,9 @@ _Questions this graph is uniquely positioned to answer:_
 - **What connects `Sugerencia de pasar a 3 dias (suggestThreeDays)`, `Eliminar sesion con Deshacer`, `Tarjeta de instalacion (beforeinstallprompt / iOS)` to the rest of the system?**
   _61 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `App UI y sesiones` be split into smaller, more focused modules?**
-  _Cohesion score 0.056292906178489706 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.05577211394302849 - nodes in this community are weakly interconnected._
 - **Why does `getEx()` connect `App UI y sesiones` to `Pruebas e2e`?**
-  _High betweenness centrality (0.138) - this node is a cross-community bridge._
+  _High betweenness centrality (0.141) - this node is a cross-community bridge._
 - **Are the 4 inferred relationships involving `renderHome()` (e.g. with `render()` and `Dónde`) actually correct?**
   _`renderHome()` has 4 INFERRED edges - model-reasoned connections that need verification._
 - **Should `Specs de features (datos, editor, calor)` be split into smaller, more focused modules?**

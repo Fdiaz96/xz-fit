@@ -2,7 +2,7 @@
 // (IndexedDB). Los identificadores internos siguen siendo "tendon-fuerte" para no perder los datos ya guardados.
 // Protocolo de tendones del video de Jeremy Ethier con Keith Baar y Coach Q; reglas en logic.js, bocetos en figures.js.
 
-const APP_VERSION = '1.19.6';
+const APP_VERSION = '1.20.0';
 const DAY_NAMES = { lu: 'Lu', ma: 'Ma', mi: 'Mi', ju: 'Ju', vi: 'Vi', sa: 'Sá', do: 'Do' };
 const SIDES = { der: 'derecha', izq: 'izquierda', ambos: 'ambos lados' };
 const REST_SECS = 90, ISO_REST = 60;
@@ -98,7 +98,14 @@ function showTab(t) {
   document.querySelectorAll('.view').forEach((v) => (v.hidden = v.id !== `view-${t}`));
   render(); window.scrollTo(0, 0);
 }
+// La pestaña Dolor aparece con el modo dolor o alguna zona marcada; desde Ajustes se llega igual.
+const hasPainTab = () => S.painMode || Object.keys(S.zones).length > 0;
 function render() {
+  const painTab = document.querySelector('.tabbar [data-tab="tendons"]');
+  // Si desaparece mientras estás en ella, volvés a Hoy.
+  const gone = !hasPainTab() && !painTab.hidden && tab === 'tendons';
+  painTab.hidden = !hasPainTab();
+  if (gone) return showTab('home');
   const { routine, since, changed, notices } = syncRoutine();
   S.routine = routine; S.plan.since = since;
   // Antes del primer uso no se guarda nada: el alta arma la rutina con el equipo elegido.
@@ -241,7 +248,7 @@ function renderHome() {
         <h3>Rehabilitación de la ${slot}</h3>
         <p class="muted small">${items.map((i) => esc(i.ex.name)).join(', ') || 'Tus ejercicios del fisio'}</p>
         ${done[slot] ? '' : `<button class="cta pain" data-action="start-rehab">Empezar rehabilitación</button>`}</div>`;
-    } else if (!hasZones) rehab = `<div class="card ask pain"><h3>Modo dolor activo</h3><p class="muted small">Marcá qué te duele en la pestaña Tendones para armar tu rehabilitación.</p></div>`;
+    } else if (!hasZones) rehab = `<div class="card ask pain"><h3>Modo dolor activo</h3><p class="muted small">Marcá qué te duele en la pestaña Dolor para armar tu rehabilitación.</p></div>`;
     else rehab = `<div class="card ask pain"><h3>Hoy no hay rehabilitación aparte</h3>${Object.values(S.zones).some((z) => z.phase === 3) ? '<p class="muted small">Los isométricos de mantenimiento van al final del entreno.</p>' : ''}</div>`;
   }
   if (rehabFirst) h += rehab;
@@ -792,9 +799,9 @@ function answerCheck(zone, val) {
   persist(); render();
 }
 
-// ——— Tendones ———
+// ——— Dolor ———
 function renderTendons() {
-  let h = `<h1>Tendones</h1>
+  let h = `<h1>Dolor</h1>
     <div class="card pain"><div class="row"><div><h3>Modo dolor</h3><p class="muted small">Isométricos diarios, registro de dolor y entreno adaptado en las zonas que marques.</p></div>
     <label class="switch"><input type="checkbox" data-action="pain-mode" ${S.painMode ? 'checked' : ''} aria-label="Modo dolor"><i></i></label></div></div>
     <h2>¿Qué te duele?</h2>`;
@@ -933,6 +940,7 @@ function renderSettings() {
     <span class="small muted" style="display:block;margin-top:12px">Experiencia</span><div class="chips" style="margin-top:4px">${EXPERIENCE.map((x) => `<button class="chip${p.exp === x.id ? ' on' : ''}" data-action="set-exp" data-v="${x.id}">${x.name}</button>`).join('')}</div>
     <p class="faint small">Con sexo, peso, edad y experiencia estimamos tu peso inicial; la serie de calibración lo ajusta. La altura casi no cambia el cálculo.</p></div>
   <h2>Equipo</h2>${equipFields()}
+  ${hasPainTab() ? '' : `<h2>Dolor</h2><div class="card pain"><h3>¿Te duele algo?</h3><p class="muted small">Marcá la zona y activá el modo dolor: suma ejercicios para el tendón y cuida esa zona en el entreno.</p><button class="sec" style="width:100%;margin-top:10px" data-action="go-pain">Marcar qué me duele</button></div>`}
   <h2>Tema</h2><div class="card"><div class="chips">${[['dark', 'Oscuro'], ['light', 'Claro'], ['system', 'Según el sistema']].map(([k, n]) => `<button class="chip${(S.prefs.theme || 'dark') === k ? ' on' : ''}" data-action="theme" data-v="${k}">${n}</button>`).join('')}</div><p class="faint small">El claro se lee mejor a pleno sol.</p></div>
   <h2>Durante la sesión</h2><div class="card">
     <div class="row"><div><h3>Sonidos</h3><p class="muted small">Pitidos al empezar, en los últimos 3 s y al terminar.</p></div><label class="switch acc"><input type="checkbox" data-action="pref-toggle" data-k="sound" ${S.prefs.sound ? 'checked' : ''} aria-label="Sonidos"><i></i></label></div>
@@ -1132,6 +1140,7 @@ document.addEventListener('click', (e) => {
     'save-pain': savePain,
     'check': () => answerCheck(d.zone, d.val),
     'pain-mode-on': () => { S.painMode = true; persist(); render(); toast('Modo dolor activado.'); },
+    'go-pain': () => showTab('tendons'),
     'hide-pain-tip': () => { S.hidePainTip = true; persist(); render(); },
     'phase': () => {
       const z = S.zones[d.zone], to = z.phase + Number(d.dir);

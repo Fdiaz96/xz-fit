@@ -1,5 +1,5 @@
 // Cachea la app para que abra sin conexión.
-const CACHE = 'tendon-v1-19-6';
+const CACHE = 'tendon-v1-20-0';
 const FILES = ['./', 'index.html', 'styles.css', 'data.js', 'logic.js', 'figures.js', 'app.js', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'fonts/Oswald.woff2', 'CHANGELOG.md'];
 
 self.addEventListener('install', (e) => { e.waitUntil(caches.open(CACHE).then((c) => c.addAll(FILES.map((f) => new Request(f, { cache: 'reload' }))))); self.skipWaiting(); });

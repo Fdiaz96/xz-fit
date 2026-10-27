@@ -57,6 +57,16 @@ ok(JSON.stringify(dayIds(ps, 0)) === JSON.stringify(editedTpl.A) && JSON.stringi
 ok(ps.routine.fb2.flat().every((it) => it.pinned === true), 'migración v1.14: todos los ejercicios quedan fijados');
 ok(ps.routine.fb2[1][6].slot === null && !('templates' in ps), 'el ejercicio propio queda sin hueco y templates desaparece');
 ok(!(await pinnedNotice()), 'migrar una rutina posible no muestra avisos');
+// La pestaña Dolor: oculta sin modo dolor ni zonas, a mano desde Ajustes y aparece al marcar una zona
+const painTab = page.locator('.tabbar [data-tab="tendons"]');
+ok(await painTab.isHidden() && await page.locator('.tabbar button:visible').count() === 4, 'sin dolor ni zonas, la barra tiene cuatro pestañas');
+await click('[data-tab="settings"]');
+await click('#view-settings [data-action="go-pain"]');
+ok(await page.locator('#view-tendons').isVisible(), 'desde Ajustes se llega a la vista de dolor');
+await click('#view-tendons [data-action="zone-toggle"][data-zone="hombro"]');
+ok(await painTab.isVisible() && (await painTab.textContent()).trim() === 'Dolor', 'al marcar una zona aparece la pestaña "Dolor"');
+await click('#view-tendons [data-action="zone-toggle"][data-zone="hombro"]');
+ok(await painTab.isHidden() && await page.locator('#view-home').isVisible(), 'al desmarcar la última zona la pestaña se va y volvés a Hoy');
 
 // CK-6: next 'B' → pos 1, se quitan budget/week/next y lifts/sesiones no cambian
 const liftsB = { goblet: { w: 12, e1rm: 18 }, press_suelo: { w: 8 } };

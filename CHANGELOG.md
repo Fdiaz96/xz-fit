@@ -2,6 +2,11 @@
 
 Todos los cambios de XZ Fit (antes Tendón Fuerte), del más nuevo al más viejo.
 
+## 1.20.0 — La pestaña Dolor, solo si te duele algo
+
+- La pestaña "Tendones" ahora se llama "Dolor" y aparece solo si tenés el modo dolor activo o alguna zona marcada. Si solo entrenás, la barra tiene cuatro pestañas.
+- Si más adelante te duele algo, en Ajustes → Dolor tocás "Marcar qué me duele".
+
 ## 1.19.6 — Dice por qué un ejercicio va más liviano
 
 - Con modo dolor, "al 60 %" ahora dice "más liviano por tu codo" (o la zona que te duela), y "variante amable" pasa a "variante por tu codo". En el entreno ves el peso de hoy y el de siempre: "6 kg en vez de 10 kg".
