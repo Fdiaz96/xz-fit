@@ -2,7 +2,7 @@
 // (IndexedDB). Los identificadores internos siguen siendo "tendon-fuerte" para no perder los datos ya guardados.
 // Protocolo de tendones del video de Jeremy Ethier con Keith Baar y Coach Q; reglas en logic.js, bocetos en figures.js.
 
-const APP_VERSION = '1.19.5';
+const APP_VERSION = '1.19.6';
 const DAY_NAMES = { lu: 'Lu', ma: 'Ma', mi: 'Mi', ju: 'Ju', vi: 'Vi', sa: 'Sá', do: 'Do' };
 const SIDES = { der: 'derecha', izq: 'izquierda', ambos: 'ambos lados' };
 const REST_SECS = 90, ISO_REST = 60;
@@ -14,6 +14,11 @@ const today = () => dayKey();
 const fmtKg = (w) => (w ? `${String(w).replace('.', ',')} kg` : 'Sin peso');
 const fmtDate = (k) => parseDay(k).toLocaleDateString('es', { weekday: 'short', day: 'numeric', month: 'short' });
 const zoneName = (id) => ZONE[id]?.name || 'General';
+// La parte del cuerpo como la dice el usuario ("por tu codo"), para explicar por qué un ejercicio cambia.
+const bodyPart = (id) => id.startsWith('codo') ? 'codo' : id === 'aquiles' ? 'tendón de Aquiles' : zoneName(id).toLowerCase();
+const forZones = (r) => 'por tu ' + [...new Set(r.zones.map(bodyPart))].join(' y tu ');
+const painTag = (r) => `${r.mode === 'alt' ? 'variante' : 'más liviano'} ${forZones(r)}`;
+const CALIB_TAG = '<span class="calib-tag">calibración</span>';
 
 // ——— Estado y guardado ———
 const DEFAULT = () => ({
@@ -248,12 +253,12 @@ function renderHome() {
   const first = !last, onMsg = first || doneToday || trainDay;
   const dayMsg = first ? `Tu primer entreno.${doable.some((p) => p.calib) ? ' Con la primera serie de cada ejercicio calibramos tus pesos.' : ''}`
     : doneToday ? '✓ Entreno de hoy hecho' : trainDay ? 'Hoy toca entrenar' : 'Hoy es día de descanso, podés entrenar igual';
-  const load = (p) => p.ex.kind !== 'peso' ? '' : p.calib ? '<span class="load quiet">a calibrar</span>' : `<span class="load">${p.w ? `${String(p.w).replace('.', ',')} kg` : 'sin peso'}</span>`;
+  const load = (p) => p.ex.kind !== 'peso' ? '' : p.calib ? `<span class="load">${CALIB_TAG}</span>` : `<span class="load">${p.w ? `${String(p.w).replace('.', ',')} kg` : 'sin peso'}</span>`;
   h += `<section class="card today${onMsg ? ' on' : ''}">
     <p class="plan-line"><span>${esc(plan.name)}</span>${last ? `<span>Último: ${fmtDate(last.date)}</span>` : ''}</p>
     <p class="day-msg">${dayMsg}${S.plan.deload === weekKey(t) ? '. Semana de descarga.' : ''}</p>
     <h3><span class="day-name">${esc(plan.days[day].name)}</span><span class="sep"> · </span><span class="day-count">${doable.length} ejercicios</span></h3>
-    <ol class="board">${doable.map((p) => `<li><button data-action="ex-detail" data-ex="${p.ex.id}"><span class="name">${esc(p.ex.name)}${p.r ? `<em>${p.r.mode === 'alt' ? 'variante amable' : 'al 60 %'}</em>` : ''}</span><span class="dose">${p.sets} × ${setLabel(p)}</span>${load(p)}</button></li>`).join('')}</ol>
+    <ol class="board">${doable.map((p) => `<li><button data-action="ex-detail" data-ex="${p.ex.id}"><span class="name">${esc(p.ex.name)}${p.r ? `<em>${painTag(p.r)}</em>` : ''}</span><span class="dose">${p.sets} × ${setLabel(p)}</span>${load(p)}</button></li>`).join('')}</ol>
     <button class="cta" data-action="start-workout" data-day="${day}">Empezar ${esc(plan.days[day].name.toLowerCase())}</button></section>`;
   if (S.painMode && hasZones) h += `<button class="sec quick-pain" data-action="quick-pain">Anotar cómo está el dolor ahora</button>`;
   if (!rehabFirst) h += rehab;
@@ -291,9 +296,9 @@ function renderTrain() {
     h += `<section class="plan-day${now ? ' now' : ''}"><h2><span class="day-name">${esc(dd.name)}</span>${now ? '<span class="sep"> · </span><span class="day-now">toca hoy</span>' : ''}</h2><ul class="plan-list">`;
     h += items.map((p, i) => `<li class="ex${p.missing ? ' missing' : ''}"${editRoutine ? '' : ` data-action="ex-detail" data-ex="${p.ex.id}"`}>
         <div class="thumb">${figureSVG(p.ex, { crop: true })}</div>
-        <div class="info"><h3>${esc(p.ex.name)}</h3><p class="dose">${p.missing ? 'Falta equipo' : `${p.sets} × ${setLabel(p)}`}${p.r ? `<em>${p.r.mode === 'alt' ? 'variante amable' : 'al 60 %'}</em>` : ''}</p>${p.stalled && !editRoutine ? `<p class="stall">Estancado: <button class="link small" data-action="unstall" data-ex="${p.ex.id}">bajar 10 % y volver a subir</button></p>` : ''}</div>
+        <div class="info"><h3>${esc(p.ex.name)}</h3><p class="dose">${p.missing ? 'Falta equipo' : `${p.sets} × ${setLabel(p)}`}${p.r ? `<em>${painTag(p.r)}</em>` : ''}</p>${p.stalled && !editRoutine ? `<p class="stall">Estancado: <button class="link small" data-action="unstall" data-ex="${p.ex.id}">bajar 10 % y volver a subir</button></p>` : ''}</div>
         ${editRoutine ? `<div class="tools"><button data-action="routine-move" data-day="${d}" data-i="${i}" data-d="-1" aria-label="Subir" ${i ? '' : 'disabled'}>↑</button><button data-action="routine-move" data-day="${d}" data-i="${i}" data-d="1" aria-label="Bajar" ${i < items.length - 1 ? '' : 'disabled'}>↓</button><button data-action="routine-pick" data-day="${d}" data-i="${i}" aria-label="Cambiar">⇄</button><button data-action="routine-del" data-day="${d}" data-i="${i}" aria-label="Quitar">✕</button></div>`
-          : `<div class="w">${p.ex.kind === 'peso' ? `<span class="num">${p.w || '—'}</span><span class="unit">${p.calib ? 'a calibrar' : 'kg'}</span>` : ''}</div>`}</li>`).join('');
+          : `<div class="w">${p.ex.kind === 'peso' ? `<span class="num">${p.w || '—'}</span><span class="unit">kg</span>${p.calib ? CALIB_TAG : ''}` : ''}</div>`}</li>`).join('');
     h += `</ul>`;
     h += editRoutine ? `<button class="sec add-ex" data-action="routine-pick" data-day="${d}">+ Agregar ejercicio</button>`
       : `<button class="cta${now ? '' : ' ghost'}" data-action="start-workout" data-day="${d}" ${items.some((p) => !p.missing) ? '' : 'disabled'}>Empezar ${esc(dd.name)}</button>`;
@@ -425,6 +430,7 @@ function openExercise(id) {
     <ul class="muted">${ex.cues.map((c) => `<li>${esc(c)}</li>`).join('')}</ul>
     ${ex.mus?.length ? `<p class="small"><span class="mus-dot"></span>Trabaja: ${ex.mus.map((m) => MUSCLE_NAMES[m]).join(', ')}</p>` : ''}
     ${ex.tag?.length ? `<p class="small muted">Exige: ${ex.tag.map(zoneName).join(', ')}</p>` : ''}
+    ${ex.kind === 'peso' && !lift ? `<p class="small">${CALIB_TAG} Todavía no tiene peso de trabajo: en la primera serie hacés reps hasta que te queden 2 y con eso lo calculamos.</p>` : ''}
     ${lift ? `<p>Peso de trabajo: <b class="num">${fmtKg(lift.w)}</b>${lift.e1rm ? ` · 1RM estimado ${lift.e1rm} kg` : ''}</p>` : ''}
     ${hist.length > 1 ? `<h2>Progreso</h2>${lineChart(hist, { unit: 'kg', color: 'var(--acc)' })}` : ''}
     ${lift ? `<button class="link danger" data-action="recalibrate" data-ex="${id}">Volver a calibrar</button>` : ''}</div>`;
@@ -458,8 +464,8 @@ function renderWorkout() {
     const k = it.ex.kind, timed = k === 'tiempo' || k === 'iso', weighted = k === 'peso' || (k === 'iso' && it.w);
     const notes = [];
     if (it.calib && !W.calibIntro) notes.push(`<div class="note acc">Serie de calibración: con ${fmtKg(it.w)} hacé reps hasta que sientas que te salen solo 2 más, y frená ahí (eso es RIR 2). Anotá las reps y el RIR: con eso calculamos tu peso real.</div>`);
-    if (it.r?.mode === 'cap') notes.push(`<div class="note pain">Modo dolor (${it.r.zones.map(zoneName).join(', ')}): al 60 % → ${fmtKg(it.w)}.</div>`);
-    if (it.r?.mode === 'alt') notes.push(`<div class="note pain">Modo dolor: ${esc(zoneName(it.r.zones[0]))} está sensible, hoy va ${esc(it.ex.name.toLowerCase())} en vez de ${esc(it.orig.name.toLowerCase())}.</div>`);
+    if (it.r?.mode === 'cap') notes.push(`<div class="note pain">Más liviano ${forZones(it.r)}: ${fmtKg(it.w)}${it.w < it.base ? ` en vez de ${fmtKg(it.base)}` : ', el peso más bajo que tenés'}.</div>`);
+    if (it.r?.mode === 'alt') notes.push(`<div class="note pain">Variante ${forZones(it.r)}: hoy va ${esc(it.ex.name.toLowerCase())} en vez de ${esc(it.orig.name.toLowerCase())}.</div>`);
     if (it.maint) notes.push(`<div class="note pain">Mantenimiento de ${esc(zoneName(it.maint).toLowerCase())} (fase 3).</div>`);
     if (it.from) notes.push(`<div class="note">Solo por hoy: en vez de ${esc(getEx(it.from).name.toLowerCase())}.</div>`);
     const rirOpen = k === 'peso' && W.rirHelp === i;
@@ -475,7 +481,7 @@ function renderWorkout() {
     const state = it.rows.every((r) => r.done) ? ' done' : i === cur ? ' now' : '';
     return `<section class="card wex${it.r || it.maint ? ' pain' : ''}${state}"><div class="ex">
       <span class="wex-n" aria-hidden="true">${it.rows.every((r) => r.done) ? '✓' : i + 1}</span>
-      <div class="info"><h3>${esc(it.ex.name)}</h3><p class="target"><span>${it.sets} × ${setLabel(it)}</span>${weighted ? `<b class="num">${fmtKg(it.w)}</b>` : ''}${it.calib ? '<span class="calib-tag">calibración</span>' : ''}</p>${it.impl === 'db' && platesFor(S.equip, it.w) ? `<p class="plates">Por lado: ${platesLabel(it.w)}</p>` : ''}</div>
+      <div class="info"><h3>${esc(it.ex.name)}</h3><p class="target"><span>${it.sets} × ${setLabel(it)}</span>${weighted ? `<b class="num">${fmtKg(it.w)}</b>` : ''}${it.calib ? CALIB_TAG : ''}</p>${it.impl === 'db' && platesFor(S.equip, it.w) ? `<p class="plates">Por lado: ${platesLabel(it.w)}</p>` : ''}</div>
       <div class="thumb" data-action="ex-detail" data-ex="${it.ex.id}" title="Ver en grande">${figureSVG(it.ex, { crop: true })}</div></div>
       ${notes.join('')}<div class="cues-row"><details class="cues"><summary>Cómo se hace</summary><ul>${it.ex.cues.map((c) => `<li>${esc(c)}</li>`).join('')}</ul></details>
       ${it.maint || it.rows.some((r) => r.done) ? '' : `<button class="swap-link" data-action="swap-today" data-i="${i}">Cambiar por hoy</button>`}</div>

@@ -48,10 +48,9 @@ a { color: var(--acc-fg); }
 .board button { display: grid; grid-template: "n name load" auto "n dose load" auto / 26px 1fr auto; column-gap: 10px; width: 100%; padding: 11px 0; text-align: left; }
 .board button::before { content: counter(ex); grid-area: n; font: 600 20px/1.1 'Oswald', sans-serif; color: var(--faint); }
 .board .name { grid-area: name; font-weight: 600; }
-.board .name em { font-style: normal; font-size: 13px; color: var(--pain-fg); margin-left: 6px; white-space: nowrap; }
+.board .name em { display: block; font-style: normal; font-size: 13px; line-height: 1.3; color: var(--pain-fg); }
 .board .dose { grid-area: dose; font-size: 13px; color: var(--muted); }
 .board .load { grid-area: load; align-self: center; font: 600 20px 'Oswald', sans-serif; font-variant-numeric: tabular-nums; }
-.board .load.quiet { font: 13px system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; color: var(--faint); }
 
 .card.rehab { background: var(--note-pain-bg); margin-bottom: 24px; }
 .slots { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 14px; }
@@ -216,13 +215,14 @@ button.warm-item.on .box { background: var(--acc); border-color: var(--acc); col
 .plan-list .ex[data-action] { cursor: pointer; }
 .plan-list .thumb { width: 60px; }
 .plan-list .dose { font-size: 14px; color: var(--muted); margin: 2px 0 0; }
-.plan-list .dose em { font-style: normal; color: var(--pain-fg); margin-left: 8px; white-space: nowrap; }
+.plan-list .dose em { display: block; font-style: normal; color: var(--pain-fg); }
 .plan-list .missing h3, .plan-list .missing .dose { color: var(--faint); }
 .plan-list .stall { font-size: 13px; color: var(--acc-fg); margin: 2px 0 0; }
 .plan-list .stall .link { padding: 0; }
 .plan-list .w { min-width: 48px; display: flex; flex-direction: column; align-items: flex-end; }
 .plan-list .w .num { font-size: 26px; line-height: 1; }
 .plan-list .w .unit { font-size: 12px; color: var(--muted); white-space: nowrap; }
+.plan-list .w .calib-tag { margin-top: 4px; }
 button.cta.ghost { background: none; color: var(--acc-fg); box-shadow: inset 0 0 0 2px var(--acc); }
 button.add-ex { width: 100%; }
 
@@ -244,7 +244,7 @@ button.add-ex { width: 100%; }
 .wex.done .wex-n { color: var(--acc-fg); }
 .target { display: flex; align-items: baseline; flex-wrap: wrap; column-gap: 10px; margin: 4px 0 0; font-size: 14px; color: var(--muted); }
 .target .num { font: 700 22px/1.1 'Oswald', sans-serif; color: var(--text); }
-.calib-tag { font-size: 12px; font-weight: 600; line-height: 1; padding: 3px 8px; border-radius: 999px; color: var(--acc-fg); box-shadow: inset 0 0 0 1.5px var(--acc); white-space: nowrap; }
+.calib-tag { font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; letter-spacing: 0; font-size: 12px; font-weight: 600; line-height: 1; padding: 3px 8px; border-radius: 999px; color: var(--acc-fg); box-shadow: inset 0 0 0 1.5px var(--acc); white-space: nowrap; }
 .calib-intro { box-shadow: inset 4px 0 0 var(--acc); }
 .calib-intro h3 { margin: 0 0 6px; }
 .calib-intro p { margin: 0; font-size: 14px; line-height: 1.45; }

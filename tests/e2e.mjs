@@ -282,7 +282,7 @@ ok(await page.evaluate(() => S.plan.since === today() && planFor(dayIndex(active
 
 // 2. Entreno con el modo dolor apagado: pesos completos
 await click('[data-tab="train"]');
-ok(await page.locator('#view-train >> text=al 60 %').count() === 0, 'sin modo dolor no hay tope del 60 %');
+ok(await page.locator('#view-train >> text=más liviano').count() === 0, 'sin modo dolor no hay ejercicios más livianos');
 ok(await page.locator('#view-train >> text=Remo invertido en aros').count() === 1, 'con aros incluye el remo invertido');
 await shot('06-entreno');
 ok(await page.locator('#view-train .thumb svg animate').count() > 0, 'las miniaturas del entreno están animadas');
@@ -294,7 +294,7 @@ ok((await state()).painMode, 'activa el modo dolor');
 ok(await page.locator('[data-action="start-rehab"]').count() === 1, 'aparece la rehabilitación del día');
 await shot('07-inicio-dolor');
 await click('[data-tab="train"]');
-ok(await page.locator('#view-train >> text=al 60 %').count() >= 3, 'remo, peso muerto y curl van al 60 %');
+ok(await page.locator('#view-train >> text=más liviano por tu codo').count() >= 3 && await page.locator('#view-train >> text=al 60 %').count() === 0, 'remo, peso muerto y curl van "más liviano por tu codo"');
 await click('[data-tab="tendons"]');
 ok(await page.locator('#view-tendons >> text=Extensión de muñeca isométrica').count() === 1, 'codo lateral → extensión de muñeca isométrica');
 await shot('08-tendones');
@@ -324,7 +324,7 @@ ok(!(await page.locator('#rest').isHidden()), 'arranca el descanso');
 await shot('09-entreno-sesion');
 await click('#rest [data-action="skip-rest"]');
 const row = page.locator('#wsheet .wex').nth(2);
-ok((await row.textContent()).includes('Modo dolor'), 'el remo avisa el modo dolor');
+ok((await row.locator('.note.pain').textContent()) === 'Más liviano por tu codo y tu muñeca: 6 kg en vez de 10 kg.', 'el remo avisa que va más liviano por el codo y la muñeca, con el peso de siempre');
 await row.locator('input[data-w="2.0.reps"]').fill('12');
 await row.locator('select[data-w="2.0.rir"]').selectOption('3');
 await click('#wsheet [data-action="set-done"][data-i="2"][data-j="0"]');
@@ -467,13 +467,13 @@ ok(await finishLaterales(20) === 6, 'progress con rango: laterales 3 × 20 (tope
 await bootSaved({ sessions: [{ ago: 20 }], lifts: { lateral: { w: 4, e1rm: 8 } }, equip: { db: { min: 2, max: 24, step: 2 } } });
 ok(await finishLaterales(12) === 4, 'progress con rango: laterales 3 × 12 (mínimo, no el tope) no cambian de peso');
 
-// Modo dolor con la zona en brote: el remo pasa a su variante amable (sin aros, el isométrico del curl)
+// Modo dolor con la zona en brote: el remo pasa a su variante (sin aros, el isométrico del curl)
 await bootSaved({ extra: { painMode: true, zones: { codo_lat: { side: 'der', pain0: 5, phase: 1, since: '2026-10-01', load: 2, secs: 30 } } } });
 await page.evaluate(() => { S.checks.push({ id: 'ck', zone: 'codo_lat', val: 'peor', date: today() }); render(); });
 await click('[data-tab="train"]');
 const altName = await page.evaluate(() => EXERCISES.curl_iso.name);
-const altRow = page.locator('#view-train .ex').filter({ hasText: 'variante amable' });
-ok(await altRow.count() >= 1 && (await altRow.first().textContent()).includes(altName), `modo dolor en brote: el remo muestra "variante amable" con ${altName}`);
+const altRow = page.locator('#view-train .ex').filter({ hasText: 'variante por tu' });
+ok(await altRow.count() >= 1 && (await altRow.first().textContent()).includes(altName), `modo dolor en brote: el remo muestra "variante por tu …" con ${altName}`);
 
 // Se restaura el usuario del flujo principal
 await wipeDb(); await putData(mainUser); await page.reload(); await page.waitForTimeout(400);

@@ -2,6 +2,11 @@
 
 Todos los cambios de XZ Fit (antes Tendón Fuerte), del más nuevo al más viejo.
 
+## 1.19.6 — Dice por qué un ejercicio va más liviano
+
+- Con modo dolor, "al 60 %" ahora dice "más liviano por tu codo" (o la zona que te duela), y "variante amable" pasa a "variante por tu codo". En el entreno ves el peso de hoy y el de siempre: "6 kg en vez de 10 kg".
+- "A calibrar" ahora es la etiqueta "calibración", igual en el inicio, en Entreno y en el entreno. Si tocás el ejercicio, el detalle explica qué significa.
+
 ## 1.19.5 — El primer día no es de descanso
 
 - Si terminás el alta un día que no entrenás, el inicio ya no dice "día de descanso": te recibe con "Tu primer entreno" y te cuenta que con la primera serie calibramos tus pesos.

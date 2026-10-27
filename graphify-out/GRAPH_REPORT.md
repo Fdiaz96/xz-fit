@@ -1,17 +1,17 @@
 # Graph Report - TendonApp  (2026-10-27)
 
 ## Corpus Check
-- 65 files · ~90,944 words
+- 65 files · ~91,159 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 14 file(s) not represented in the graph (top: (none) 11, .woff2 1, .webmanifest 1)
 
 ## Summary
-- 711 nodes · 1340 edges · 48 communities (45 shown, 3 thin omitted)
+- 714 nodes · 1349 edges · 48 communities (45 shown, 3 thin omitted)
 - Extraction: 92% EXTRACTED · 8% INFERRED · 0% AMBIGUOUS · INFERRED: 108 edges (avg confidence: 0.89)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `18af85c0`
+- Built from commit: `d92298a1`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -70,18 +70,18 @@
 2. `figureSVG()` - 28 edges
 3. `esc()` - 22 edges
 4. `render()` - 22 edges
-5. `CHANGELOG.md (XZ Fit)` - 18 edges
-6. `today()` - 17 edges
-7. `toast()` - 17 edges
-8. `renderHome()` - 17 edges
-9. `renderWorkout()` - 16 edges
+5. `renderHome()` - 18 edges
+6. `CHANGELOG.md (XZ Fit)` - 18 edges
+7. `today()` - 17 edges
+8. `toast()` - 17 edges
+9. `renderWorkout()` - 17 edges
 10. `patch()` - 16 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `Dónde` --references--> `toast()`  [INFERRED]
   .specs/tasks/todo/ux-12-avisos-abajo.md → app.js
 - `Dónde` --references--> `renderHome()`  [INFERRED]
-  .specs/tasks/todo/ux-04-primer-dia-sin-descanso.md → app.js
+  .specs/tasks/done/ux-04-primer-dia-sin-descanso.md → app.js
 - `Dónde` --references--> `renderTrain()`  [INFERRED]
   .specs/tasks/todo/ux-11-editar-rutina-botones.md → app.js
 - `Dónde` --references--> `renderWorkout()`  [INFERRED]
@@ -109,8 +109,8 @@
 ## Communities (48 total, 3 thin omitted)
 
 ### Community 0 - "App UI y sesiones"
-Cohesion: 0.05
-Nodes (115): activeZones(), altEx(), answerCheck(), applyTheme(), askPain(), calmMotion(), cue(), customFig() (+107 more)
+Cohesion: 0.06
+Nodes (114): activeZones(), altEx(), answerCheck(), applyTheme(), askPain(), bodyPart(), calmMotion(), cue() (+106 more)
 
 ### Community 1 - "Specs de features (datos, editor, calor)"
 Cohesion: 0.05
@@ -273,8 +273,8 @@ Cohesion: 0.40
 Nodes (4): Criterios de aceptación, Problema, Propuesta, UX 5: explicar "al 60 %" y "a calibrar"
 
 ### Community 44 - "UX 6: la pestaña Tendones solo cuando importa"
-Cohesion: 0.33
-Nodes (5): Criterios de aceptación, Dónde, Problema, Propuesta, UX 6: la pestaña Tendones solo cuando importa
+Cohesion: 0.16
+Nodes (9): Criterios de aceptación, Dónde, Problema, Propuesta, UX 6: la pestaña Tendones solo cuando importa, Criterios de aceptación, Problema, Propuesta (+1 more)
 
 ### Community 45 - "UX 10: pesos con unidad y coherentes entre inicio y Entreno"
 Cohesion: 0.40
@@ -303,10 +303,10 @@ _Questions this graph is uniquely positioned to answer:_
 - **What connects `Sugerencia de pasar a 3 dias (suggestThreeDays)`, `Eliminar sesion con Deshacer`, `Tarjeta de instalacion (beforeinstallprompt / iOS)` to the rest of the system?**
   _61 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `App UI y sesiones` be split into smaller, more focused modules?**
-  _Cohesion score 0.05408193339227822 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.056292906178489706 - nodes in this community are weakly interconnected._
 - **Why does `getEx()` connect `App UI y sesiones` to `Pruebas e2e`?**
   _High betweenness centrality (0.138) - this node is a cross-community bridge._
+- **Are the 4 inferred relationships involving `renderHome()` (e.g. with `render()` and `Dónde`) actually correct?**
+  _`renderHome()` has 4 INFERRED edges - model-reasoned connections that need verification._
 - **Should `Specs de features (datos, editor, calor)` be split into smaller, more focused modules?**
   _Cohesion score 0.053313587560162905 - nodes in this community are weakly interconnected._
-- **Why does `index.html (XZ Fit app shell)` connect `Shell HTML, PWA y fuente` to `App UI y sesiones`, `Reglas puras logic.js`, `Figuras 3D (figures.js)`, `Catálogos data.js`?**
-  _High betweenness centrality (0.099) - this node is a cross-community bridge._
