@@ -2,6 +2,10 @@
 
 Todos los cambios de XZ Fit (antes Tendón Fuerte), del más nuevo al más viejo.
 
+## 1.19.3 — Las reps sin anotar se ven vacías
+
+- En el entreno, el campo de reps sin anotar tiene borde punteado y una sugerencia chica ("≈9"), así no parece un dato ya cargado.
+
 ## 1.19.2 — La calibración se explica una vez
 
 - En el primer entreno, la explicación de cómo calibrar aparece una sola vez, arriba de los ejercicios. Cada ejercicio a calibrar lleva la etiqueta "calibración" junto al peso, y la sesión queda más corta.

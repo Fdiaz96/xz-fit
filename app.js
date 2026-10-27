@@ -2,7 +2,7 @@
 // (IndexedDB). Los identificadores internos siguen siendo "tendon-fuerte" para no perder los datos ya guardados.
 // Protocolo de tendones del video de Jeremy Ethier con Keith Baar y Coach Q; reglas en logic.js, bocetos en figures.js.
 
-const APP_VERSION = '1.19.2';
+const APP_VERSION = '1.19.3';
 const DAY_NAMES = { lu: 'Lu', ma: 'Ma', mi: 'Mi', ju: 'Ju', vi: 'Vi', sa: 'Sá', do: 'Do' };
 const SIDES = { der: 'derecha', izq: 'izquierda', ambos: 'ambos lados' };
 const REST_SECS = 90, ISO_REST = 60;
@@ -466,7 +466,7 @@ function renderWorkout() {
     const rows = it.rows.map((r, j) => `<div class="set${r.done ? ' done' : ''}${j === next ? ' next' : ''}">
       <span class="n">${j + 1}</span>
       ${weighted ? `<input type="number" inputmode="decimal" step="0.5" min="0" value="${r.w}" data-w="${i}.${j}.w" aria-label="Kilos">` : '<span></span>'}
-      <input type="number" inputmode="numeric" min="0" value="${timed ? r.secs : r.reps}" placeholder="${hasRepRange(it.ex) ? repCenter(it.range) : it.secs}" data-w="${i}.${j}.${timed ? 'secs' : 'reps'}" aria-label="${timed ? 'Segundos' : 'Repeticiones'}">
+      <input type="number" inputmode="numeric" min="0" value="${timed ? r.secs : r.reps}" placeholder="≈${hasRepRange(it.ex) ? repCenter(it.range) : it.secs}" data-w="${i}.${j}.${timed ? 'secs' : 'reps'}" aria-label="${timed ? 'Segundos' : 'Repeticiones'}">
       ${k === 'peso' ? `<select data-w="${i}.${j}.rir" aria-label="Repeticiones en reserva"><option value="">–</option>${[0, 1, 2, 3, 4].map((n) => `<option ${String(r.rir) === String(n) ? 'selected' : ''}>${n}</option>`).join('')}</select>` : '<span></span>'}
       <button class="ok" data-action="set-done" data-i="${i}" data-j="${j}" aria-label="Serie hecha">✓</button></div>`).join('');
     const state = it.rows.every((r) => r.done) ? ' done' : i === cur ? ' now' : '';

@@ -1,17 +1,17 @@
 # Graph Report - TendonApp  (2026-10-27)
 
 ## Corpus Check
-- 63 files · ~90,146 words
+- 64 files · ~90,448 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 14 file(s) not represented in the graph (top: (none) 11, .woff2 1, .webmanifest 1)
 
 ## Summary
-- 706 nodes · 1335 edges · 49 communities (46 shown, 3 thin omitted)
+- 709 nodes · 1338 edges · 48 communities (45 shown, 3 thin omitted)
 - Extraction: 92% EXTRACTED · 8% INFERRED · 0% AMBIGUOUS · INFERRED: 108 edges (avg confidence: 0.89)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `9236ba09`
+- Built from commit: `e6aec443`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -64,7 +64,6 @@
 - UX 10: pesos con unidad y coherentes entre inicio y Entreno
 - UX 13: textos sin jerga ni cadenas con puntos medios
 - saveV114
-- UX 8: zonas con dolor con el mismo componente que el alta
 
 ## God Nodes (most connected - your core abstractions)
 1. `Training Plan Engine skill (SKILL.md)` - 30 edges
@@ -85,10 +84,10 @@
   .specs/tasks/todo/ux-04-primer-dia-sin-descanso.md → app.js
 - `Dónde` --references--> `renderTrain()`  [INFERRED]
   .specs/tasks/todo/ux-11-editar-rutina-botones.md → app.js
+- `Dónde` --references--> `renderWorkout()`  [INFERRED]
+  .specs/tasks/done/ux-01-calibracion-una-vez.md → app.js
 - `Orden` --references--> `renderWorkout()`  [INFERRED]
   .specs/tasks/todo/ux-00-indice.md → app.js
-- `Dónde` --references--> `renderWorkout()`  [INFERRED]
-  .specs/tasks/todo/ux-01-calibracion-una-vez.md → app.js
 
 ## Import Cycles
 - None detected.
@@ -107,11 +106,11 @@
 - **Plans of the 'planes de entrenamiento' roadmap built on the plan engine** — _specs_tasks_done_motor_de_planes_feature_plans_fb2, _specs_tasks_draft_plan_full_body_3_dias_feature_fb3, _specs_tasks_draft_plan_torso_pierna_4_dias_feature_tp4, _specs_tasks_draft_plan_empuje_traccion_4_dias_feature_et4, _specs_tasks_draft_plan_grupos_5_dias_feature_gr5, _specs_tasks_draft_plan_isometricos_feature_iso [INFERRED 0.95]
 - **Exportaciones via shareFile (Web Share o descarga)** — _specs_tasks_done_datos_locales_copia_feature_backup_restore, _specs_tasks_done_informe_fisio_feature_physio_report, _specs_tasks_done_recordatorios_calendario_feature_ics_calendar [INFERRED 0.95]
 
-## Communities (49 total, 3 thin omitted)
+## Communities (48 total, 3 thin omitted)
 
 ### Community 0 - "App UI y sesiones"
-Cohesion: 0.06
-Nodes (111): activeZones(), altEx(), answerCheck(), applyTheme(), askPain(), calmMotion(), cue(), customFig() (+103 more)
+Cohesion: 0.05
+Nodes (116): activeZones(), altEx(), answerCheck(), applyTheme(), askPain(), calmMotion(), cue(), customFig() (+108 more)
 
 ### Community 1 - "Specs de features (datos, editor, calor)"
 Cohesion: 0.05
@@ -150,8 +149,8 @@ Cohesion: 0.13
 Nodes (18): A/B templates migration recipe (withDefaults), NO_RINGS substitution, Migration of v1.0-v1.14 data in withDefaults, Step 02: Plan engine (pure rules), defEq test fixture (copy of DEFAULT().equip), resolvePlan(), routineFromTemplates(), slotOf() (+10 more)
 
 ### Community 10 - "package.json"
-Cohesion: 0.11
-Nodes (16): author, description, devDependencies, playwright@^1.64.1, directories, test, keywords, license (+8 more)
+Cohesion: 0.10
+Nodes (18): author, description, devDependencies, playwright@^1.64.1, directories, test, keywords, license (+10 more)
 
 ### Community 11 - "Arquitectura y modelo de datos"
 Cohesion: 0.17
@@ -274,8 +273,8 @@ Cohesion: 0.40
 Nodes (4): Criterios de aceptación, Problema, Propuesta, UX 5: explicar "al 60 %" y "a calibrar"
 
 ### Community 44 - "UX 6: la pestaña Tendones solo cuando importa"
-Cohesion: 0.33
-Nodes (5): Criterios de aceptación, Dónde, Problema, Propuesta, UX 6: la pestaña Tendones solo cuando importa
+Cohesion: 0.40
+Nodes (4): Criterios de aceptación, Problema, Propuesta, UX 6: la pestaña Tendones solo cuando importa
 
 ### Community 45 - "UX 10: pesos con unidad y coherentes entre inicio y Entreno"
 Cohesion: 0.40
@@ -289,13 +288,9 @@ Nodes (4): Criterios de aceptación, Problema, Propuesta, UX 13: textos sin jerg
 Cohesion: 0.40
 Nodes (5): bootSaved(), buildV114(), putData(), saveV114(), wipeDb()
 
-### Community 48 - "UX 8: zonas con dolor con el mismo componente que el alta"
-Cohesion: 0.40
-Nodes (4): Criterios de aceptación, Problema, Propuesta, UX 8: zonas con dolor con el mismo componente que el alta
-
 ## Knowledge Gaps
 - **61 isolated node(s):** `Sugerencia de pasar a 3 dias (suggestThreeDays)`, `Eliminar sesion con Deshacer`, `Tarjeta de instalacion (beforeinstallprompt / iOS)`, `Service worker sw.js (red primero, cache tendon-v<version>)`, `Tema claro/oscuro (applyTheme, tf-theme)` (+56 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 234 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 236 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
 - **3 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
@@ -308,9 +303,9 @@ _Questions this graph is uniquely positioned to answer:_
 - **What connects `Sugerencia de pasar a 3 dias (suggestThreeDays)`, `Eliminar sesion con Deshacer`, `Tarjeta de instalacion (beforeinstallprompt / iOS)` to the rest of the system?**
   _61 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `App UI y sesiones` be split into smaller, more focused modules?**
-  _Cohesion score 0.05791505791505792 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.05345501955671447 - nodes in this community are weakly interconnected._
 - **Why does `getEx()` connect `App UI y sesiones` to `Pruebas e2e`?**
-  _High betweenness centrality (0.133) - this node is a cross-community bridge._
+  _High betweenness centrality (0.136) - this node is a cross-community bridge._
 - **Should `Specs de features (datos, editor, calor)` be split into smaller, more focused modules?**
   _Cohesion score 0.053313587560162905 - nodes in this community are weakly interconnected._
 - **Why does `index.html (XZ Fit app shell)` connect `Shell HTML, PWA y fuente` to `App UI y sesiones`, `Reglas puras logic.js`, `Figuras 3D (figures.js)`, `Catálogos data.js`?**

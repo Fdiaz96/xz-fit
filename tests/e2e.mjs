@@ -363,7 +363,7 @@ ok(await cards().count() === 6, 'Día A: 6 ejercicios en el entreno');
 const setCounts = await cards().evaluateAll((els) => els.map((e) => e.querySelectorAll('.set:not(.head)').length));
 ok(setCounts.every((n) => n === 3), `CK-19: con 3 días en el perfil y fuera de la rampa cada ejercicio tiene 3 series (${setCounts.join(',')})`);
 ok((await card('Elevaciones laterales').textContent()).includes('× 12–20') && (await card('Sentadilla goblet').textContent()).includes('× 6–12'), 'CK-21: laterales muestran "× 12–20" y la goblet "× 6–12"');
-ok(await card('Elevaciones laterales').locator('input[data-w$=".0.reps"]').getAttribute('placeholder') === '16' && await card('Sentadilla goblet').locator('input[data-w$=".0.reps"]').getAttribute('placeholder') === '9', 'el placeholder de reps es el centro del rango (16 y 9)');
+ok(await card('Elevaciones laterales').locator('input[data-w$=".0.reps"]').getAttribute('placeholder') === '≈16' && await card('Sentadilla goblet').locator('input[data-w$=".0.reps"]').getAttribute('placeholder') === '≈9', 'el placeholder de reps sugiere el centro del rango (≈16 y ≈9)');
 ok((await page.locator('#wsheet .dlg-head strong').textContent()) === 'Día A', 'el encabezado del entreno es el nombre del día');
 // Calibración: 6 kg × 15 reps con RIR 2, rango [12, 20] apunta a 18 reps → 4 kg (sin rango daría 6)
 const lat = card('Elevaciones laterales'), latI = await cards().evaluateAll((els) => els.findIndex((e) => e.textContent.includes('Elevaciones laterales')));

@@ -257,6 +257,9 @@ button.add-ex { width: 100%; }
 .set.head { color: var(--faint); font-size: 12px; margin-top: 0; padding-block: 0; }
 .set.head span { text-align: center; }
 .set input, .set select { height: 48px; padding: 0 4px; text-align: center; text-align-last: center; background: var(--bg); font: 600 22px 'Oswald', sans-serif; font-variant-numeric: tabular-nums; }
+/* Reps sin anotar: borde punteado y la sugerencia chica, para que no se confunda con un valor cargado */
+.set input:placeholder-shown { border: 1.5px dashed var(--faint); }
+.set input::placeholder { font: 400 15px system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; color: var(--faint); opacity: 1; }
 .set .n { color: var(--muted); font: 600 18px 'Oswald', sans-serif; text-align: center; }
 .set .ok { width: 48px; height: 48px; border-radius: 12px; border: 2px solid var(--line); color: var(--faint); font-size: 22px; }
 .set.next { background: var(--card2); }
