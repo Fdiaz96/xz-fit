@@ -1,7 +1,7 @@
 # Graph Report - TendonApp  (2026-10-27)
 
 ## Corpus Check
-- 67 files · ~92,618 words
+- 67 files · ~92,728 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 14 file(s) not represented in the graph (top: (none) 11, .woff2 1, .webmanifest 1)
 
@@ -11,7 +11,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `50a7aab7`
+- Built from commit: `5e012cb0`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -55,12 +55,12 @@
 - UX 1: la calibración se explica una sola vez en la sesión
 - UX 2: el campo de reps no parece cargado
 - UX 3: "Hoy no puedo" como acción secundaria
+- UX 10: pesos con unidad y coherentes entre inicio y Entreno
 - UX 7: Historial ordenado por entreno y con vacíos útiles
 - UX 11: editar rutina con controles claros
 - Barrido de UX (2026-10-27): índice y reglas comunes
 - UX 5: explicar "al 60 %" y "a calibrar"
 - UX 6: la pestaña Tendones solo cuando importa
-- UX 10: pesos con unidad y coherentes entre inicio y Entreno
 - UX 13: textos sin jerga ni cadenas con puntos medios
 - saveV114
 - UX 8: zonas con dolor con el mismo componente que el alta
@@ -252,6 +252,10 @@ Nodes (5): Criterios de aceptación, Dónde, Problema, Propuesta, UX 2: el campo
 Cohesion: 0.33
 Nodes (5): Criterios de aceptación, Dónde, Problema, Propuesta, UX 3: "Hoy no puedo" como acción secundaria
 
+### Community 39 - "UX 10: pesos con unidad y coherentes entre inicio y Entreno"
+Cohesion: 0.33
+Nodes (5): Criterios de aceptación, Dónde, Problema, Propuesta, UX 10: pesos con unidad y coherentes entre inicio y Entreno
+
 ### Community 40 - "UX 7: Historial ordenado por entreno y con vacíos útiles"
 Cohesion: 0.33
 Nodes (5): Criterios de aceptación, Dónde, Problema, Propuesta, UX 7: Historial ordenado por entreno y con vacíos útiles
@@ -271,10 +275,6 @@ Nodes (4): Criterios de aceptación, Problema, Propuesta, UX 5: explicar "al 60 
 ### Community 44 - "UX 6: la pestaña Tendones solo cuando importa"
 Cohesion: 0.33
 Nodes (5): Criterios de aceptación, Dónde, Problema, Propuesta, UX 6: la pestaña Tendones solo cuando importa
-
-### Community 45 - "UX 10: pesos con unidad y coherentes entre inicio y Entreno"
-Cohesion: 0.33
-Nodes (5): Criterios de aceptación, Dónde, Problema, Propuesta, UX 10: pesos con unidad y coherentes entre inicio y Entreno
 
 ### Community 46 - "UX 13: textos sin jerga ni cadenas con puntos medios"
 Cohesion: 0.40

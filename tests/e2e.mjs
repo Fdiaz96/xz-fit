@@ -183,6 +183,9 @@ ok(dayB[6].ex === customId && dayB[7].ex === 'pullover' && JSON.stringify(await 
 await click('#view-train [data-action="routine-del"][data-day="1"][data-i="6"]');
 dayB = await dayRoutine(1);
 ok(dayB.length === 7 && !dayB.some((it) => it.ex === customId) && JSON.stringify(await dayRoutine(0)) === JSON.stringify(dayABefore), 'Quitar saca el ítem del Día B y deja intacto el Día A');
+await click('#toast [data-action="undo"]');
+ok((await dayRoutine(1)).length === 8 && (await dayRoutine(1))[6].ex === customId, 'Quitar se puede deshacer desde el aviso');
+await click('#view-train [data-action="routine-del"][data-day="1"][data-i="6"]');
 await page.evaluate(() => routineSet(1, dayItems(1).slice(0, 1)));
 await click('#view-train [data-action="routine-del"][data-day="1"][data-i="0"]');
 ok((await dayRoutine(1)).length === 1 && (await toastText()).includes('Dejá al menos un ejercicio.'), 'no deja quitar el último ejercicio de un día');

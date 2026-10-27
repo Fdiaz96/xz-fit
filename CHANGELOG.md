@@ -2,6 +2,12 @@
 
 Todos los cambios de XZ Fit (antes Tendón Fuerte), del más nuevo al más viejo.
 
+## 1.20.5 — Editar la rutina sin adivinar íconos
+
+- En Editar rutina, cada ejercicio tiene una fila con subir y bajar, y los botones "Cambiar" y "Quitar" con texto y más grandes.
+- Quitar un ejercicio se puede deshacer desde el aviso.
+- "Volver al plan original" quedó al final, separado de "Agregar ejercicio".
+
 ## 1.20.4 — Todos los pesos con kg
 
 - En el inicio, los ejercicios a calibrar muestran el peso sugerido con "kg" y la etiqueta "calibración" debajo, igual que en Entreno. Si un ejercicio no lleva peso, dice "sin peso" en las dos pantallas.

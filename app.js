@@ -2,7 +2,7 @@
 // (IndexedDB). Los identificadores internos siguen siendo "tendon-fuerte" para no perder los datos ya guardados.
 // Protocolo de tendones del video de Jeremy Ethier con Keith Baar y Coach Q; reglas en logic.js, bocetos en figures.js.
 
-const APP_VERSION = '1.20.4';
+const APP_VERSION = '1.20.5';
 const DAY_NAMES = { lu: 'Lu', ma: 'Ma', mi: 'Mi', ju: 'Ju', vi: 'Vi', sa: 'Sá', do: 'Do' };
 const SIDES = { der: 'derecha', izq: 'izquierda', ambos: 'ambos lados' };
 const REST_SECS = 90, ISO_REST = 60;
@@ -302,17 +302,19 @@ function renderTrain() {
     if (editRoutine && d !== editDay) return;
     const items = planFor(d), now = d === todayDay;
     h += `<section class="plan-day${now ? ' now' : ''}"><h2><span class="day-name">${esc(dd.name)}</span>${now ? '<span class="sep"> · </span><span class="day-now">toca hoy</span>' : ''}</h2><ul class="plan-list">`;
-    h += items.map((p, i) => `<li class="ex${p.missing ? ' missing' : ''}"${editRoutine ? '' : ` data-action="ex-detail" data-ex="${p.ex.id}"`}>
+    h += items.map((p, i) => `<li class="ex${p.missing ? ' missing' : ''}${editRoutine ? ' editing' : ''}"${editRoutine ? '' : ` data-action="ex-detail" data-ex="${p.ex.id}"`}>
         <div class="thumb">${figureSVG(p.ex, { crop: true })}</div>
         <div class="info"><h3>${esc(p.ex.name)}</h3><p class="dose">${p.missing ? 'Falta equipo' : `${p.sets} × ${setLabel(p)}`}${p.r ? `<em>${painTag(p.r)}</em>` : ''}</p>${p.stalled && !editRoutine ? `<p class="stall">Estancado: <button class="link small" data-action="unstall" data-ex="${p.ex.id}">bajar 10 % y volver a subir</button></p>` : ''}</div>
-        ${editRoutine ? `<div class="tools"><button data-action="routine-move" data-day="${d}" data-i="${i}" data-d="-1" aria-label="Subir" ${i ? '' : 'disabled'}>↑</button><button data-action="routine-move" data-day="${d}" data-i="${i}" data-d="1" aria-label="Bajar" ${i < items.length - 1 ? '' : 'disabled'}>↓</button><button data-action="routine-pick" data-day="${d}" data-i="${i}" aria-label="Cambiar">⇄</button><button data-action="routine-del" data-day="${d}" data-i="${i}" aria-label="Quitar">✕</button></div>`
+        ${editRoutine ? `<div class="tools"><button class="move" data-action="routine-move" data-day="${d}" data-i="${i}" data-d="-1" aria-label="Subir" ${i ? '' : 'disabled'}>↑</button><button class="move" data-action="routine-move" data-day="${d}" data-i="${i}" data-d="1" aria-label="Bajar" ${i < items.length - 1 ? '' : 'disabled'}>↓</button>
+          <button class="sec" data-action="routine-pick" data-day="${d}" data-i="${i}">Cambiar</button><button class="quiet del" data-action="routine-del" data-day="${d}" data-i="${i}">Quitar</button></div>`
           : `<div class="w">${p.ex.kind === 'peso' ? `${p.w ? `<span class="num">${String(p.w).replace('.', ',')}</span><span class="unit">kg</span>` : '<span class="unit">sin peso</span>'}${p.calib ? CALIB_TAG : ''}` : ''}</div>`}</li>`).join('');
     h += `</ul>`;
     h += editRoutine ? `<button class="sec add-ex" data-action="routine-pick" data-day="${d}">+ Agregar ejercicio</button>`
       : `<button class="cta${now ? '' : ' ghost'}" data-action="start-workout" data-day="${d}" ${items.some((p) => !p.missing) ? '' : 'disabled'}>Empezar ${esc(dd.name)}</button>`;
     h += `</section>`;
   });
-  if (editRoutine) h += `<button class="link danger" data-action="routine-reset">Volver al plan original</button>`;
+  // Lo destructivo y global va al final, lejos de agregar ejercicio.
+  if (editRoutine) h += `<div class="routine-reset"><button class="quiet" data-action="routine-reset">Volver al plan original</button></div>`;
   $('view-train').innerHTML = h;
 }
 function routineSet(day, items) { S.routine[activePlan(S).id][day] = items; persist(); render(); }
@@ -1198,7 +1200,12 @@ document.addEventListener('click', (e) => {
     'edit-routine': () => { editRoutine = !editRoutine; if (editRoutine) editDay = dayIndex(activePlan(S), S.plan.pos); render(); },
     'edit-day': () => { editDay = +d.day; render(); },
     'routine-move': () => { const items = [...dayItems(+d.day)], i = +d.i, j = i + Number(d.d); [items[i], items[j]] = [items[j], items[i]]; routineSet(+d.day, items); },
-    'routine-del': () => { const items = dayItems(+d.day); if (items.length <= 1) return toast('Dejá al menos un ejercicio.'); routineSet(+d.day, items.filter((_, i) => i !== +d.i)); },
+    'routine-del': () => {
+      const day = +d.day, items = dayItems(day);
+      if (items.length <= 1) return toast('Dejá al menos un ejercicio.');
+      routineSet(day, items.filter((_, i) => i !== +d.i));
+      toast(`Quitaste ${getEx(items[+d.i].ex)?.name.toLowerCase() || 'el ejercicio'}.`, () => routineSet(day, items));
+    },
     'routine-pick': () => openPicker(d.day, d.i),
     'routine-reset': () => {
       if (!confirm('¿Volver al plan original? Se arma de nuevo según tu equipo. Tus ejercicios propios siguen en Mis ejercicios.')) return;

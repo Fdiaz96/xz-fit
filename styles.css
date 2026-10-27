@@ -181,8 +181,14 @@ h3.grp { font-size: 15px; color: var(--muted); margin: 18px 0 8px; }
 
 /* Editor de rutina */
 .title-row { display: flex; justify-content: space-between; align-items: flex-end; gap: 8px; }
-.ex .tools { display: grid; grid-template-columns: repeat(2, 36px); gap: 4px; flex: none; }
-.ex .tools button { width: 36px; height: 36px; border-radius: 10px; background: var(--card2); font-size: 16px; }
+/* Cada ejercicio en edición: subir y bajar como íconos; cambiar y quitar con texto, en su propia fila */
+.ex.editing { flex-wrap: wrap; row-gap: 6px; }
+.ex .tools { flex-basis: 100%; display: flex; align-items: center; gap: 6px; }
+.ex .tools .move { width: 44px; height: 44px; border-radius: 10px; background: var(--card2); font-size: 18px; }
+.ex .tools .move:disabled { opacity: .35; }
+.ex .tools .sec { min-height: 44px; margin-left: auto; }
+.ex .tools .quiet.del { padding: 0 6px; color: var(--danger); text-decoration-color: currentColor; }
+.routine-reset { margin-top: 40px; text-align: center; }
 button.pick { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; padding: 8px; border-radius: 12px; background: var(--card2); margin-bottom: 6px; }
 button.pick.on { outline: 2px solid var(--acc); }
 .pick-row { display: flex; align-items: center; gap: 6px; }
