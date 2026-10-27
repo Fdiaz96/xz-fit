@@ -137,6 +137,12 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--acc); borde
 .thumb .fig { border-radius: 10px; }
 .hero-fig { max-width: 340px; margin: 0 auto; }
 .hero-fig .fig { border-radius: var(--r); }
+.hero-fig.sm { max-width: 220px; }
+.welcome { font-size: 28px; line-height: 1.05; margin: 14px 0 12px; font-weight: 700; color: var(--text); }
+.pitch { list-style: none; margin: 0 0 12px; padding: 0; }
+.pitch li { padding: 2px 0 2px 12px; border-left: 3px solid var(--acc-fg); margin-bottom: 10px; font-size: 14px; line-height: 1.35; color: var(--muted); }
+.pitch li strong { display: block; color: var(--text); font-size: 15px; }
+.pitch li.care { border-left-color: var(--pain-fg); }
 .mus-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: #E5262E; margin-right: 6px; vertical-align: -1px; }
 
 /* Lista de ejercicios */

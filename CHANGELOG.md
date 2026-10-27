@@ -2,6 +2,11 @@
 
 Todos los cambios de XZ Fit (antes Tendón Fuerte), del más nuevo al más viejo.
 
+## 1.18.2 — Bienvenida nueva
+
+- **Primera pantalla**: ahora presenta la app como lo que es para casi todos, una rutina de fuerza guiada. Muestra qué hace (rutina con tu equipo, peso sugerido, progresión y descarga) y deja la adaptación por dolor como una función más. El botón dice "Armar mi rutina".
+- La referencia al protocolo de isométricos pasó al paso "¿Te duele algo?", donde aplica.
+
 ## 1.18.1 — Qué es el RIR, explicado en el entreno
 
 - **RIR, explicado**: en el entreno, tocá "RIR ?" arriba de las series para ver qué es: las repeticiones que te quedaban al terminar la serie (0: no podías ni una más; 2: te quedaban 2). En tu primer entreno la explicación aparece sola.

@@ -2,7 +2,7 @@
 // (IndexedDB). Los identificadores internos siguen siendo "tendon-fuerte" para no perder los datos ya guardados.
 // Protocolo de tendones del video de Jeremy Ethier con Keith Baar y Coach Q; reglas en logic.js, bocetos en figures.js.
 
-const APP_VERSION = '1.18.1';
+const APP_VERSION = '1.18.2';
 const DAY_NAMES = { lu: 'Lu', ma: 'Ma', mi: 'Mi', ju: 'Ju', vi: 'Vi', sa: 'Sá', do: 'Do' };
 const SIDES = { der: 'derecha', izq: 'izquierda', ambos: 'ambos lados' };
 const REST_SECS = 90, ISO_REST = 60;
@@ -1002,10 +1002,16 @@ function renderOnb() {
   const p = S.profile;
   const steps = `<div class="steps">${Array.from({ length: ONB_STEPS }, (_, i) => `<i class="${i <= onbStep ? 'on' : ''}"></i>`).join('')}</div>`;
   let body = '';
-  if (onbStep === 0) body = `<h1><span style="color:var(--acc-fg)">XZ</span> Fit</h1><div class="hero-fig">${figureSVG(EXERCISES.iso_ext_muneca)}</div>
-    <p>Rehabilitación de tendones y entreno con mancuernas, con reglas basadas en evidencia.</p>
-    <p class="muted small">Protocolo de isométricos del video de Jeremy Ethier con el investigador Keith Baar y el fisioterapeuta Coach Q. No reemplaza a un profesional.</p>
-    <p class="muted small">Tus datos quedan solo en este teléfono.</p>`;
+  // Bienvenida: primero el entreno, que es lo que busca casi todos; el cuidado de tendones va como apoyo.
+  if (onbStep === 0) body = `<h1><span style="color:var(--acc-fg)">XZ</span> Fit</h1><div class="hero-fig sm">${figureSVG(EXERCISES.goblet)}</div>
+    <h2 class="welcome">Tu rutina de fuerza, guiada serie por serie</h2>
+    <ul class="pitch">
+      <li><strong>Armada con tu equipo.</strong> Mancuernas, pesas rusas o máquinas: ves solo lo que podés hacer.</li>
+      <li><strong>Sabés cuánto levantar.</strong> Te sugiere el peso de cada serie y te avisa cuándo subirlo.</li>
+      <li><strong>Progresás sin estancarte.</strong> Si dejás de avanzar, ajusta el volumen o te da una semana de descarga.</li>
+      <li class="care"><strong>Si algo te duele, se adapta.</strong> Baja la carga de esa zona y suma ejercicios para recuperar tendones.</li>
+    </ul>
+    <p class="muted small">Te toma un minuto. Tus datos quedan solo en este teléfono.</p>`;
   if (onbStep === 1) body = `<h1>Tu perfil</h1><p class="muted small">Sirve para estimar cuánto levantar al principio.</p>
     <label class="field"><span>Nombre o apodo</span><input data-set="profile.name" value="${esc(p.name)}"></label>
     <span class="small muted">Sexo</span><div class="chips" style="margin:4px 0 8px">${[['h', 'Hombre'], ['m', 'Mujer'], ['x', 'Prefiero no decir']].map(([k, v]) => `<button class="chip${p.sex === k ? ' on' : ''}" data-action="set-sex" data-v="${k}">${v}</button>`).join('')}</div>
@@ -1017,10 +1023,11 @@ function renderOnb() {
     <span class="small muted" style="display:block;margin-top:12px">¿Qué días pensás entrenar? (para "hoy toca" y los recordatorios)</span><div class="chips" style="margin-top:4px">${Object.entries(DAY_NAMES).map(([k, v]) => `<button class="chip${S.rem.train.includes(k) ? ' on' : ''}" data-action="rem-day" data-v="${k}">${v}</button>`).join('')}</div>`;
   if (onbStep === 2) body = `<h1>Tu equipo</h1><p class="muted small">La app muestra solo lo que podés hacer y redondea los pesos a lo que tenés.</p><div class="card">${equipFields()}</div>`;
   if (onbStep === 3) body = `<h1>¿Te duele algo?</h1><p class="muted small">Opcional. Marcá las zonas y cuánto duelen hoy al usarlas. El modo dolor queda apagado: lo activás cuando quieras.</p>
+    <p class="faint small">Usa el protocolo de isométricos del video de Jeremy Ethier con el investigador Keith Baar y el fisioterapeuta Coach Q. No reemplaza a un profesional.</p>
     ${ZONES.map((z) => { const zz = S.zones[z.id]; return `<div class="card${zz ? ' pain' : ''}"><div class="row"><div><h3>${esc(z.name)}</h3><p class="muted small">${esc(z.hint)}</p></div><label class="switch"><input type="checkbox" data-action="zone-toggle" data-zone="${z.id}" ${zz ? 'checked' : ''} aria-label="Me duele ${esc(z.name)}"><i></i></label></div>
       ${zz ? `<div class="chips scale" style="margin-top:8px">${Array.from({ length: 11 }, (_, n) => `<button class="chip pain${zz.pain0 === n ? ' on' : ''}" data-action="zone-pain" data-zone="${z.id}" data-n="${n}">${n}</button>`).join('')}</div>
         <div class="chips" style="margin-top:8px">${Object.entries(SIDES).map(([k, v]) => `<button class="chip pain${zz.side === k ? ' on' : ''}" data-action="zone-side" data-zone="${z.id}" data-side="${k}">${v}</button>`).join('')}</div>` : ''}</div>`; }).join('')}`;
-  dlg('onb').html = `<div class="dlg">${steps}${body}<div class="btns" style="margin-top:16px">${onbStep ? '<button class="sec" data-action="onb-back">Atrás</button>' : ''}<button class="cta" data-action="onb-next">${onbStep === ONB_STEPS - 1 ? 'Listo' : 'Siguiente'}</button></div></div>`;
+  dlg('onb').html = `<div class="dlg">${steps}${body}<div class="btns" style="margin-top:16px">${onbStep ? '<button class="sec" data-action="onb-back">Atrás</button>' : ''}<button class="cta" data-action="onb-next">${onbStep === 0 ? 'Armar mi rutina' : onbStep === ONB_STEPS - 1 ? 'Listo' : 'Siguiente'}</button></div></div>`;
   calmMotion($('onb'));
 }
 function onbNext() {
