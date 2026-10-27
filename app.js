@@ -2,7 +2,7 @@
 // (IndexedDB). Los identificadores internos siguen siendo "tendon-fuerte" para no perder los datos ya guardados.
 // Protocolo de tendones del video de Jeremy Ethier con Keith Baar y Coach Q; reglas en logic.js, bocetos en figures.js.
 
-const APP_VERSION = '1.20.7';
+const APP_VERSION = '1.21.0';
 const DAY_NAMES = { lu: 'Lu', ma: 'Ma', mi: 'Mi', ju: 'Ju', vi: 'Vi', sa: 'Sá', do: 'Do' };
 const SIDES = { der: 'derecha', izq: 'izquierda', ambos: 'ambos lados' };
 const REST_SECS = 90, ISO_REST = 60;
@@ -20,6 +20,7 @@ const bodyPart = (id) => id.startsWith('codo') ? 'codo' : id === 'aquiles' ? 'te
 const forZones = (r) => 'por tu ' + [...new Set(r.zones.map(bodyPart))].join(' y tu ');
 const painTag = (r) => `${r.mode === 'alt' ? 'variante' : 'más liviano'} ${forZones(r)}`;
 const CALIB_TAG = '<span class="calib-tag">calibración</span>';
+const GUESS_TAG = '<span class="calib-tag">estimado</span>';
 
 // ——— Estado y guardado ———
 const DEFAULT = () => ({
@@ -30,7 +31,7 @@ const DEFAULT = () => ({
   zones: {}, lifts: {}, sessions: [], checks: [], custom: [],
   plan: { id: 'fb2', pos: 0, since: '', bw: false, deload: '', deloadOffer: '' },
   rem: { am: '08:00', pm: '20:00', train: ['lu', 'ju'], trainAt: '19:00' },
-  prefs: { sound: true, voice: false, rest: 90, auto: true, theme: 'dark' }, seenVersion: '',
+  prefs: { sound: true, voice: false, rest: 90, auto: true, theme: 'dark', weights: 'auto' }, seenVersion: '',
 });
 let S = DEFAULT();
 
@@ -162,6 +163,19 @@ function syncRoutine() {
     changed: !S.plan.since || current !== stored || resolved,
   };
 }
+// Cómo se eligen los pesos: 'auto' (estimados y ajustados con lo que anotás), 'calib' (serie de calibración) o 'manual'.
+const WEIGHT_MODES = [
+  ['auto', 'Automático', 'Te sugerimos un peso para cada ejercicio. Con lo que anotes en la primera serie ajustamos el resto.'],
+  ['calib', 'Con calibración', 'En el primer entreno, la primera serie de cada ejercicio va hasta que te queden 2 reps. Es lo más preciso.'],
+  ['manual', 'Manual', 'Elegís vos los pesos. Te mostramos el último que usaste y no te sugerimos subidas.'],
+];
+const weightMode = () => (WEIGHT_MODES.some(([k]) => k === S.prefs.weights) ? S.prefs.weights : 'auto');
+const weightModeFields = () => `<div class="tiles one">${WEIGHT_MODES.map(([k, n, hint]) => tile(`name="wmode" data-action="weights-mode" value="${k}"`, weightMode() === k, n, hint, 'radio')).join('')}</div>`;
+// Peso estimado de un ejercicio sin datos propios, ajustado por lo que ya se levantó en los otros.
+const guessFor = (ex, steps, range) => guessWeight(S.profile, ex, steps, range, strengthScale(S.profile, S.lifts, getEx));
+// Etiqueta debajo del peso cuando todavía no es un peso de trabajo.
+const loadTag = (p) => (p.calib ? CALIB_TAG : p.guess ? GUESS_TAG : '');
+const loadText = (p) => (p.w ? fmtKg(p.w) : p.pick ? 'a elegir' : 'sin peso');
 // Cada ejercicio del día del plan, ya adaptado al equipo y al modo dolor; las series salen del hueco (rampa y descarga).
 const planFor = (day) => dayItems(day).map((it) => planItem(day, it));
 // Un ítem del día (ejercicio y hueco de la rutina) listo para entrenar; equip permite el equipo de hoy ("hoy no puedo").
@@ -176,9 +190,14 @@ function planItem(day, it, equip = S.equip) {
   const slot = daySlot(spec, it.slot), range = repRange(ex, slot);
   const item = { ex, orig, r, impl, steps, slot: it.slot, sets: setsFor(slot?.sets ?? DEFAULT_SETS, weeks, deload), range, missing: !impl, deload };
   if (ex.kind === 'peso') {
-    const lift = S.lifts[ex.id];
-    item.calib = !lift;
-    item.base = lift ? roundDown(steps, lift.w) || lift.w : ex.ratio ? startWeight(S.profile, ex, steps, range) : roundDown(steps, ex.start || 0);
+    const lift = S.lifts[ex.id], mode = weightMode();
+    // Sin peso de trabajo: con calibración se pide la serie especial; en automático se estima y la primera serie
+    // anotada lo fija (y ajusta a los demás); en manual lo elige la persona.
+    item.calib = !lift && mode === 'calib';
+    item.guess = !lift && mode === 'auto';
+    item.pick = !lift && mode === 'manual' && !ex.start;
+    item.base = lift ? roundDown(steps, lift.w) || lift.w : item.pick ? 0
+      : mode !== 'manual' && ex.ratio ? guessFor(ex, steps, range) : roundDown(steps, ex.start || 0);
     item.w = r ? painCap(item.base, steps) : item.base;
     if (deload && !item.calib) item.w = roundDown(steps, item.w * 0.9);
     item.capped = !!r && item.w < item.base;
@@ -259,10 +278,13 @@ function renderHome() {
   const doneToday = last?.date === t, trainDay = S.rem.train.includes(weekdayKey(t));
   // Sin entrenos guardados, el día no importa: el primero siempre se presenta en positivo.
   const first = !last, onMsg = first || doneToday || trainDay;
-  const dayMsg = first ? `Tu primer entreno.${doable.some((p) => p.calib) ? ' Con la primera serie de cada ejercicio calibramos tus pesos.' : ''}`
+  const firstHint = doable.some((p) => p.calib) ? ' Con la primera serie de cada ejercicio calibramos tus pesos.'
+    : doable.some((p) => p.guess) ? ' Los pesos son estimados: con tu primera serie ajustamos el resto.'
+    : doable.some((p) => p.pick) ? ' Elegís vos los pesos de cada ejercicio.' : '';
+  const dayMsg = first ? `Tu primer entreno.${firstHint}`
     : doneToday ? '✓ Entreno de hoy hecho' : trainDay ? 'Hoy toca entrenar' : 'Hoy es día de descanso, podés entrenar igual';
-  // El peso con su unidad, igual que en Entreno; si es para calibrar, la etiqueta va debajo.
-  const load = (p) => p.ex.kind !== 'peso' ? '' : `<span class="load">${p.w ? fmtKg(p.w) : 'sin peso'}${p.calib ? CALIB_TAG : ''}</span>`;
+  // El peso con su unidad, igual que en Entreno; si todavía no es un peso de trabajo, la etiqueta va debajo.
+  const load = (p) => p.ex.kind !== 'peso' ? '' : `<span class="load">${loadText(p)}${loadTag(p)}</span>`;
   h += `<section class="card today${onMsg ? ' on' : ''}">
     <p class="plan-line"><span>${esc(plan.name)}</span>${last ? `<span>Último: ${fmtDate(last.date)}</span>` : ''}</p>
     <p class="day-msg">${dayMsg}${S.plan.deload === weekKey(t) ? '. Semana de descarga.' : ''}</p>
@@ -308,7 +330,7 @@ function renderTrain() {
         <div class="info"><h3>${esc(p.ex.name)}</h3><p class="dose">${p.missing ? 'Falta equipo' : `${p.sets} × ${setLabel(p)}`}${p.r ? `<em>${painTag(p.r)}</em>` : ''}</p>${p.stalled && !editRoutine ? `<p class="stall">Estancado: <button class="link small" data-action="unstall" data-ex="${p.ex.id}">bajar 10 % y volver a subir</button></p>` : ''}</div>
         ${editRoutine ? `<div class="tools"><button class="move" data-action="routine-move" data-day="${d}" data-i="${i}" data-d="-1" aria-label="Subir" ${i ? '' : 'disabled'}>↑</button><button class="move" data-action="routine-move" data-day="${d}" data-i="${i}" data-d="1" aria-label="Bajar" ${i < items.length - 1 ? '' : 'disabled'}>↓</button>
           <button class="sec" data-action="routine-pick" data-day="${d}" data-i="${i}">Cambiar</button><button class="quiet del" data-action="routine-del" data-day="${d}" data-i="${i}">Quitar</button></div>`
-          : `<div class="w">${p.ex.kind === 'peso' ? `${p.w ? `<span class="num">${String(p.w).replace('.', ',')}</span><span class="unit">kg</span>` : '<span class="unit">sin peso</span>'}${p.calib ? CALIB_TAG : ''}` : ''}</div>`}</li>`).join('');
+          : `<div class="w">${p.ex.kind === 'peso' ? `${p.w ? `<span class="num">${String(p.w).replace('.', ',')}</span><span class="unit">kg</span>` : `<span class="unit">${loadText(p)}</span>`}${loadTag(p)}` : ''}</div>`}</li>`).join('');
     h += `</ul>`;
     h += editRoutine ? `<button class="sec add-ex" data-action="routine-pick" data-day="${d}">+ Agregar ejercicio</button>`
       : `<button class="cta${now ? '' : ' ghost'}" data-action="start-workout" data-day="${d}" ${items.some((p) => !p.missing) ? '' : 'disabled'}>Empezar ${esc(dd.name)}</button>`;
@@ -381,7 +403,7 @@ function renderExForm() {
     <label class="field"><span>Con qué se hace</span><select id="x-impl">${implOptions().map(([v, n]) => `<option value="${esc(v)}" ${c.impl === v ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select></label>
     <p class="faint small">¿Tu máquina no aparece? Agregala en Ajustes → Equipo → Máquinas.</p>
     <span class="small muted">Cómo se registra</span><div class="chips" style="margin:4px 0 8px">${[['peso', 'Kilos × reps'], ['reps', 'Solo reps'], ['tiempo', 'Segundos']].map(([k, n]) => `<button class="chip${c.kind === k ? ' on' : ''}" data-action="xf-kind" data-v="${k}">${n}</button>`).join('')}</div>
-    ${c.kind === 'peso' ? `<label class="field"><span>Peso para empezar (kg, opcional: se calibra en la primera serie)</span><input id="x-start" type="number" inputmode="decimal" step="0.5" value="${esc(c.start || '')}"></label>` : ''}
+    ${c.kind === 'peso' ? `<label class="field"><span>Peso para empezar (kg, opcional: se ajusta con la primera serie)</span><input id="x-start" type="number" inputmode="decimal" step="0.5" value="${esc(c.start || '')}"></label>` : ''}
     <label class="field"><span>Grupo</span><select id="x-cat">${Object.entries(CATS).map(([k, n]) => `<option value="${k}" ${c.cat === k ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
     <span class="small muted">Tendones que exige (para el modo dolor)</span><div class="chips" style="margin-top:4px">${ZONES.map((z) => `<button class="chip pain${c.tag.includes(z.id) ? ' on' : ''}" data-action="xf-tag" data-v="${z.id}">${esc(z.name)}</button>`).join('')}</div>
     <label class="field"><span>Nota o indicaciones</span><textarea id="x-note" rows="2">${esc(c.note)}</textarea></label>
@@ -441,10 +463,13 @@ function openExercise(id) {
     <ul class="muted">${ex.cues.map((c) => `<li>${esc(c)}</li>`).join('')}</ul>
     ${ex.mus?.length ? `<p class="small"><span class="mus-dot"></span>Trabaja: ${ex.mus.map((m) => MUSCLE_NAMES[m]).join(', ')}</p>` : ''}
     ${ex.tag?.length ? `<p class="small muted">Cuidado si te duele: ${ex.tag.map((z) => zoneName(z).toLowerCase()).join(', ')}.</p>` : ''}
-    ${ex.kind === 'peso' && !lift ? `<p class="small">${CALIB_TAG} Todavía no tiene peso de trabajo: en la primera serie hacés reps hasta que te queden 2 y con eso lo calculamos.</p>` : ''}
+    ${ex.kind === 'peso' && !lift ? `<p class="small">${{
+      calib: `${CALIB_TAG} Todavía no tiene peso de trabajo: en la primera serie hacés reps hasta que te queden 2 y con eso lo calculamos.`,
+      auto: `${GUESS_TAG} Todavía no tiene peso de trabajo: el que ves sale de tu perfil y de lo que levantaste en otros ejercicios. La primera serie que anotes lo fija.`,
+      manual: 'Todavía no tiene peso de trabajo: el que uses la primera vez queda guardado.' }[weightMode()]}</p>` : ''}
     ${lift ? `<p>Peso de trabajo: <b class="num">${fmtKg(lift.w)}</b></p>${lift.e1rm ? `<p class="small muted">Lo máximo que podrías levantar una vez, estimado: ${lift.e1rm} kg.</p>` : ''}` : ''}
     ${hist.length > 1 ? `<h2>Progreso</h2>${lineChart(hist, { unit: 'kg', color: 'var(--acc)' })}` : ''}
-    ${lift ? `<button class="link danger" data-action="recalibrate" data-ex="${id}">Volver a calibrar</button>` : ''}</div>`;
+    ${lift ? `<button class="link danger" data-action="recalibrate" data-ex="${id}">${weightMode() === 'calib' ? 'Volver a calibrar' : 'Borrar peso de trabajo'}</button>` : ''}</div>`;
   $('exsheet').showModal(); calmMotion($('exsheet'));
 }
 
@@ -452,7 +477,7 @@ function openExercise(id) {
 let W = null;   // { plan, day, dayName, items, started, warm, off, out }
 function startWorkout(day) {
   const items = [...planFor(day).filter((p) => !p.missing), ...maintenanceItems()].map((p) => ({
-    ...p, rows: Array.from({ length: p.sets }, () => ({ w: p.w || 0, reps: '', rir: '', secs: p.secs || '', done: false })),
+    ...p, rows: Array.from({ length: p.sets }, () => ({ w: p.pick ? '' : p.w || 0, reps: '', rir: '', secs: p.secs || '', done: false })),
   }));
   // Entrada en calor: movilidad, un isométrico por zona sensible (calma el dolor antes de cargar) y series de aproximación.
   const first = items.find((p) => p.ex.kind === 'peso' && p.w > 0);
@@ -462,8 +487,9 @@ function startWorkout(day) {
   W = { plan: activePlan(S).id, day, dayName: activePlan(S).days[day].name, items, started: Date.now(), warm: warm.map((x) => ({ ...x, done: false })), off: [], out: [] };
   // Qué es el RIR: abierto en el primer ejercicio con peso del primer entreno; después, al tocar la columna.
   W.rirHelp = S.sessions.some((s) => s.type === 'entreno') ? -1 : items.findIndex((p) => p.ex.kind === 'peso');
-  // Con 2 o más ejercicios a calibrar, la explicación va una vez arriba y cada ejercicio lleva solo la etiqueta.
+  // Con 2 o más ejercicios sin peso de trabajo, la explicación va una vez arriba y cada ejercicio lleva solo la etiqueta.
   W.calibIntro = items.filter((p) => p.calib).length >= 2;
+  W.guessIntro = items.filter((p) => p.guess || p.pick).length >= 2;
   renderWorkout(); $('wsheet').showModal(); calmMotion($('wsheet')); keepAwake(true);
 }
 function renderWorkout() {
@@ -475,6 +501,7 @@ function renderWorkout() {
     const k = it.ex.kind, timed = k === 'tiempo' || k === 'iso', weighted = k === 'peso' || (k === 'iso' && it.w);
     const notes = [];
     if (it.calib && !W.calibIntro) notes.push(`<div class="note acc">Serie de calibración: con ${fmtKg(it.w)} hacé reps hasta que sientas que te salen solo 2 más, y frená ahí (eso es RIR 2). Anotá las reps y el RIR: con eso calculamos tu peso real.</div>`);
+    if (it.pick && !W.guessIntro) notes.push(`<div class="note acc">Elegí el peso y anotalo en la primera serie: la próxima vez arranca con ese.</div>`);
     if (it.r?.mode === 'cap') notes.push(`<div class="note pain">Más liviano ${forZones(it.r)}: ${fmtKg(it.w)}${it.w < it.base ? ` en vez de ${fmtKg(it.base)}` : ', el peso más bajo que tenés'}.</div>`);
     if (it.r?.mode === 'alt') notes.push(`<div class="note pain">Variante ${forZones(it.r)}: hoy va ${esc(it.ex.name.toLowerCase())} en vez de ${esc(it.orig.name.toLowerCase())}.</div>`);
     if (it.maint) notes.push(`<div class="note pain">Mantenimiento de ${esc(zoneName(it.maint).toLowerCase())} (fase 3).</div>`);
@@ -492,7 +519,7 @@ function renderWorkout() {
     const state = it.rows.every((r) => r.done) ? ' done' : i === cur ? ' now' : '';
     return `<section class="card wex${it.r || it.maint ? ' pain' : ''}${state}"><div class="ex">
       <span class="wex-n" aria-hidden="true">${it.rows.every((r) => r.done) ? '✓' : i + 1}</span>
-      <div class="info"><h3>${esc(it.ex.name)}</h3><p class="target"><span>${it.sets} × ${setLabel(it)}</span>${weighted ? `<b class="num">${fmtKg(it.w)}</b>` : ''}${it.calib ? CALIB_TAG : ''}</p>${it.impl === 'db' && platesFor(S.equip, it.w) ? `<p class="plates">Por lado: ${platesLabel(it.w)}</p>` : ''}</div>
+      <div class="info"><h3>${esc(it.ex.name)}</h3><p class="target"><span>${it.sets} × ${setLabel(it)}</span>${it.pick ? '<b>a elegir</b>' : weighted ? `<b class="num">${fmtKg(it.w)}</b>` : ''}${loadTag(it)}</p>${it.impl === 'db' && it.w && platesFor(S.equip, it.w) ? `<p class="plates">Por lado: ${platesLabel(it.w)}</p>` : ''}</div>
       <div class="thumb" data-action="ex-detail" data-ex="${it.ex.id}" title="Ver en grande">${figureSVG(it.ex, { crop: true })}</div></div>
       ${notes.join('')}<div class="cues-row"><details class="cues"><summary>Cómo se hace</summary><ul>${it.ex.cues.map((c) => `<li>${esc(c)}</li>`).join('')}</ul></details>
       ${it.maint || it.rows.some((r) => r.done) ? '' : `<button class="swap-link" data-action="swap-today" data-i="${i}">Cambiar por hoy</button>`}</div>
@@ -502,7 +529,11 @@ function renderWorkout() {
     ${W.warm.map((x, i) => `<button class="warm-item${x.done ? ' on' : ''}" data-action="warm" data-i="${i}"><span class="box">${x.done ? '✓' : ''}</span><span>${esc(x.txt)}</span></button>`).join('')}</details>` : '';
   const calib = W.calibIntro && W.items.some((it) => it.calib) ? `<section class="card calib-intro"><h3>Hoy calibramos tus pesos</h3>
     <p>En la primera serie de cada ejercicio con <span class="nowrap"><span class="calib-tag">calibración</span>,</span> hacé reps hasta que sientas que te salen solo 2 más y frená ahí. Anotá las reps y el RIR: con eso calculamos tu peso de trabajo.</p>
-    <p class="muted small">El peso que ves es un punto de partida.</p></section>` : '';
+    <p class="muted small">El peso que ves es un punto de partida.</p></section>`
+    : W.guessIntro && W.items.some((it) => it.guess) ? `<section class="card calib-intro"><h3>Pesos estimados</h3>
+    <p>Los pesos con <span class="nowrap"><span class="calib-tag">estimado</span></span> salen de tu perfil. Si te queda liviano o pesado, cambialo en la serie: con lo que anotes ajustamos los demás ejercicios.</p></section>`
+    : W.guessIntro && W.items.some((it) => it.pick) ? `<section class="card calib-intro"><h3>Elegís vos los pesos</h3>
+    <p>Anotá el peso que uses en cada serie. La próxima vez cada ejercicio arranca con el último que usaste.</p></section>` : '';
   dlg('wsheet').html = `<div class="dlg"><div class="dlg-head w-head"><button class="link danger" data-action="cancel-workout">Salir</button><div class="w-title"><strong>${esc(W.dayName)}</strong><span class="w-count">${done} de ${total} series</span></div><button class="link" data-action="finish-workout">Terminar</button>
       <div class="w-track" role="progressbar" aria-label="Series hechas" aria-valuemin="0" aria-valuemax="${total}" aria-valuenow="${done}">${track}</div></div>${warm}${calib}${body}
     <button class="cta" data-action="finish-workout">Terminar entreno</button></div>`;
@@ -511,6 +542,7 @@ function setDone(i, j) {
   const it = W.items[i], r = it.rows[j], k = it.ex.kind;
   if (!r.done) {
     if ((k === 'peso' || k === 'reps') && !(Number(r.reps) > 0)) return toast('Anotá las repeticiones que hiciste.');
+    if (k === 'peso' && it.pick && !(Number(r.w) > 0)) return toast('Anotá el peso que usaste.');
     if ((k === 'tiempo' || k === 'iso') && !(Number(r.secs) > 0)) r.secs = it.secs;
   }
   r.done = !r.done;
@@ -524,8 +556,34 @@ function setDone(i, j) {
     persist();
     toast(`Calibrado: tu peso de trabajo es ${fmtKg(c.w)}${it.r ? ` (hoy ${fmtKg(it.w)} por modo dolor)` : ''}.`);
   }
+  // Automático y manual: la primera serie anotada fija el peso de trabajo; en automático, además ajusta a los que siguen.
+  if (r.done && (it.guess || it.pick) && k === 'peso' && Number(r.w) > 0) {
+    // Con tope por dolor la serie va más liviana: el peso de trabajo no baja por eso.
+    const w = Number(r.w), base = it.r ? Math.max(it.base || 0, w) : w;
+    S.lifts[it.ex.id] = { w: base, e1rm: Math.round(epley1RM(w, Number(r.reps) + (Number(r.rir) || 0)) * 10) / 10 };
+    // Las series que siguen pasan al peso anotado, salvo las que la persona ya cambió a mano.
+    it.rows.forEach((x) => { if (!x.done && (!(Number(x.w) > 0) || Number(x.w) === it.w)) x.w = w; });
+    it.guess = it.pick = false; it.first = true; it.base = base; it.w = w;
+    persist();
+    const n = weightMode() === 'auto' ? retuneGuesses() : 0;
+    if (n) toast(`Con esta serie ajustamos el peso de ${n === 1 ? '1 ejercicio' : `${n} ejercicios`} que siguen.`);
+  }
   renderWorkout();
   if (r.done && it.rows.some((x) => !x.done)) startRest(k === 'iso' ? ISO_REST : S.prefs.rest || REST_SECS);
+}
+// Re-estima los ejercicios del entreno que siguen sin peso propio ni series hechas; respeta el peso que la persona ya cambió.
+// Devuelve cuántos cambiaron.
+function retuneGuesses() {
+  let n = 0;
+  for (const it of W.items) {
+    if (!it.guess || !it.ex.ratio || it.rows.some((x) => x.done)) continue;
+    const base = guessFor(it.ex, it.steps, it.range), capped = it.r ? painCap(base, it.steps) : base;
+    const w = it.deload ? roundDown(it.steps, capped * 0.9) : capped;
+    if (w === it.w) continue;
+    it.rows.forEach((x) => { if (Number(x.w) === it.w) x.w = w; });
+    it.base = base; it.w = w; n++;
+  }
+  return n;
 }
 // "Hoy no puedo": el ejercicio se cambia solo en esta sesión por otro del mismo hueco; la rutina no se toca.
 const EQUIP_NAMES = { bench: 'banco', bar: 'barra de dominadas', band: 'bandas', rings: 'aros', db: 'mancuernas', kb: 'pesas rusas' };
@@ -570,13 +628,15 @@ function finishWorkout() {
     const sets = it.rows.filter((r) => r.done);
     if (!sets.length) continue;
     if (it.ex.kind === 'peso' && S.lifts[it.ex.id]) {
-      const lift = S.lifts[it.ex.id], prev = it.calibrated ? 0 : lift.e1rm || 0, w0 = lift.w;
+      const lift = S.lifts[it.ex.id], prev = it.calibrated || it.first ? 0 : lift.e1rm || 0, w0 = lift.w, manual = weightMode() === 'manual';
       const best = Math.max(...sets.map((s) => epley1RM(Number(s.w), Number(s.reps) + (Number(s.rir) || 0))));
       if (prev && best > prev + 0.05) prs.push({ name: it.ex.name, val: `${Math.round(best * 10) / 10} kg (1RM estimado)` });
       lift.e1rm = Math.round(Math.max(lift.e1rm || 0, best) * 10) / 10;
       // Con tope por dolor o recién calibrado no se progresa: el peso de trabajo ya quedó definido.
-      if (!it.r && !it.calibrated && !it.deload) lift.w = progress(lift.w, sets.map((s) => ({ reps: Number(s.reps) })), it.steps, it.range);
-      if (lift.w !== w0) ups.push({ ex: it.ex.id, name: it.ex.name, from: w0, to: lift.w });
+      // En manual no se sugieren subidas: queda el último peso que usó.
+      if (manual) lift.w = Number(sets.at(-1).w) || lift.w;
+      else if (!it.r && !it.calibrated && !it.deload) lift.w = progress(lift.w, sets.map((s) => ({ reps: Number(s.reps) })), it.steps, it.range);
+      if (lift.w !== w0 && !manual) ups.push({ ex: it.ex.id, name: it.ex.name, from: w0, to: lift.w });
     }
     if (it.ex.kind === 'reps') {
       const l = (S.lifts[it.ex.id] ||= { bestReps: 0 }), top = Math.max(...sets.map((s) => Number(s.reps) || 0));
@@ -602,7 +662,7 @@ function saveSession(session) {
 function showSummary(s) {
   const st = streak(S, today()), plan = activePlan(S);
   // Con peso sin cambios: le decimos en qué repeticiones sube (el tope del rango guardado en la sesión).
-  const holds = unchangedWeightItems(s, (id) => getEx(id)?.kind === 'peso');
+  const holds = weightMode() === 'manual' ? [] : unchangedWeightItems(s, (id) => getEx(id)?.kind === 'peso');
   dlg('sumsheet').html = `<div class="dlg"><div class="dlg-head"><strong>¡${esc(plan.days[s.day]?.name ?? `Entreno ${s.tpl}`)} hecho! 💪</strong><button class="link" data-action="close" data-dlg="sumsheet">Listo</button></div>
     <div class="stats"><div><span class="big num">${s.min}</span><span class="muted small">minutos</span></div><div><span class="big num">${s.sets}</span><span class="muted small">series</span></div><div><span class="big num">${s.vol >= 1000 ? (s.vol / 1000).toFixed(1).replace('.', ',') + 'k' : s.vol}</span><span class="muted small">kg × reps</span></div></div>
     ${st ? `<p class="streak">🔥 ${st} ${st === 1 ? 'semana cumplida' : 'semanas seguidas cumpliendo'}</p>` : ''}
@@ -962,7 +1022,8 @@ function renderSettings() {
     <div class="grid3">${unitField('Peso', `data-set="profile.weight" inputmode="decimal" value="${esc(p.weight)}"`, 'kg')}${unitField('Altura', `data-set="profile.height" inputmode="numeric" value="${esc(p.height)}"`, 'cm')}${unitField('Edad', `data-set="profile.age" inputmode="numeric" value="${esc(p.age)}"`, 'años')}</div>
     <span class="small muted">Días de entreno</span>${weekFields()}
     <span class="small muted" style="display:block;margin-top:12px">Experiencia</span><div class="chips" style="margin-top:4px">${EXPERIENCE.map((x) => `<button class="chip${p.exp === x.id ? ' on' : ''}" data-action="set-exp" data-v="${x.id}">${x.name}</button>`).join('')}</div>
-    <p class="faint small">Con sexo, peso, edad y experiencia estimamos tu peso inicial; la serie de calibración lo ajusta. La altura casi no cambia el cálculo.</p></div>
+    <p class="faint small">Con sexo, peso, edad y experiencia estimamos tu peso inicial. La altura casi no cambia el cálculo.</p></div>
+  <h2>Pesos</h2>${weightModeFields()}
   <h2>Equipo</h2>${equipFields()}
   ${hasPainTab() ? '' : `<h2>Dolor</h2><div class="card pain"><h3>¿Te duele algo?</h3><p class="muted small">Marcá la zona y activá el modo dolor: suma ejercicios para el tendón y cuida esa zona en el entreno.</p><button class="sec" style="width:100%;margin-top:10px" data-action="go-pain">Marcar qué me duele</button></div>`}
   <h2>Tema</h2><div class="card"><div class="chips">${[['dark', 'Oscuro'], ['light', 'Claro'], ['system', 'Según el sistema']].map(([k, n]) => `<button class="chip${(S.prefs.theme || 'dark') === k ? ' on' : ''}" data-action="theme" data-v="${k}">${n}</button>`).join('')}</div><p class="faint small">El claro se lee mejor a pleno sol.</p></div>
@@ -992,7 +1053,7 @@ function renderSettings() {
   navigator.storage?.persisted?.().then((ok) => { const el = $('persist-status'); if (el) el.textContent = ok ? '✓ Almacenamiento persistente: el navegador no borra los datos por falta de espacio.' : 'El navegador podría borrar los datos si falta espacio: instalá la app y guardá copias.'; });
 }
 // Casilla grande que se marca entera (accesorios, zonas con dolor).
-const tile = (attrs, on, name, hint = '') => `<label class="tile"><input type="checkbox" ${attrs} ${on ? 'checked' : ''}><span><b>${name}</b>${hint ? `<small>${hint}</small>` : ''}</span></label>`;
+const tile = (attrs, on, name, hint = '', type = 'checkbox') => `<label class="tile"><input type="${type}" ${attrs} ${on ? 'checked' : ''}><span><b>${name}</b>${hint ? `<small>${hint}</small>` : ''}</span></label>`;
 function equipFields(prefix = '') {
   const e = S.equip;
   return `<h3 class="grp">Pesos libres</h3><div class="card">
@@ -1068,7 +1129,8 @@ function renderOnb() {
     <span class="small muted">Sexo</span><div class="chips" style="margin:4px 0 8px">${[['h', 'Hombre'], ['m', 'Mujer'], ['x', 'Prefiero no decir']].map(([k, v]) => `<button class="chip${p.sex === k ? ' on' : ''}" data-action="set-sex" data-v="${k}">${v}</button>`).join('')}</div>
     <div class="grid3">${unitField('Peso', `id="o-weight" data-set="profile.weight" inputmode="decimal" value="${esc(p.weight)}"`, 'kg')}${unitField('Altura', `data-set="profile.height" inputmode="numeric" value="${esc(p.height)}"`, 'cm')}${unitField('Edad', `data-set="profile.age" inputmode="numeric" value="${esc(p.age)}"`, 'años')}</div>
     <span class="small muted">¿Cuánto hace que entrenás con pesas?</span><div class="chips" style="margin:4px 0 16px">${EXPERIENCE.map((x) => `<button class="chip${p.exp === x.id ? ' on' : ''}" data-action="set-exp" data-v="${x.id}">${x.name}</button>`).join('')}</div>
-    <span class="small muted">¿Qué días entrenás?</span>${weekFields()}`;
+    <span class="small muted">¿Qué días entrenás?</span>${weekFields()}
+    <span class="small muted" style="display:block;margin-top:16px">¿Cómo querés los pesos?</span>${weightModeFields()}<p class="faint small">Lo cambiás cuando quieras en Ajustes.</p>`;
   if (onbStep === 2) body = `<h1>Tu equipo</h1><p class="muted small">Marcá lo que tenés. La rutina usa solo eso y redondea los pesos a lo que podés cargar.</p>${equipFields()}`;
   if (onbStep === 3) body = `<h1>¿Te duele algo?</h1><p class="muted small">Opcional. Si marcás una zona, la app la cuida: baja la carga de los ejercicios que la exigen y te propone ejercicios para recuperar el tendón. Si no te duele nada, seguí.</p>
     <div class="tiles list">${ZONES.map((z) => { const zz = S.zones[z.id]; return tile(`data-action="zone-toggle" data-zone="${z.id}"`, !!zz, esc(z.name), esc(z.hint)) + (!zz ? '' : `<div class="zone-detail">
@@ -1128,7 +1190,7 @@ document.addEventListener('click', (e) => {
     'swap-why': () => swapToday(+d.i, d.off),
     'skip-rest': stopRest,
     'ex-detail': () => openExercise(d.ex),
-    'recalibrate': () => { if (confirm('¿Borrar el peso de trabajo y volver a calibrar?')) { delete S.lifts[d.ex]; persist(); $('exsheet').close(); render(); } },
+    'recalibrate': () => { if (confirm(weightMode() === 'calib' ? '¿Borrar el peso de trabajo y volver a calibrar?' : '¿Borrar el peso de trabajo de este ejercicio?')) { delete S.lifts[d.ex]; persist(); $('exsheet').close(); render(); } },
     'close': () => $(d.dlg).close(),
     'start-rehab': startRehab,
     'rehab-go': rehabGo,
@@ -1257,6 +1319,7 @@ document.addEventListener('change', (e) => {
     if (i === 'bar') S.equip.db.plates.bar = v >= 0 ? v : 0; else if (v >= 0) S.equip.db.plates.items[+i][k] = v;
     persist(); $('onb').open ? renderOnb() : render(); return;
   }
+  if (a === 'weights-mode') { S.prefs.weights = el.value; persist(); $('onb').open ? renderOnb() : render(); }
   if (a === 'pref-toggle') { S.prefs[el.dataset.k] = el.checked; persist(); if (el.checked && el.dataset.k !== 'auto') cue('go', 'Así suena'); }
   if (a === 'hist-zone') { histZone = el.value; renderHistory(); }
   if (a === 'hist-ex') { histEx = el.value; renderHistory(); }

@@ -281,6 +281,9 @@ await click('#onb [data-action="rem-day"][data-v="ju"]'); await click('#onb [dat
 ok((await state()).rem.train.join() === 'lu,vi', 'elige los días de entreno en el primer uso');
 await click('#onb [data-action="rem-day"][data-v="vi"]'); await click('#onb [data-action="rem-day"][data-v="ju"]');
 await shot('02-perfil');
+ok(await page.locator('#onb [data-action="weights-mode"]').count() === 3 && await page.locator('#onb [data-action="weights-mode"][value="auto"]').isChecked(), 'el primer uso ofrece 3 formas de elegir los pesos, con la automática marcada');
+await page.check('#onb [data-action="weights-mode"][value="calib"]');
+ok((await state()).prefs.weights === 'calib', 'elige pesos con calibración');
 await click('[data-action="onb-next"]');
 await page.fill('#onb [data-set="equip.kb"]', '12, 20'); await page.dispatchEvent('#onb [data-set="equip.kb"]', 'change');
 await page.check('#onb [data-action="eq-rings"]');
@@ -394,7 +397,7 @@ const finishQuick = async () => {
 const closeSummary = () => click('#sumsheet [data-action="close"]');
 
 // CK-19, CK-21, CK-25 y calibración con el rango: Día A con 3 días en el perfil y plan de 20 días
-await bootSaved({ profile: { days: 3 }, sessions: [{ ago: 20 }], equip: { db: { min: 2, max: 24, step: 2 } } });
+await bootSaved({ profile: { days: 3 }, sessions: [{ ago: 20 }], equip: { db: { min: 2, max: 24, step: 2 } }, extra: { prefs: { weights: 'calib' } } });
 await openDay(0);
 ok(await cards().count() === 6, 'Día A: 6 ejercicios en el entreno');
 const setCounts = await cards().evaluateAll((els) => els.map((e) => e.querySelectorAll('.set:not(.head)').length));
@@ -474,6 +477,46 @@ await finishQuick();
 s = await state();
 ok((s.sessions[0].items[0].from ?? null) === firstFrom, 'la sesión guarda de qué ejercicio se cambió');
 ok(JSON.stringify(dayIds(s, 1)) === JSON.stringify(routineB) && s.equip.rings === true, 'la rutina y el equipo guardados no cambian');
+await closeSummary();
+
+// Pesos automáticos (por defecto): sin serie de calibración; la primera serie anotada fija ese peso y ajusta a los demás
+await bootSaved({});
+ok(await page.evaluate(() => S.prefs.weights) === 'auto', 'quien no eligió queda con pesos automáticos');
+const autoTags = await page.locator('#view-home .board .load .calib-tag').allTextContents();
+ok(autoTags.length >= 3 && autoTags.every((x) => x === 'estimado'), 'inicio: los pesos sin datos dicen "estimado", no "calibración"');
+await openDay(0);
+ok((await page.locator('#wsheet .calib-intro').textContent()).includes('Pesos estimados') && !(await page.locator('#wsheet').textContent()).includes('calibramos'), 'el entreno explica los pesos estimados, sin calibración');
+const guessW = () => page.evaluate(() => Object.fromEntries(W.items.filter((it) => it.guess && it.ex.ratio).map((it) => [it.ex.id, it.w])));
+const gobI = await cards().evaluateAll((els) => els.findIndex((e) => e.textContent.includes('Sentadilla goblet')));
+const guess0 = await guessW();
+await card('Sentadilla goblet').locator(`input[data-w="${gobI}.0.w"]`).fill('20');
+await card('Sentadilla goblet').locator(`input[data-w="${gobI}.0.reps"]`).fill('10');
+await click(`#wsheet [data-action="set-done"][data-i="${gobI}"][data-j="0"]`);
+ok((await toastText()).includes('ajustamos el peso'), 'la primera serie anotada avisa que ajusta los ejercicios que siguen');
+const guess1 = await guessW(), guessIds = Object.keys(guess1);
+ok(!('goblet' in guess1) && guessIds.length >= 2 && guessIds.every((id) => guess1[id] >= guess0[id]) && guessIds.some((id) => guess1[id] > guess0[id]), `con una goblet más pesada que lo estimado, los demás suben (${JSON.stringify(guess0)} → ${JSON.stringify(guess1)})`);
+ok((await state()).lifts.goblet.w === 20, 'el peso anotado queda como peso de trabajo, sin serie de calibración');
+ok(await card('Sentadilla goblet').locator(`input[data-w="${gobI}.1.w"]`).inputValue() === '20', 'las series siguientes toman el peso anotado');
+await click('#wsheet .dlg-head [data-action="finish-workout"]');
+await page.waitForSelector('#sumsheet[open]');
+ok(!(await page.locator('#sumsheet').textContent()).includes('Récords'), 'la primera vez de un ejercicio no cuenta como récord');
+await closeSummary();
+
+// Pesos manuales: sin sugerencias; se guarda el último peso usado y no hay subidas
+await bootSaved({ extra: { prefs: { weights: 'manual' } } });
+ok((await page.locator('#view-home .board .load').allTextContents()).some((x) => x === 'a elegir') && await page.locator('#view-home .board .load .calib-tag').count() === 0, 'manual: el inicio dice "a elegir" y sin etiquetas');
+await openDay(0);
+const latM = await cards().evaluateAll((els) => els.findIndex((e) => e.textContent.includes('Elevaciones laterales')));
+ok(await card('Elevaciones laterales').locator(`input[data-w="${latM}.0.w"]`).inputValue() === '', 'manual: el peso arranca vacío');
+await card('Elevaciones laterales').locator(`input[data-w="${latM}.0.reps"]`).fill('20');
+await click(`#wsheet [data-action="set-done"][data-i="${latM}"][data-j="0"]`);
+ok((await toastText()).includes('Anotá el peso'), 'manual: pide el peso antes de marcar la serie');
+await card('Elevaciones laterales').locator(`input[data-w="${latM}.0.w"]`).fill('6');
+await click(`#wsheet [data-action="set-done"][data-i="${latM}"][data-j="0"]`);
+await click('#wsheet .dlg-head [data-action="finish-workout"]');
+await page.waitForSelector('#sumsheet[open]');
+s = await state();
+ok(s.lifts.lateral.w === 6 && !s.sessions[0].ups.length && !(await page.locator('#sumsheet').textContent()).includes('Mismo peso'), 'manual: guarda 6 kg aunque haya hecho el tope del rango, sin sugerir subidas');
 await closeSummary();
 ok(errors.length === errorsBefore4b, `rotación, rango y sesiones sin errores de JavaScript${errors.length > errorsBefore4b ? ': ' + errors.slice(errorsBefore4b).join(' | ') : ''}`);
 

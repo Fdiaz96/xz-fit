@@ -56,6 +56,17 @@ ok(sw('woman', 'press_suelo', 'db') < sw('man', 'press_suelo', 'db'), 'mujer de 
 ok(L('estimate1RM({ ...man, exp: "medio" }, EXERCISES.rdl)') > L('estimate1RM(man, EXERCISES.rdl)'), 'más experiencia → más peso estimado');
 ok(L('estimate1RM({ ...man, age: 55 }, EXERCISES.rdl)') < L('estimate1RM(man, EXERCISES.rdl)'), 'más edad → menos peso estimado');
 
+// Pesos automáticos: lo levantado en un ejercicio ajusta la estimación de los demás
+L('var exOf = (id) => EXERCISES[id]');
+eq(L('strengthScale(man, {}, exOf)'), 0, 'sin datos no hay escala');
+const est = (ex) => L(`estimate1RM(man, EXERCISES.${ex})`);
+ok(Math.abs(L(`strengthScale(man, { goblet: { w: 1, e1rm: ${est('goblet') * 1.5} } }, exOf)`) - 1.5) < 1e-9, 'escala = 1RM anotado / estimado');
+eq(L(`strengthScale(man, { goblet: { e1rm: ${est('goblet') * 1.2} }, rdl: { e1rm: ${est('rdl') * 2} }, lateral: { e1rm: ${est('lateral') * 0.8} } }, exOf)`), 1.2, 'con varios ejercicios usa la mediana');
+eq(L(`strengthScale(man, { goblet: { e1rm: ${est('goblet') * 50} } }, exOf)`), 3, 'un dato disparatado queda acotado');
+const gw = (scale) => L(`guessWeight(man, EXERCISES.press_suelo, weightSteps(equip, "db"), undefined, ${scale})`);
+eq(gw(0), sw('man', 'press_suelo', 'db'), 'sin escala, el peso estimado es el de siempre (70 %)');
+ok(gw(1.5) > gw(0) && gw(0.5) <= gw(0), 'más fuerte que lo estimado → sugiere más; más débil → no más');
+
 // Calibración: 8 kg × 10 reps con 4 en reserva → 1RM ≈ 11,7 → trabajo (10 reps, RIR 2) ≈ 8,4 → 8 kg
 eq(L('calibrate(8, 10, 4, weightSteps(equip, "db"))'), { e1rm: 11.7, w: 8 }, 'calibración con Epley');
 eq(L('calibrate(8, 28, 2, weightSteps(equip, "db"))').w, 10, 'si hizo muchas reps, sube el peso de trabajo');

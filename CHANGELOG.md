@@ -2,6 +2,12 @@
 
 Todos los cambios de XZ Fit (antes Tendón Fuerte), del más nuevo al más viejo.
 
+## 1.21.0 — Elegís cómo se arman tus pesos
+
+- La serie de calibración ya no es obligatoria. Por defecto los pesos son automáticos: cada ejercicio arranca con un peso estimado y, en cuanto anotás tu primera serie, ajustamos los ejercicios que siguen según lo que levantaste.
+- En el primer uso y en Ajustes → Pesos elegís entre automático, con calibración (la serie hasta que te queden 2 reps, como antes) o manual.
+- En manual elegís vos cada peso: la próxima vez arranca con el último que usaste y no te sugerimos subidas.
+
 ## 1.20.7 — Textos más claros
 
 - Menos jerga: "rehabs" ahora es "sesiones de rehabilitación", "Rehab · mañana" es "Rehabilitación de la mañana" y el detalle de un ejercicio dice "Cuidado si te duele: rodilla" en vez de "Exige: Rodilla".

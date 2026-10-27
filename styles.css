@@ -135,7 +135,7 @@ h3.grp { font-size: 15px; color: var(--muted); margin: 18px 0 8px; }
 .card hr { border: 0; border-top: 1px solid var(--line); margin: 14px 0 12px; }
 .card .row.sub { margin-top: 12px; }
 .tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: var(--gap); }
-.tiles.list { grid-template-columns: 1fr; }
+.tiles.list, .tiles.one { grid-template-columns: 1fr; }
 .tile { position: relative; display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 12px 14px; border-radius: 12px; background: var(--card); border: 2px solid transparent; cursor: pointer; }
 .tile input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
 .tile > span { flex: 1; }

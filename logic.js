@@ -164,6 +164,21 @@ function calibrate(w, reps, rir, steps, range = [REPS_MIN, REPS_MAX]) {
   const e1rm = epley1RM(w, reps + (Number(rir) || 0));
   return { e1rm: Math.round(e1rm * 10) / 10, w: roundDown(steps, weightForReps(e1rm, repCenter(range) + TARGET_RIR)) };
 }
+// Cuánto más fuerte (o más débil) es la persona que lo que estima su perfil: la mediana de 1RM anotado / estimado
+// en los ejercicios con datos. 0 si todavía no levantó nada; acotado para que un dato raro no dispare los pesos.
+function strengthScale(profile, lifts, getEx) {
+  const r = Object.entries(lifts).map(([id, l]) => {
+    const ex = getEx(id), est = ex?.ratio && l.e1rm ? estimate1RM(profile, ex) : 0;
+    return est ? l.e1rm / est : 0;
+  }).filter((x) => x > 0).sort((a, b) => a - b);
+  if (!r.length) return 0;
+  const m = r.length >> 1, med = r.length % 2 ? r[m] : (r[m - 1] + r[m]) / 2;
+  return Math.min(3, Math.max(0.3, med));
+}
+// Peso sugerido sin datos propios del ejercicio: con escala, como una calibración (centro del rango dejando 2); sin escala, el 70 %.
+const guessWeight = (profile, ex, steps, range, scale) => (scale
+  ? roundDown(steps, weightForReps(estimate1RM(profile, ex) * scale, repCenter(range ?? [REPS_MIN, REPS_MAX]) + TARGET_RIR))
+  : startWeight(profile, ex, steps, range));
 // ¿El ejercicio se mide en repeticiones dentro de un rango (con peso o con el propio cuerpo)? Los de tiempo no tienen rango.
 const hasRepRange = (ex) => ex.kind === 'peso' || ex.kind === 'reps';
 // Ejercicios con peso de la sesión cuyo peso no cambió (y que tienen rango): a esos se les dice en qué repeticiones suben.
