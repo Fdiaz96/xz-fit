@@ -2,6 +2,12 @@
 
 Todos los cambios de XZ Fit (antes Tendón Fuerte), del más nuevo al más viejo.
 
+## 1.20.7 — Textos más claros
+
+- Menos jerga: "rehabs" ahora es "sesiones de rehabilitación", "Rehab · mañana" es "Rehabilitación de la mañana" y el detalle de un ejercicio dice "Cuidado si te duele: rodilla" en vez de "Exige: Rodilla".
+- En la rehabilitación ves "Ejercicio 1 de 2 para tu codo lateral" y, aparte, la fase. En Dolor: "Fase 1: isométricos, desde el martes 27 de octubre".
+- Los textos que encadenaban datos con puntos medios ahora son frases ("3 × 45 s con 2 kg").
+
 ## 1.20.6 — Los avisos aparecen abajo
 
 - Los avisos (como "Modo dolor activado.") ahora aparecen abajo, sobre la barra de pestañas o sobre el descanso, y ya no tapan la fecha ni los títulos. En las hojas que suben desde abajo siguen arriba, para no tapar los botones.

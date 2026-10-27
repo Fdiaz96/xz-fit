@@ -1,17 +1,17 @@
 # Graph Report - TendonApp  (2026-10-27)
 
 ## Corpus Check
-- 67 files · ~92,728 words
+- 67 files · ~92,901 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 14 file(s) not represented in the graph (top: (none) 11, .woff2 1, .webmanifest 1)
 
 ## Summary
-- 723 nodes · 1365 edges · 48 communities (45 shown, 3 thin omitted)
-- Extraction: 92% EXTRACTED · 8% INFERRED · 0% AMBIGUOUS · INFERRED: 108 edges (avg confidence: 0.89)
+- 724 nodes · 1367 edges · 53 communities (50 shown, 3 thin omitted)
+- Extraction: 92% EXTRACTED · 8% INFERRED · 0% AMBIGUOUS · INFERRED: 107 edges (avg confidence: 0.89)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `e99d8b0b`
+- Built from commit: `36d12b29`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -59,11 +59,16 @@
 - UX 7: Historial ordenado por entreno y con vacíos útiles
 - UX 11: editar rutina con controles claros
 - Barrido de UX (2026-10-27): índice y reglas comunes
-- UX 5: explicar "al 60 %" y "a calibrar"
+- renderHome
 - UX 6: la pestaña Tendones solo cuando importa
+- render
 - UX 13: textos sin jerga ni cadenas con puntos medios
 - saveV114
-- UX 8: zonas con dolor con el mismo componente que el alta
+- esc
+- renderWorkout
+- getEx
+- UX 4: el primer día no recibe al usuario con "día de descanso"
+- renderOnb
 
 ## God Nodes (most connected - your core abstractions)
 1. `Training Plan Engine skill (SKILL.md)` - 30 edges
@@ -78,16 +83,16 @@
 10. `patch()` - 16 edges
 
 ## Surprising Connections (you probably didn't know these)
+- `Dónde` --references--> `toast()`  [INFERRED]
+  .specs/tasks/done/ux-12-avisos-abajo.md → app.js
+- `Dónde` --references--> `renderHome()`  [INFERRED]
+  .specs/tasks/done/ux-04-primer-dia-sin-descanso.md → app.js
 - `Dónde` --references--> `renderTrain()`  [INFERRED]
   .specs/tasks/done/ux-11-editar-rutina-botones.md → app.js
-- `Dónde` --references--> `toast()`  [INFERRED]
-  .specs/tasks/todo/ux-12-avisos-abajo.md → app.js
 - `Dónde` --references--> `renderWorkout()`  [INFERRED]
   .specs/tasks/done/ux-01-calibracion-una-vez.md → app.js
 - `Dónde` --references--> `renderWorkout()`  [INFERRED]
   .specs/tasks/done/ux-02-placeholder-reps.md → app.js
-- `Dónde` --references--> `renderWorkout()`  [INFERRED]
-  .specs/tasks/done/ux-03-hoy-no-puedo-discreto.md → app.js
 
 ## Import Cycles
 - None detected.
@@ -106,11 +111,11 @@
 - **Plans of the 'planes de entrenamiento' roadmap built on the plan engine** — _specs_tasks_done_motor_de_planes_feature_plans_fb2, _specs_tasks_draft_plan_full_body_3_dias_feature_fb3, _specs_tasks_draft_plan_torso_pierna_4_dias_feature_tp4, _specs_tasks_draft_plan_empuje_traccion_4_dias_feature_et4, _specs_tasks_draft_plan_grupos_5_dias_feature_gr5, _specs_tasks_draft_plan_isometricos_feature_iso [INFERRED 0.95]
 - **Exportaciones via shareFile (Web Share o descarga)** — _specs_tasks_done_datos_locales_copia_feature_backup_restore, _specs_tasks_done_informe_fisio_feature_physio_report, _specs_tasks_done_recordatorios_calendario_feature_ics_calendar [INFERRED 0.95]
 
-## Communities (48 total, 3 thin omitted)
+## Communities (53 total, 3 thin omitted)
 
 ### Community 0 - "app.js"
-Cohesion: 0.05
-Nodes (120): activeZones(), altEx(), answerCheck(), applyTheme(), askPain(), bodyPart(), calmMotion(), cue() (+112 more)
+Cohesion: 0.11
+Nodes (30): applyTheme(), calmMotion(), cue(), DAY_NAMES, db, DEFAULT(), EQUIP_NAMES, exportData() (+22 more)
 
 ### Community 1 - "Specs de features (datos, editor, calor)"
 Cohesion: 0.05
@@ -253,8 +258,8 @@ Cohesion: 0.33
 Nodes (5): Criterios de aceptación, Dónde, Problema, Propuesta, UX 3: "Hoy no puedo" como acción secundaria
 
 ### Community 39 - "UX 10: pesos con unidad y coherentes entre inicio y Entreno"
-Cohesion: 0.33
-Nodes (5): Criterios de aceptación, Dónde, Problema, Propuesta, UX 10: pesos con unidad y coherentes entre inicio y Entreno
+Cohesion: 0.40
+Nodes (4): Criterios de aceptación, Problema, Propuesta, UX 10: pesos con unidad y coherentes entre inicio y Entreno
 
 ### Community 40 - "UX 7: Historial ordenado por entreno y con vacíos útiles"
 Cohesion: 0.33
@@ -268,13 +273,17 @@ Nodes (5): Criterios de aceptación, Dónde, Problema, Propuesta, UX 11: editar 
 Cohesion: 0.40
 Nodes (4): Barrido de UX (2026-10-27): índice y reglas comunes, Orden, Reglas para cada tarea, shot()
 
-### Community 43 - "UX 5: explicar "al 60 %" y "a calibrar""
-Cohesion: 0.40
-Nodes (4): Criterios de aceptación, Problema, Propuesta, UX 5: explicar "al 60 %" y "a calibrar"
+### Community 43 - "renderHome"
+Cohesion: 0.17
+Nodes (16): lentoDoneRecently(), newZone(), painTag(), planFor(), rehabDone(), rehabItems(), renderHome(), renderTrain() (+8 more)
 
 ### Community 44 - "UX 6: la pestaña Tendones solo cuando importa"
 Cohesion: 0.33
 Nodes (5): Criterios de aceptación, Dónde, Problema, Propuesta, UX 6: la pestaña Tendones solo cuando importa
+
+### Community 45 - "render"
+Cohesion: 0.22
+Nodes (21): answerCheck(), askPain(), deleteExForm(), finishRehab(), finishWorkout(), importData(), installApp(), keepAwake() (+13 more)
 
 ### Community 46 - "UX 13: textos sin jerga ni cadenas con puntos medios"
 Cohesion: 0.40
@@ -284,9 +293,25 @@ Nodes (4): Criterios de aceptación, Problema, Propuesta, UX 13: textos sin jerg
 Cohesion: 0.40
 Nodes (5): bootSaved(), buildV114(), putData(), saveV114(), wipeDb()
 
-### Community 53 - "UX 8: zonas con dolor con el mismo componente que el alta"
-Cohesion: 0.40
-Nodes (4): Criterios de aceptación, Problema, Propuesta, UX 8: zonas con dolor con el mismo componente que el alta
+### Community 48 - "esc"
+Cohesion: 0.20
+Nodes (18): activeZones(), dlg(), equipName(), esc(), fmtDate(), lineChart(), mdLite(), openCustom() (+10 more)
+
+### Community 49 - "renderWorkout"
+Cohesion: 0.22
+Nodes (14): bodyPart(), fmtDateLong(), fmtKg(), forZones(), maintenanceItems(), phaseStep(), platesLabel(), rehabEx() (+6 more)
+
+### Community 50 - "getEx"
+Cohesion: 0.21
+Nodes (13): altEx(), customFig(), dayItems(), engineOpts(), freshRoutine(), getEx(), missingLabel(), noticeText() (+5 more)
+
+### Community 51 - "UX 4: el primer día no recibe al usuario con "día de descanso""
+Cohesion: 0.33
+Nodes (5): Criterios de aceptación, Dónde, Problema, Propuesta, UX 4: el primer día no recibe al usuario con "día de descanso"
+
+### Community 53 - "renderOnb"
+Cohesion: 0.23
+Nodes (13): equipFields(), hasPainTab(), platesFields(), renderOnb(), renderSettings(), tile(), unitField(), weekFields() (+5 more)
 
 ## Knowledge Gaps
 - **61 isolated node(s):** `Sugerencia de pasar a 3 dias (suggestThreeDays)`, `Eliminar sesion con Deshacer`, `Tarjeta de instalacion (beforeinstallprompt / iOS)`, `Service worker sw.js (red primero, cache tendon-v<version>)`, `Tema claro/oscuro (applyTheme, tf-theme)` (+56 more)
@@ -303,8 +328,8 @@ _Questions this graph is uniquely positioned to answer:_
 - **What connects `Sugerencia de pasar a 3 dias (suggestThreeDays)`, `Eliminar sesion con Deshacer`, `Tarjeta de instalacion (beforeinstallprompt / iOS)` to the rest of the system?**
   _61 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `app.js` be split into smaller, more focused modules?**
-  _Cohesion score 0.0516190218127625 - nodes in this community are weakly interconnected._
-- **Why does `getEx()` connect `app.js` to `Pruebas e2e`?**
+  _Cohesion score 0.10752688172043011 - nodes in this community are weakly interconnected._
+- **Why does `getEx()` connect `getEx` to `app.js`, `Pruebas e2e`, `renderHome`, `esc`, `renderWorkout`?**
   _High betweenness centrality (0.144) - this node is a cross-community bridge._
 - **Are the 4 inferred relationships involving `renderHome()` (e.g. with `render()` and `Dónde`) actually correct?**
   _`renderHome()` has 4 INFERRED edges - model-reasoned connections that need verification._

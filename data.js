@@ -22,9 +22,9 @@ const REHAB = {
   aquiles: { 1: 'iso_talones', 2: 'talones_lenta' },
 };
 const PHASES = {
-  1: { name: 'Fase 1 · Isométricos', short: 'Isométricos', what: '3 sostenidas de 45 s, mañana y noche. Calman el dolor y le dan señal de reparación a todo el tendón.' },
-  2: { name: 'Fase 2 · Isotónicos lentos', short: 'Lentos', what: '3×15 subiendo en 3 s y bajando en 3 s, día por medio. Recuperan fuerza con movimiento.' },
-  3: { name: 'Fase 3 · Integración', short: 'Integración', what: 'Vuelven los ejercicios normales con todo el peso. 5–10 min de isométricos después de entrenar para mantener.' },
+  1: { name: 'Fase 1: isométricos', short: 'Isométricos', what: '3 sostenidas de 45 s, mañana y noche. Calman el dolor y le dan señal de reparación a todo el tendón.' },
+  2: { name: 'Fase 2: isotónicos lentos', short: 'Lentos', what: '3×15 subiendo en 3 s y bajando en 3 s, día por medio. Recuperan fuerza con movimiento.' },
+  3: { name: 'Fase 3: integración', short: 'Integración', what: 'Vuelven los ejercicios normales con todo el peso. 5–10 min de isométricos después de entrenar para mantener.' },
 };
 
 // Posturas base reutilizadas.

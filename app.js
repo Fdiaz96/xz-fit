@@ -2,7 +2,7 @@
 // (IndexedDB). Los identificadores internos siguen siendo "tendon-fuerte" para no perder los datos ya guardados.
 // Protocolo de tendones del video de Jeremy Ethier con Keith Baar y Coach Q; reglas en logic.js, bocetos en figures.js.
 
-const APP_VERSION = '1.20.6';
+const APP_VERSION = '1.20.7';
 const DAY_NAMES = { lu: 'Lu', ma: 'Ma', mi: 'Mi', ju: 'Ju', vi: 'Vi', sa: 'Sá', do: 'Do' };
 const SIDES = { der: 'derecha', izq: 'izquierda', ambos: 'ambos lados' };
 const REST_SECS = 90, ISO_REST = 60;
@@ -13,6 +13,7 @@ const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 
 const today = () => dayKey();
 const fmtKg = (w) => (w ? `${String(w).replace('.', ',')} kg` : 'Sin peso');
 const fmtDate = (k) => parseDay(k).toLocaleDateString('es', { weekday: 'short', day: 'numeric', month: 'short' });
+const fmtDateLong = (k) => parseDay(k).toLocaleDateString('es', { weekday: 'long', day: 'numeric', month: 'long' }).replace(',', '');
 const zoneName = (id) => ZONE[id]?.name || 'General';
 // La parte del cuerpo como la dice el usuario ("por tu codo"), para explicar por qué un ejercicio cambia.
 const bodyPart = (id) => id.startsWith('codo') ? 'codo' : id === 'aquiles' ? 'tendón de Aquiles' : zoneName(id).toLowerCase();
@@ -231,7 +232,7 @@ function renderHome() {
   const dots = (n, of) => Array.from({ length: Math.max(of, n) }, (_, i) => `<i class="${i < n ? 'on' : ''}"></i>`).join('');
   let h = `<header class="home-head"><div><p class="greet">${S.profile.name ? `Hola, ${esc(S.profile.name)}` : 'Hola'}</p><h1>${date[0].toUpperCase() + date.slice(1)}</h1></div>
     <div class="week"><div class="dots" aria-hidden="true">${dots(ws.train, ws.target)}</div><span>${ws.train} de ${ws.target} entrenos esta semana</span>
-      ${ws.rehabTarget ? `<span class="rehab-n">${ws.rehab} de ${ws.rehabTarget} rehabs</span>` : ''}${st ? `<span>Racha de ${st} ${st === 1 ? 'semana' : 'semanas'}</span>` : ''}</div></header>`;
+      ${ws.rehabTarget ? `<span class="rehab-n">${ws.rehab} de ${ws.rehabTarget} sesiones de rehabilitación</span>` : ''}${st ? `<span>Racha de ${st} ${st === 1 ? 'semana' : 'semanas'}</span>` : ''}</div></header>`;
   for (const zone of checks) {
     h += `<div class="card ask pain"><h3>¿Cómo amaneció tu ${esc(zoneName(zone).toLowerCase())}?</h3><p class="muted small">Comparado con ayer. Si está peor, bajamos la carga.</p>
       <div class="btns">${['mejor', 'igual', 'peor'].map((v) => `<button class="sec" data-action="check" data-zone="${zone}" data-val="${v}">${v[0].toUpperCase() + v.slice(1)}</button>`).join('')}</div></div>`;
@@ -271,7 +272,7 @@ function renderHome() {
   if (S.painMode && hasZones) h += `<button class="sec quick-pain" data-action="quick-pain">Anotar cómo está el dolor ahora</button>`;
   if (!rehabFirst) h += rehab;
   // Avisos y decisiones pendientes, debajo del entreno.
-  if (S.painMode) for (const zone of activeZones()) if (phaseReady(S, zone, t)) h += `<div class="card ask pain"><h3>${esc(zoneName(zone))}: lista para avanzar</h3><p class="muted small">Dolor ≤ 3 y sin empeorar toda la semana.</p><button class="link" data-action="phase" data-zone="${zone}" data-dir="1">Pasar a ${esc(PHASES[S.zones[zone].phase + 1].name)}</button></div>`;
+  if (S.painMode) for (const zone of activeZones()) if (phaseReady(S, zone, t)) h += `<div class="card ask pain"><h3>${esc(zoneName(zone))}: lista para avanzar</h3><p class="muted small">Dolor ≤ 3 y sin empeorar toda la semana.</p><button class="link" data-action="phase" data-zone="${zone}" data-dir="1">Pasar a ${esc(PHASES[S.zones[zone].phase + 1].name.toLowerCase())}</button></div>`;
   if (!S.painMode && hasZones && !S.hidePainTip) {
     h += `<div class="card ask pain"><h3>Tenés dolor en ${esc(activeZones().map((z) => zoneName(z).toLowerCase()).join(' y '))}</h3>
       <p class="muted small">El modo dolor agrega isométricos diarios y cuida esas zonas en el entreno. Lo activás vos.</p>
@@ -333,7 +334,7 @@ function openPicker(day, i) {
   const slot = item?.slot ? SLOTS[item.slot] : null;
   const slotIds = new Set(slot ? slot.ex : []);
   let h = `<div class="dlg"><div class="dlg-head"><button class="link" data-action="close" data-dlg="pickersheet">Cancelar</button><strong>${PK.i != null ? 'Cambiar ejercicio' : `Agregar a ${esc(activePlan(S).days[PK.day].name)}`}</strong><span></span></div>`;
-  if (slot) h += `<h2>${esc(slot.name)} · mismo hueco</h2>${slot.ex.map((id) => row(getEx(id))).join('')}`;
+  if (slot) h += `<h2>Mismo movimiento: ${esc(slot.name.toLowerCase())}</h2>${slot.ex.map((id) => row(getEx(id))).join('')}`;
   h += `<h2>Mis ejercicios</h2>${S.exlib.map((c) => `<div class="pick-row">${row(getEx(c.id))}<button class="link" data-action="exform" data-id="${c.id}">Editar</button></div>`).join('')}
     <button class="sec" style="width:100%" data-action="exform">+ Crear ejercicio propio</button>`;
   for (const [c, name] of Object.entries(CATS)) {
@@ -439,9 +440,9 @@ function openExercise(id) {
     <div class="hero-fig">${figureSVG(ex)}</div>
     <ul class="muted">${ex.cues.map((c) => `<li>${esc(c)}</li>`).join('')}</ul>
     ${ex.mus?.length ? `<p class="small"><span class="mus-dot"></span>Trabaja: ${ex.mus.map((m) => MUSCLE_NAMES[m]).join(', ')}</p>` : ''}
-    ${ex.tag?.length ? `<p class="small muted">Exige: ${ex.tag.map(zoneName).join(', ')}</p>` : ''}
+    ${ex.tag?.length ? `<p class="small muted">Cuidado si te duele: ${ex.tag.map((z) => zoneName(z).toLowerCase()).join(', ')}.</p>` : ''}
     ${ex.kind === 'peso' && !lift ? `<p class="small">${CALIB_TAG} Todavía no tiene peso de trabajo: en la primera serie hacés reps hasta que te queden 2 y con eso lo calculamos.</p>` : ''}
-    ${lift ? `<p>Peso de trabajo: <b class="num">${fmtKg(lift.w)}</b>${lift.e1rm ? ` · 1RM estimado ${lift.e1rm} kg` : ''}</p>` : ''}
+    ${lift ? `<p>Peso de trabajo: <b class="num">${fmtKg(lift.w)}</b></p>${lift.e1rm ? `<p class="small muted">Lo máximo que podrías levantar una vez, estimado: ${lift.e1rm} kg.</p>` : ''}` : ''}
     ${hist.length > 1 ? `<h2>Progreso</h2>${lineChart(hist, { unit: 'kg', color: 'var(--acc)' })}` : ''}
     ${lift ? `<button class="link danger" data-action="recalibrate" data-ex="${id}">Volver a calibrar</button>` : ''}</div>`;
   $('exsheet').showModal(); calmMotion($('exsheet'));
@@ -696,10 +697,10 @@ function renderRehab() {
     const total = R.state === 'rest' ? ISO_REST : it.secs;
     const left = R.left ?? total;
     const C = 2 * Math.PI * 100;
-    main = `<p class="muted small">${esc(zoneName(it.zone))} · ${esc(PHASES[S.zones[it.zone].phase].name)} · ejercicio ${R.idx + 1} de ${R.items.length}</p>
+    main = `<p class="small">Ejercicio ${R.idx + 1} de ${R.items.length} para tu ${esc(zoneName(it.zone).toLowerCase())}</p><p class="muted small">${esc(PHASES[S.zones[it.zone].phase].name)}</p>
       <h1 style="font-size:28px">${esc(it.ex.name)}</h1>
       <div class="hero-fig">${figureSVG(it.ex)}</div>
-      <p class="num" style="text-align:center;font-size:20px">${it.w ? fmtKg(it.w) + ' · ' : ''}${iso ? `${it.sets} × ${it.secs} s` : `${it.sets} × ${it.reps} reps (3 s subir, 3 s bajar)`}</p>
+      <p class="num" style="text-align:center;font-size:20px">${iso ? `${it.sets} × ${it.secs} s` : `${it.sets} × ${it.reps} reps (3 s subir, 3 s bajar)`}${it.w ? ` con ${fmtKg(it.w)}` : ''}</p>
       ${iso ? `<div class="timer${R.state === 'rest' ? ' resting' : ''}"><svg viewBox="0 0 220 220"><circle class="track" cx="110" cy="110" r="100"/><circle class="bar" cx="110" cy="110" r="100" stroke-dasharray="${C}" stroke-dashoffset="${C * (1 - left / total)}"/></svg>
         <div class="label"><div><div class="big num" id="r-left">${left}</div><div class="muted">${R.state === 'rest' ? 'descanso' : R.state === 'hold' ? 'sostené' : `serie ${it.done + 1} de ${it.sets}`}</div></div></div></div>
         <button class="cta pain" data-action="${R.state === 'listo' ? 'rehab-go' : 'rehab-skip'}">${R.state === 'listo' ? `Empezar serie ${it.done + 1}` : R.state === 'hold' ? 'Terminar serie' : 'Saltar descanso'}</button>`
@@ -708,11 +709,11 @@ function renderRehab() {
       <details class="cues"><summary>Cómo se hace</summary><ul>${it.ex.cues.map((c) => `<li>${esc(c)}</li>`).join('')}</ul></details>`;
   } else {
     main = `<h1 style="font-size:28px">${R.custom.length ? 'Tus ejercicios del fisio' : '¡Listo!'}</h1>
-      ${R.custom.map((c, i) => `<div class="card"><div class="row"><div><h3>${esc(c.custom.name)}</h3><p class="muted small">${c.custom.sets} × ${c.custom.value} ${c.custom.mode === 'segundos' ? 's' : 'reps'}${c.custom.zone ? ' · ' + esc(zoneName(c.custom.zone)) : ''}</p>${c.custom.note ? `<p class="small">${esc(c.custom.note)}</p>` : ''}</div>
+      ${R.custom.map((c, i) => `<div class="card"><div class="row"><div><h3>${esc(c.custom.name)}</h3><p class="muted small">${c.custom.sets} × ${c.custom.value} ${c.custom.mode === 'segundos' ? 's' : 'reps'}${c.custom.zone ? ` para tu ${esc(zoneName(c.custom.zone).toLowerCase())}` : ''}</p>${c.custom.note ? `<p class="small">${esc(c.custom.note)}</p>` : ''}</div>
         <button class="chip${c.done ? ' on' : ''}" data-action="custom-done" data-i="${i}">${c.done ? 'Hecho' : 'Marcar'}</button></div></div>`).join('')}
       <button class="cta pain" data-action="finish-rehab">Terminar y anotar dolor</button>`;
   }
-  dlg('rsheet').html = `<div class="dlg"><div class="dlg-head"><button class="link" data-action="cancel-rehab">Salir</button><strong>Rehab · ${R.slot}</strong><span></span></div>${main}</div>`;
+  dlg('rsheet').html = `<div class="dlg"><div class="dlg-head"><button class="link" data-action="cancel-rehab">Salir</button><strong>Rehabilitación de la ${R.slot}</strong><span></span></div>${main}</div>`;
   calmMotion($('rsheet'));
 }
 // Solo actualiza el número y el anillo: redibujar todo reiniciaría la animación del boceto.
@@ -795,7 +796,7 @@ function answerCheck(zone, val) {
     if (pains.length && !(z.adjustedOn === y && !worse)) {
       const ex = rehabEx(zone, z.phase);
       const nz = isoAdjust(z, ex, weightSteps(S.equip, implFor(ex, S.equip)), Math.max(...pains), worse);
-      if (nz.load !== z.load || nz.secs !== z.secs) toast(`${zoneName(zone)}: ${nz.load > (z.load || 0) || nz.secs > (z.secs || ISO_SECS) ? 'subimos' : 'bajamos'} a ${nz.load ? fmtKg(nz.load) + ' · ' : ''}${nz.secs} s.`);
+      if (nz.load !== z.load || nz.secs !== z.secs) toast(`${zoneName(zone)}: ${nz.load > (z.load || 0) || nz.secs > (z.secs || ISO_SECS) ? 'subimos' : 'bajamos'} a ${nz.secs} s${nz.load ? ` con ${fmtKg(nz.load)}` : ''}.`);
       S.zones[zone] = { ...nz, adjustedOn: undefined };
     }
   }
@@ -807,7 +808,7 @@ function answerCheck(zone, val) {
 function phaseStep(zone, z) {
   const back = z.phase > 1 ? `<button class="quiet" data-action="phase" data-zone="${zone}" data-dir="-1">Volver a fase ${z.phase - 1}</button>` : '';
   if (z.phase >= 3) return back ? `<div class="phase-links">${back}</div>` : '';
-  const next = PHASES[z.phase + 1], nextName = next.name.split(' · ')[1].toLowerCase();
+  const next = PHASES[z.phase + 1], nextName = next.name.split(': ')[1];
   if (phaseReady(S, zone, today())) return `<button class="cta pain phase-go" data-action="phase" data-zone="${zone}" data-dir="1">Pasar a fase ${z.phase + 1}: ${esc(nextName)}</button>
     <p class="small muted">${esc(next.what)}</p>${back ? `<div class="phase-links">${back}</div>` : ''}`;
   const p = phaseProgress(S, zone, today()), days = Math.min(p.days, PHASE_DAYS);
@@ -831,12 +832,12 @@ function renderTendons() {
     const ex = rehabEx(zd.id, z.phase), opts = z.phase < 3 ? rehabOptions(zd.id, z.phase) : [];
     return box + `<div class="zone-detail">
       <span class="small muted">¿De qué lado?</span><div class="chips" style="margin-top:6px">${Object.entries(SIDES).map(([k, v]) => `<button class="chip pain${z.side === k ? ' on' : ''}" data-action="zone-side" data-zone="${zd.id}" data-side="${k}">${v}</button>`).join('')}</div>
-      <p class="small" style="margin-top:12px"><b>${esc(PHASES[z.phase].name)}</b> · desde ${fmtDate(z.since)}<br><span class="muted">${esc(PHASES[z.phase].what)}</span></p>
-      ${z.phase < 3 ? `<div class="ex" data-action="ex-detail" data-ex="${ex.id}"><div class="thumb">${figureSVG(ex, { crop: true })}</div><div class="info"><h3>${esc(ex.name)}</h3><p class="muted small">${z.load ? fmtKg(z.load) + ' · ' : ''}${z.phase === 1 ? `${ISO_SETS} × ${z.secs || ISO_SECS} s` : `${LENTO_SETS} × ${LENTO_REPS}`}</p></div></div>` : ''}
+      <p class="small" style="margin-top:12px"><b>${esc(PHASES[z.phase].name)}</b>, desde el ${fmtDateLong(z.since)}<br><span class="muted">${esc(PHASES[z.phase].what)}</span></p>
+      ${z.phase < 3 ? `<div class="ex" data-action="ex-detail" data-ex="${ex.id}"><div class="thumb">${figureSVG(ex, { crop: true })}</div><div class="info"><h3>${esc(ex.name)}</h3><p class="muted small">${z.phase === 1 ? `${ISO_SETS} × ${z.secs || ISO_SECS} s` : `${LENTO_SETS} × ${LENTO_REPS}`}${z.load ? ` con ${fmtKg(z.load)}` : ''}</p></div></div>` : ''}
       ${opts.length > 1 ? `<p class="small muted" style="margin:8px 0 4px">Otras opciones para esta fase:</p><div class="chips">${opts.map((o) => `<button class="chip pain${o.id === ex.id ? ' on' : ''}" data-action="rehab-choice" data-zone="${zd.id}" data-ex="${o.id}">${esc(o.name)}</button>`).join('')}</div>` : ''}
       ${phaseStep(zd.id, z)}</div>`;
   }).join('')}</div>`;
-  h += `<h2>Ejercicios del fisio</h2><div class="card">${S.custom.length ? S.custom.map((c) => `<div class="row"><div><h3>${esc(c.name)}</h3><p class="muted small">${c.sets} × ${c.value} ${c.mode === 'segundos' ? 's' : 'reps'}${c.zone ? ' · ' + esc(zoneName(c.zone)) : ''}</p></div><button class="link" data-action="custom-edit" data-id="${c.id}">Editar</button></div>`).join('') : '<p class="muted small">Cargá los ejercicios que te dio tu fisio: aparecen en cada sesión de rehabilitación.</p>'}
+  h += `<h2>Ejercicios del fisio</h2><div class="card">${S.custom.length ? S.custom.map((c) => `<div class="row"><div><h3>${esc(c.name)}</h3><p class="muted small">${c.sets} × ${c.value} ${c.mode === 'segundos' ? 's' : 'reps'}${c.zone ? ` para tu ${esc(zoneName(c.zone).toLowerCase())}` : ''}</p></div><button class="link" data-action="custom-edit" data-id="${c.id}">Editar</button></div>`).join('') : '<p class="muted small">Cargá los ejercicios que te dio tu fisio: aparecen en cada sesión de rehabilitación.</p>'}
     <button class="sec" style="margin-top:10px;width:100%" data-action="custom-edit">+ Agregar ejercicio</button></div>
     <p class="faint small">Esto no reemplaza a un profesional. Si el dolor es agudo, apareció de golpe, hay hinchazón o pérdida de fuerza, consultá antes de cargar el tendón.</p>`;
   $('view-tendons').innerHTML = h;
@@ -882,7 +883,7 @@ function renderHistory() {
   }
   if (exIds.length) h += `<h2>Peso por ejercicio</h2><div class="card acc"><select data-action="hist-ex" aria-label="Ejercicio">${exIds.map((e) => `<option value="${e}" ${e === histEx ? 'selected' : ''}>${esc(getEx(e)?.name || e)}</option>`).join('')}</select>
     ${lineChart(weightHistory(histEx), { unit: 'kg', color: 'var(--acc)' })}</div>`;
-  if (S.sessions.length) h += `<h2>Sesiones</h2><div class="card">${S.sessions.slice(0, 60).map((s) => `<details class="sess-d"><summary class="sess"><span><span class="what">${s.type === 'entreno' ? `Entreno ${s.tpl}` : s.type === 'dolor' ? 'Registro de dolor' : `Rehab · ${s.slot}`}</span><br><span class="muted small">${fmtDate(s.date)}${s.min ? ` · ${s.min} min · ${s.sets} series` : ''}${s.prs?.length ? ' · 🏆' : ''}${s.pain ? ' · dolor ' + Object.entries(s.pain).map(([z, v]) => `${zoneName(z).toLowerCase()} ${v}`).join(', ') : ''}</span></span><span class="tag ${s.type === 'entreno' ? 'acc' : 'pain'}">${s.items.length} ej.</span></summary>
+  if (S.sessions.length) h += `<h2>Sesiones</h2><div class="card">${S.sessions.slice(0, 60).map((s) => `<details class="sess-d"><summary class="sess"><span><span class="what">${s.type === 'entreno' ? `Entreno ${s.tpl}` : s.type === 'dolor' ? 'Registro de dolor' : `Rehabilitación de la ${s.slot}`}</span><br><span class="muted small">${fmtDate(s.date)}${s.min ? `, ${s.min} min y ${s.sets} series` : ''}${s.prs?.length ? ' 🏆' : ''}${s.pain ? '. Dolor: ' + Object.entries(s.pain).map(([z, v]) => `${zoneName(z).toLowerCase()} ${v}`).join(', ') : ''}</span></span><span class="tag ${s.type === 'entreno' ? 'acc' : 'pain'}">${s.items.length} ej.</span></summary>
       <ul class="small muted">${s.items.map((i) => `<li>${esc(getEx(i.ex)?.name || i.name || i.ex)}: ${i.sets.map((x) => (x.w ? `${x.w}×` : '') + (x.reps || (x.secs ? x.secs + 's' : '✓'))).join(', ')}</li>`).join('')}</ul>
       <button class="link danger small" data-action="del-session" data-id="${s.id}">Eliminar sesión</button></details>`).join('')}</div>`;
   // Dolor por zona va al final y solo si hay zonas o registros.
@@ -899,18 +900,18 @@ function reportHTML() {
     const z = S.zones[zone], pts = painHistory(zone).filter((p) => p.x >= from);
     const weeks = Array.from({ length: 6 }, (_, i) => { const a = addDays(t, -7 * (6 - i) + 1), b = addDays(a, 6); return { a, vals: pts.filter((p) => p.x >= a && p.x <= b).map((p) => p.y) }; });
     const checks = S.checks.filter((c) => c.zone === zone && c.date >= from);
-    return `<section><h2>${esc(zoneName(zone))}${z ? ` · ${{ der: 'lado derecho', izq: 'lado izquierdo', ambos: 'ambos lados' }[z.side] || ''}` : ''}</h2>
-      ${z ? `<p><b>${esc(PHASES[z.phase].name)}</b> desde ${fmtDate(z.since)} · ejercicio: ${esc(rehabEx(zone, z.phase).name)}${z.load ? ` con ${fmtKg(z.load)}` : ''}${z.phase === 1 ? ` · ${z.secs || ISO_SECS} s por serie` : ''}. Dolor inicial: ${z.pain0 ?? '—'}/10.</p>` : ''}
+    return `<section><h2>${esc(zoneName(zone))}${z ? `, ${{ der: 'lado derecho', izq: 'lado izquierdo', ambos: 'ambos lados' }[z.side] || ''}` : ''}</h2>
+      ${z ? `<p><b>${esc(PHASES[z.phase].name)}</b>, desde el ${fmtDateLong(z.since)}. Ejercicio: ${esc(rehabEx(zone, z.phase).name)}${z.load ? ` con ${fmtKg(z.load)}` : ''}${z.phase === 1 ? `, ${z.secs || ISO_SECS} s por serie` : ''}. Dolor inicial: ${z.pain0 ?? '—'}/10.</p>` : ''}
       ${lineChart(pts, { yMax: 10, limit: PAIN_MAX, unit: '/10', color: '#E8590C' })}
       <table><tr><th>Semana desde</th>${weeks.map((w) => `<td>${fmtDate(w.a)}</td>`).join('')}</tr><tr><th>Dolor promedio</th>${weeks.map((w) => `<td>${avg(w.vals)}</td>`).join('')}</tr><tr><th>Máximo</th>${weeks.map((w) => `<td>${w.vals.length ? Math.max(...w.vals) : '—'}</td>`).join('')}</tr></table>
-      <p class="muted">Al día siguiente: ${['mejor', 'igual', 'peor'].map((v) => `${v} ${checks.filter((c) => c.val === v).length}`).join(' · ')}.</p></section>`;
+      <p class="muted">Al día siguiente: ${['mejor', 'igual', 'peor'].map((v) => `${v} ${checks.filter((c) => c.val === v).length}`).join(', ')}.</p></section>`;
   };
   const train = recent.filter((s) => s.type === 'entreno'), rehab = recent.filter((s) => s.type === 'rehab');
   const custom = S.custom.length ? `<h2>Ejercicios indicados por el fisio</h2><ul>${S.custom.map((c) => `<li>${esc(c.name)}: ${c.sets} × ${c.value} ${c.mode === 'segundos' ? 's' : 'reps'}${c.note ? ` — ${esc(c.note)}` : ''}</li>`).join('')}</ul>` : '';
   return `<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Informe XZ Fit</title>
 <style>:root{--pain:#E8590C;--acc:#5C940D;--line:#DEE2E6;--faint:#868E96;--card:#fff}body{font:15px/1.45 system-ui,sans-serif;color:#212529;max-width:760px;margin:24px auto;padding:0 16px}h1{margin:0}h2{margin:28px 0 6px;font-size:19px}.muted{color:#6C757D}table{border-collapse:collapse;width:100%;font-size:13px;margin-top:8px}th,td{border:1px solid var(--line);padding:5px;text-align:center}th{text-align:left;background:#F8F9FA}.chart svg{width:100%;max-width:520px;display:block}.chart .grid{stroke:var(--line)}.chart .axis{fill:var(--faint);font-size:11px}.chart .limit{stroke:var(--pain);stroke-dasharray:4 4;opacity:.7}.chart .series{fill:none;stroke-width:2}.chart .dot{stroke:#fff;stroke-width:2}.chart .hit{fill:transparent}.chart .empty{color:var(--faint);padding:12px 0}section{break-inside:avoid}@media print{button{display:none}}</style></head><body>
 <h1>Informe de rehabilitación</h1>
-<p class="muted">${esc(S.profile.name || 'Paciente')} · del ${fmtDate(from)} al ${fmtDate(t)} · generado con XZ Fit ${APP_VERSION}</p>
+<p class="muted">${esc(S.profile.name || 'Paciente')}, del ${fmtDate(from)} al ${fmtDate(t)}. Generado con XZ Fit ${APP_VERSION}.</p>
 <p>Protocolo: isométricos (3 × 30–45 s, mañana y noche), luego isotónicos lentos 3 s/3 s y reintegración, con dolor tolerado hasta 3–4/10 y sin empeorar al día siguiente. Modo dolor ${S.painMode ? 'activo' : 'apagado'}.</p>
 <p><b>${rehab.length}</b> sesiones de rehabilitación y <b>${train.length}</b> entrenos en el período.</p>
 ${zones.map(zoneBlock).join('') || '<p class="muted">Sin zonas con dolor registradas.</p>'}
@@ -939,7 +940,7 @@ function lineChart(pts, { yMax, limit, unit, color }) {
 function showTip(el) {
   const [date, val] = el.dataset.tip.split('|'), r = el.getBoundingClientRect(), tip = $('tip');
   overlayHost().appendChild(tip);
-  tip.innerHTML = `<b>${esc(val)}</b> · ${esc(date)}`; tip.hidden = false;
+  tip.innerHTML = `<b>${esc(val)}</b> el ${esc(date)}`; tip.hidden = false;
   tip.style.left = `${r.left + r.width / 2}px`; tip.style.top = `${r.top + r.height / 2 - 6}px`;
 }
 
@@ -985,7 +986,7 @@ function renderSettings() {
   <h2>Fuentes</h2><div class="card small">
     <p class="muted">Protocolo de tendones basado en:</p><ul>${SOURCES.map((s) => `<li><a href="${s.url}" target="_blank" rel="noopener">${esc(s.title)}</a></li>`).join('')}</ul>
     <p class="muted">Ilustraciones generadas por código para esta app (sin imágenes de terceros). XZ Fit no es un consejo médico: consultá a un profesional ante dolor agudo, hinchazón o pérdida de fuerza.</p>
-    <p class="faint">Versión ${APP_VERSION} · <button class="link" data-action="news">Novedades</button></p></div>
+    <p class="faint">Versión ${APP_VERSION}. <button class="link" data-action="news">Ver novedades</button></p></div>
   <button class="link danger" data-action="reset">Borrar todos los datos</button>`;
   $('view-settings').innerHTML = h;
   navigator.storage?.persisted?.().then((ok) => { const el = $('persist-status'); if (el) el.textContent = ok ? '✓ Almacenamiento persistente: el navegador no borra los datos por falta de espacio.' : 'El navegador podría borrar los datos si falta espacio: instalá la app y guardá copias.'; });
@@ -1012,7 +1013,7 @@ function platesFields() {
   return `<label class="field"><span>Barra de cada mancuerna (kg, con los cierres)</span><input type="number" inputmode="decimal" step="0.1" data-plate="bar" value="${pl.bar}"></label>
     ${pl.items.map((x, i) => `<div class="plate-row"><label class="field"><span>Disco (kg)</span><input type="number" inputmode="decimal" step="0.25" data-plate="${i}.kg" value="${x.kg}"></label><label class="field"><span>Cantidad total</span><input type="number" inputmode="numeric" min="0" data-plate="${i}.n" value="${x.n}"></label><button data-action="plate-del" data-i="${i}" aria-label="Quitar disco">✕</button></div>`).join('')}
     <button class="sec" style="width:100%" data-action="plate-add">+ Agregar disco</button>
-    <p class="small" style="margin-top:8px"><span class="muted">Pesos posibles por mancuerna:</span> <b class="num">${steps.map((w) => String(w).replace('.', ',')).join(' · ') || '—'}</b></p>
+    <p class="small" style="margin-top:8px"><span class="muted">Pesos posibles por mancuerna:</span> <b class="num">${steps.map((w) => String(w).replace('.', ',')).join(', ') || '—'}</b></p>
     <p class="faint small">Para el par se usan 4 discos iguales por cada uno que va de cada lado.</p>`;
 }
 const platesLabel = (w) => { const p = platesFor(S.equip, w); return !p ? '' : p.length ? p.map((x) => String(x).replace('.', ',')).join(' + ') + ' kg' : 'sin discos'; };
