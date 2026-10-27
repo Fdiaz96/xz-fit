@@ -315,6 +315,12 @@ ok(await page.locator('#view-train >> text=más liviano por tu codo').count() >=
 await click('[data-tab="tendons"]');
 ok(await page.locator('#view-tendons >> text=Extensión de muñeca isométrica').count() === 1, 'codo lateral → extensión de muñeca isométrica');
 await shot('08-tendones');
+// Avance de fase: antes del criterio no hay botón destacado; al cumplirlo, pasar de fase es la acción principal
+const codoDetail = page.locator('#view-tendons .zone-detail:has([data-zone="codo_lat"])');
+ok(await codoDetail.locator('.cta').count() === 0 && (await codoDetail.textContent()).includes('de 10 días en esta fase') && await codoDetail.locator('button.quiet[data-dir="1"]').count() === 1, 'fase sin criterio: muestra el progreso y "Avanzar igual" chico');
+const phaseBackup = await page.evaluate(() => { const b = JSON.stringify({ zones: S.zones, sessions: S.sessions }); S.zones.codo_lat.since = addDays(today(), -12); for (let i = 1; i <= 5; i++) S.sessions.push({ id: 'ph' + i, date: addDays(today(), -i), type: 'dolor', items: [], pain: { codo_lat: 2 } }); render(); return b; });
+ok((await codoDetail.locator('.cta[data-action="phase"][data-dir="1"]').textContent()).includes('Pasar a fase 2: isotónicos lentos'), 'con el criterio cumplido, "Pasar a fase 2" es el botón principal');
+await page.evaluate((b) => { Object.assign(S, JSON.parse(b)); render(); }, phaseBackup);
 
 // 4. Entreno A con calibración
 await click('[data-tab="home"]');

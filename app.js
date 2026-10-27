@@ -2,7 +2,7 @@
 // (IndexedDB). Los identificadores internos siguen siendo "tendon-fuerte" para no perder los datos ya guardados.
 // Protocolo de tendones del video de Jeremy Ethier con Keith Baar y Coach Q; reglas en logic.js, bocetos en figures.js.
 
-const APP_VERSION = '1.20.2';
+const APP_VERSION = '1.20.3';
 const DAY_NAMES = { lu: 'Lu', ma: 'Ma', mi: 'Mi', ju: 'Ju', vi: 'Vi', sa: 'Sá', do: 'Do' };
 const SIDES = { der: 'derecha', izq: 'izquierda', ambos: 'ambos lados' };
 const REST_SECS = 90, ISO_REST = 60;
@@ -800,6 +800,21 @@ function answerCheck(zone, val) {
 }
 
 // ——— Dolor ———
+// Avance de fase: con el criterio cumplido es la acción principal; antes, se ve cuánto falta y avanzar queda chico.
+function phaseStep(zone, z) {
+  const back = z.phase > 1 ? `<button class="quiet" data-action="phase" data-zone="${zone}" data-dir="-1">Volver a fase ${z.phase - 1}</button>` : '';
+  if (z.phase >= 3) return back ? `<div class="phase-links">${back}</div>` : '';
+  const next = PHASES[z.phase + 1], nextName = next.name.split(' · ')[1].toLowerCase();
+  if (phaseReady(S, zone, today())) return `<button class="cta pain phase-go" data-action="phase" data-zone="${zone}" data-dir="1">Pasar a fase ${z.phase + 1}: ${esc(nextName)}</button>
+    <p class="small muted">${esc(next.what)}</p>${back ? `<div class="phase-links">${back}</div>` : ''}`;
+  const p = phaseProgress(S, zone, today()), days = Math.min(p.days, PHASE_DAYS);
+  const pain = p.high ? 'Esta semana el dolor pasó de 3: esperá a que baje.' : p.worse ? 'Esta semana amaneció peor algún día: esperá a que se estabilice.'
+    : p.logs < p.need ? `Registros de dolor esta semana: ${p.logs} de ${p.need}, todos en 3 o menos.` : '✓ Dolor de la semana en 3 o menos.';
+  return `<div class="phase-prog"><p class="small">Para pasar a fase ${z.phase + 1}</p>
+    <div class="phase-bar" role="progressbar" aria-label="Días en esta fase" aria-valuemin="0" aria-valuemax="${PHASE_DAYS}" aria-valuenow="${days}"><b style="width:${(100 * days) / PHASE_DAYS}%"></b></div>
+    <p class="small muted">${days >= PHASE_DAYS ? `✓ ${PHASE_DAYS} días en esta fase.` : `${days} de ${PHASE_DAYS} días en esta fase.`}<br>${pain}</p></div>
+    <div class="phase-links">${back}<button class="quiet" data-action="phase" data-zone="${zone}" data-dir="1">Avanzar igual</button></div>`;
+}
 function renderTendons() {
   let h = `<h1>Dolor</h1>
     <div class="card pain"><div class="row"><div><h3>Modo dolor</h3><p class="muted small">Isométricos diarios, registro de dolor y entreno adaptado en las zonas que marques.</p></div>
@@ -816,8 +831,7 @@ function renderTendons() {
       <p class="small" style="margin-top:12px"><b>${esc(PHASES[z.phase].name)}</b> · desde ${fmtDate(z.since)}<br><span class="muted">${esc(PHASES[z.phase].what)}</span></p>
       ${z.phase < 3 ? `<div class="ex" data-action="ex-detail" data-ex="${ex.id}"><div class="thumb">${figureSVG(ex, { crop: true })}</div><div class="info"><h3>${esc(ex.name)}</h3><p class="muted small">${z.load ? fmtKg(z.load) + ' · ' : ''}${z.phase === 1 ? `${ISO_SETS} × ${z.secs || ISO_SECS} s` : `${LENTO_SETS} × ${LENTO_REPS}`}</p></div></div>` : ''}
       ${opts.length > 1 ? `<p class="small muted" style="margin:8px 0 4px">Otras opciones para esta fase:</p><div class="chips">${opts.map((o) => `<button class="chip pain${o.id === ex.id ? ' on' : ''}" data-action="rehab-choice" data-zone="${zd.id}" data-ex="${o.id}">${esc(o.name)}</button>`).join('')}</div>` : ''}
-      <div class="btns" style="margin-top:8px">${z.phase > 1 ? `<button class="sec" data-action="phase" data-zone="${zd.id}" data-dir="-1">← Fase ${z.phase - 1}</button>` : ''}${z.phase < 3 ? `<button class="sec" data-action="phase" data-zone="${zd.id}" data-dir="1">Fase ${z.phase + 1} →</button>` : ''}</div>
-      <p class="faint small">${z.phase < 3 ? (phaseReady(S, zd.id, today()) ? '✓ Lista para avanzar.' : 'Para avanzar: 10 días en la fase y una semana con dolor ≤ 3 sin empeorar.') : ''}</p></div>`;
+      ${phaseStep(zd.id, z)}</div>`;
   }).join('')}</div>`;
   h += `<h2>Ejercicios del fisio</h2><div class="card">${S.custom.length ? S.custom.map((c) => `<div class="row"><div><h3>${esc(c.name)}</h3><p class="muted small">${c.sets} × ${c.value} ${c.mode === 'segundos' ? 's' : 'reps'}${c.zone ? ' · ' + esc(zoneName(c.zone)) : ''}</p></div><button class="link" data-action="custom-edit" data-id="${c.id}">Editar</button></div>`).join('') : '<p class="muted small">Cargá los ejercicios que te dio tu fisio: aparecen en cada sesión de rehabilitación.</p>'}
     <button class="sec" style="margin-top:10px;width:100%" data-action="custom-edit">+ Agregar ejercicio</button></div>
@@ -1151,7 +1165,7 @@ document.addEventListener('click', (e) => {
     'phase': () => {
       const z = S.zones[d.zone], to = z.phase + Number(d.dir);
       if (to < 1 || to > 3) return;
-      if (Number(d.dir) > 0 && !phaseReady(S, d.zone, today()) && !confirm('Todavía no cumple el criterio (10 días y una semana con dolor ≤ 3). ¿Avanzar igual?')) return;
+      if (Number(d.dir) > 0 && !phaseReady(S, d.zone, today()) && !confirm(`Todavía no cumple el criterio: ${PHASE_DAYS} días en la fase y una semana con dolor en 3 o menos. Avanzar antes de tiempo puede volver a irritar el tendón. ¿Avanzar igual?`)) return;
       S.zones[d.zone] = { ...z, phase: to, since: today() }; persist(); render();
     },
     'three-days': () => { if (S.rem.train.length < 3) S.rem.train = ['lu', 'mi', 'vi']; S.profile.days = 3; persist(); render(); toast('3 días por semana: el plan sigue rotando.'); },

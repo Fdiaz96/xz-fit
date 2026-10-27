@@ -356,3 +356,13 @@ dialog #rest { bottom: calc(16px + var(--safe-b)); }
 .nowrap { white-space: nowrap; }
 .empty-hist { margin-top: 16px; }
 .empty-hist p { margin: 4px 0 14px; }
+/* Avance de fase en Dolor: progreso hacia el criterio y links chicos para avanzar igual o volver */
+.phase-prog { margin-top: 12px; }
+.phase-prog p { margin: 0; }
+.phase-bar { height: 6px; margin: 6px 0 8px; border-radius: 3px; background: var(--card2); overflow: hidden; }
+.phase-bar b { display: block; height: 100%; background: var(--pain); }
+.phase-go { margin-top: 12px; font-size: 18px; }
+.phase-go + p { margin: 6px 0 0; }
+.phase-links { display: flex; justify-content: space-between; margin-top: 4px; }
+.phase-links .quiet:only-child { margin-left: auto; }
+button.quiet { min-height: 44px; padding: 0 2px; color: var(--muted); font-size: 14px; text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 3px; }

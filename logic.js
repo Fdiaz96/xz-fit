@@ -7,6 +7,7 @@ const PAIN_CAP = 0.6;       // con la zona en fase 1–2, los ejercicios que la 
 const PAIN_MAX = 4;         // regla del video: dolor tolerable hasta 3–4 sobre 10
 const VOLUME_STEP = 1.3;    // nunca más de +30 % de series de una semana a otra
 const ISO_SETS = 3, ISO_SECS = 45, LENTO_SETS = 3, LENTO_REPS = 15;
+const PHASE_DAYS = 10;      // días mínimos en una fase antes de avanzar
 
 // ——— Fechas (día local) ———
 const dayKey = (d = new Date()) => { const x = new Date(d); return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`; };
@@ -210,14 +211,19 @@ function isoAdjust(z, ex, steps, pain, worse) {
   if (down) return load <= minLoad ? bySecs : { ...z, load: load === steps[0] ? minLoad : stepDown(steps, load) };
   return z;
 }
+// Cuánto le falta a una zona para avanzar: días en la fase, registros de dolor de la semana, si alguno pasó de 3 y si amaneció peor.
+function phaseProgress(state, zone, today) {
+  const z = state.zones[zone];
+  const week = painLog(state, zone).filter((p) => daysBetween(p.date, today) <= 6);
+  return { days: daysBetween(z.since, today), logs: week.length, need: z.phase === 1 ? 5 : 3, high: week.some((p) => p.val > 3),
+    worse: state.checks.some((c) => c.zone === zone && c.val === 'peor' && daysBetween(c.date, today) <= 6) };
+}
 // Lista para pasar de fase: ≥ 10 días en la fase, registros suficientes la última semana, todos ≤ 3 y sin "peor".
 function phaseReady(state, zone, today) {
   const z = state.zones[zone];
-  if (!z || z.phase >= 3 || daysBetween(z.since, today) < 10) return false;
-  const week = painLog(state, zone).filter((p) => daysBetween(p.date, today) <= 6);
-  if (week.length < (z.phase === 1 ? 5 : 3)) return false;
-  if (week.some((p) => p.val > 3)) return false;
-  return !state.checks.some((c) => c.zone === zone && c.val === 'peor' && daysBetween(c.date, today) <= 6);
+  if (!z || z.phase >= 3) return false;
+  const p = phaseProgress(state, zone, today);
+  return p.days >= PHASE_DAYS && p.logs >= p.need && !p.high && !p.worse;
 }
 // ¿Toca preguntar cómo amaneció? Hubo sesión con dolor ayer y hoy todavía no se respondió.
 function pendingChecks(state, today) {

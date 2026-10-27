@@ -2,6 +2,11 @@
 
 Todos los cambios de XZ Fit (antes Tendón Fuerte), del más nuevo al más viejo.
 
+## 1.20.3 — Pasar de fase, cuando corresponde
+
+- En Dolor, cada zona muestra cuánto le falta para pasar de fase: los días en la fase y cómo viene el dolor de la semana.
+- Cuando se cumple el criterio aparece el botón "Pasar a fase 2: isotónicos lentos". Antes queda un link chico, "Avanzar igual", que te avisa el riesgo.
+
 ## 1.20.2 — Las zonas se marcan igual que en el alta
 
 - En la pestaña Dolor, las zonas son la misma lista de casillas que en el primer uso. La zona marcada despliega debajo el lado, la fase y su ejercicio. Las demás quedan como filas.
