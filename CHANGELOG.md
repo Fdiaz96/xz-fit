@@ -2,6 +2,10 @@
 
 Todos los cambios de XZ Fit (antes Tendón Fuerte), del más nuevo al más viejo.
 
+## 1.19.4 — Cambiar un ejercicio, más discreto
+
+- En el entreno, "Hoy no puedo" ahora dice "Cambiar por hoy". Está en gris, a la derecha de "Cómo se hace", y ya no compite con la serie que tenés que anotar.
+
 ## 1.19.3 — Las reps sin anotar se ven vacías
 
 - En el entreno, el campo de reps sin anotar tiene borde punteado y una sugerencia chica ("≈9"), así no parece un dato ya cargado.

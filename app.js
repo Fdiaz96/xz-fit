@@ -2,7 +2,7 @@
 // (IndexedDB). Los identificadores internos siguen siendo "tendon-fuerte" para no perder los datos ya guardados.
 // Protocolo de tendones del video de Jeremy Ethier con Keith Baar y Coach Q; reglas en logic.js, bocetos en figures.js.
 
-const APP_VERSION = '1.19.3';
+const APP_VERSION = '1.19.4';
 const DAY_NAMES = { lu: 'Lu', ma: 'Ma', mi: 'Mi', ju: 'Ju', vi: 'Vi', sa: 'Sá', do: 'Do' };
 const SIDES = { der: 'derecha', izq: 'izquierda', ambos: 'ambos lados' };
 const REST_SECS = 90, ISO_REST = 60;
@@ -472,9 +472,10 @@ function renderWorkout() {
     const state = it.rows.every((r) => r.done) ? ' done' : i === cur ? ' now' : '';
     return `<section class="card wex${it.r || it.maint ? ' pain' : ''}${state}"><div class="ex">
       <span class="wex-n" aria-hidden="true">${it.rows.every((r) => r.done) ? '✓' : i + 1}</span>
-      <div class="info"><h3>${esc(it.ex.name)}</h3><p class="target"><span>${it.sets} × ${setLabel(it)}</span>${weighted ? `<b class="num">${fmtKg(it.w)}</b>` : ''}${it.calib ? '<span class="calib-tag">calibración</span>' : ''}</p>${it.impl === 'db' && platesFor(S.equip, it.w) ? `<p class="plates">Por lado: ${platesLabel(it.w)}</p>` : ''}${it.maint || it.rows.some((r) => r.done) ? '' : `<button class="link small" data-action="swap-today" data-i="${i}">Hoy no puedo</button>`}</div>
+      <div class="info"><h3>${esc(it.ex.name)}</h3><p class="target"><span>${it.sets} × ${setLabel(it)}</span>${weighted ? `<b class="num">${fmtKg(it.w)}</b>` : ''}${it.calib ? '<span class="calib-tag">calibración</span>' : ''}</p>${it.impl === 'db' && platesFor(S.equip, it.w) ? `<p class="plates">Por lado: ${platesLabel(it.w)}</p>` : ''}</div>
       <div class="thumb" data-action="ex-detail" data-ex="${it.ex.id}" title="Ver en grande">${figureSVG(it.ex, { crop: true })}</div></div>
-      ${notes.join('')}<details class="cues"><summary>Cómo se hace</summary><ul>${it.ex.cues.map((c) => `<li>${esc(c)}</li>`).join('')}</ul></details>
+      ${notes.join('')}<div class="cues-row"><details class="cues"><summary>Cómo se hace</summary><ul>${it.ex.cues.map((c) => `<li>${esc(c)}</li>`).join('')}</ul></details>
+      ${it.maint || it.rows.some((r) => r.done) ? '' : `<button class="swap-link" data-action="swap-today" data-i="${i}">Cambiar por hoy</button>`}</div>
       <div class="sets">${head}${rows}</div></section>`;
   }).join('');
   const warm = W.warm?.length ? `<details class="card warm" ${W.warm.every((x) => x.done) ? '' : 'open'}><summary><h3>Entrada en calor</h3><span class="muted small">${W.warm.filter((x) => x.done).length} de ${W.warm.length}</span></summary>
@@ -512,7 +513,7 @@ const equipName = (k) => (k.startsWith('m:') ? S.equip.machines.find((m) => 'm:'
 function openSwapToday(i) {
   const it = W.items[i], keys = equipUsed(it.ex, withoutEquip(S.equip, W.off));
   const opt = (off, txt) => `<button class="sec" style="width:100%" data-action="swap-why" data-i="${i}" data-off="${off}">${esc(txt)}</button>`;
-  dlg('swapsheet').html = `<div class="dlg"><div class="dlg-head"><button class="link" data-action="close" data-dlg="swapsheet">Cancelar</button><strong>Hoy no puedo</strong><span></span></div>
+  dlg('swapsheet').html = `<div class="dlg"><div class="dlg-head"><button class="link" data-action="close" data-dlg="swapsheet">Cancelar</button><strong>Cambiar por hoy</strong><span></span></div>
     <p class="muted">${esc(it.ex.name)}: ¿qué pasa? Lo cambiamos solo por hoy, tu rutina queda igual.</p>
     ${it.slot && SLOTS[it.slot] ? keys.map((k) => opt(k, `Hoy no puedo usar ${equipName(k)}`)).join('') + opt('', 'Otro motivo: dame otro ejercicio') : ''}
     <button class="link danger" data-action="swap-why" data-i="${i}" data-off="skip">Saltear este ejercicio</button></div>`;

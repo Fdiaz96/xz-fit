@@ -1,7 +1,7 @@
 # Graph Report - TendonApp  (2026-10-27)
 
 ## Corpus Check
-- 64 files · ~90,448 words
+- 64 files · ~90,490 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 14 file(s) not represented in the graph (top: (none) 11, .woff2 1, .webmanifest 1)
 
@@ -11,7 +11,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `e6aec443`
+- Built from commit: `fc3d6245`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -86,8 +86,8 @@
   .specs/tasks/todo/ux-11-editar-rutina-botones.md → app.js
 - `Dónde` --references--> `renderWorkout()`  [INFERRED]
   .specs/tasks/done/ux-01-calibracion-una-vez.md → app.js
-- `Orden` --references--> `renderWorkout()`  [INFERRED]
-  .specs/tasks/todo/ux-00-indice.md → app.js
+- `Dónde` --references--> `renderWorkout()`  [INFERRED]
+  .specs/tasks/done/ux-02-placeholder-reps.md → app.js
 
 ## Import Cycles
 - None detected.
