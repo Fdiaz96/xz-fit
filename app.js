@@ -2,7 +2,7 @@
 // (IndexedDB). Los identificadores internos siguen siendo "tendon-fuerte" para no perder los datos ya guardados.
 // Protocolo de tendones del video de Jeremy Ethier con Keith Baar y Coach Q; reglas en logic.js, bocetos en figures.js.
 
-const APP_VERSION = '1.19.1';
+const APP_VERSION = '1.19.2';
 const DAY_NAMES = { lu: 'Lu', ma: 'Ma', mi: 'Mi', ju: 'Ju', vi: 'Vi', sa: 'Sá', do: 'Do' };
 const SIDES = { der: 'derecha', izq: 'izquierda', ambos: 'ambos lados' };
 const REST_SECS = 90, ISO_REST = 60;
@@ -442,6 +442,8 @@ function startWorkout(day) {
   W = { plan: activePlan(S).id, day, dayName: activePlan(S).days[day].name, items, started: Date.now(), warm: warm.map((x) => ({ ...x, done: false })), off: [], out: [] };
   // Qué es el RIR: abierto en el primer ejercicio con peso del primer entreno; después, al tocar la columna.
   W.rirHelp = S.sessions.some((s) => s.type === 'entreno') ? -1 : items.findIndex((p) => p.ex.kind === 'peso');
+  // Con 2 o más ejercicios a calibrar, la explicación va una vez arriba y cada ejercicio lleva solo la etiqueta.
+  W.calibIntro = items.filter((p) => p.calib).length >= 2;
   renderWorkout(); $('wsheet').showModal(); calmMotion($('wsheet')); keepAwake(true);
 }
 function renderWorkout() {
@@ -452,7 +454,7 @@ function renderWorkout() {
   const body = W.items.map((it, i) => {
     const k = it.ex.kind, timed = k === 'tiempo' || k === 'iso', weighted = k === 'peso' || (k === 'iso' && it.w);
     const notes = [];
-    if (it.calib) notes.push(`<div class="note acc">Serie de calibración: con ${fmtKg(it.w)} hacé reps hasta que sientas que te salen solo 2 más, y frená ahí (eso es RIR 2). Anotá las reps y el RIR: con eso calculamos tu peso real.</div>`);
+    if (it.calib && !W.calibIntro) notes.push(`<div class="note acc">Serie de calibración: con ${fmtKg(it.w)} hacé reps hasta que sientas que te salen solo 2 más, y frená ahí (eso es RIR 2). Anotá las reps y el RIR: con eso calculamos tu peso real.</div>`);
     if (it.r?.mode === 'cap') notes.push(`<div class="note pain">Modo dolor (${it.r.zones.map(zoneName).join(', ')}): al 60 % → ${fmtKg(it.w)}.</div>`);
     if (it.r?.mode === 'alt') notes.push(`<div class="note pain">Modo dolor: ${esc(zoneName(it.r.zones[0]))} está sensible, hoy va ${esc(it.ex.name.toLowerCase())} en vez de ${esc(it.orig.name.toLowerCase())}.</div>`);
     if (it.maint) notes.push(`<div class="note pain">Mantenimiento de ${esc(zoneName(it.maint).toLowerCase())} (fase 3).</div>`);
@@ -470,15 +472,18 @@ function renderWorkout() {
     const state = it.rows.every((r) => r.done) ? ' done' : i === cur ? ' now' : '';
     return `<section class="card wex${it.r || it.maint ? ' pain' : ''}${state}"><div class="ex">
       <span class="wex-n" aria-hidden="true">${it.rows.every((r) => r.done) ? '✓' : i + 1}</span>
-      <div class="info"><h3>${esc(it.ex.name)}</h3><p class="target"><span>${it.sets} × ${setLabel(it)}</span>${weighted ? `<b class="num">${fmtKg(it.w)}</b>` : ''}</p>${it.impl === 'db' && platesFor(S.equip, it.w) ? `<p class="plates">Por lado: ${platesLabel(it.w)}</p>` : ''}${it.maint || it.rows.some((r) => r.done) ? '' : `<button class="link small" data-action="swap-today" data-i="${i}">Hoy no puedo</button>`}</div>
+      <div class="info"><h3>${esc(it.ex.name)}</h3><p class="target"><span>${it.sets} × ${setLabel(it)}</span>${weighted ? `<b class="num">${fmtKg(it.w)}</b>` : ''}${it.calib ? '<span class="calib-tag">calibración</span>' : ''}</p>${it.impl === 'db' && platesFor(S.equip, it.w) ? `<p class="plates">Por lado: ${platesLabel(it.w)}</p>` : ''}${it.maint || it.rows.some((r) => r.done) ? '' : `<button class="link small" data-action="swap-today" data-i="${i}">Hoy no puedo</button>`}</div>
       <div class="thumb" data-action="ex-detail" data-ex="${it.ex.id}" title="Ver en grande">${figureSVG(it.ex, { crop: true })}</div></div>
       ${notes.join('')}<details class="cues"><summary>Cómo se hace</summary><ul>${it.ex.cues.map((c) => `<li>${esc(c)}</li>`).join('')}</ul></details>
       <div class="sets">${head}${rows}</div></section>`;
   }).join('');
   const warm = W.warm?.length ? `<details class="card warm" ${W.warm.every((x) => x.done) ? '' : 'open'}><summary><h3>Entrada en calor</h3><span class="muted small">${W.warm.filter((x) => x.done).length} de ${W.warm.length}</span></summary>
     ${W.warm.map((x, i) => `<button class="warm-item${x.done ? ' on' : ''}" data-action="warm" data-i="${i}"><span class="box">${x.done ? '✓' : ''}</span><span>${esc(x.txt)}</span></button>`).join('')}</details>` : '';
+  const calib = W.calibIntro && W.items.some((it) => it.calib) ? `<section class="card calib-intro"><h3>Hoy calibramos tus pesos</h3>
+    <p>En la primera serie de cada ejercicio con <span class="nowrap"><span class="calib-tag">calibración</span>,</span> hacé reps hasta que sientas que te salen solo 2 más y frená ahí. Anotá las reps y el RIR: con eso calculamos tu peso de trabajo.</p>
+    <p class="muted small">El peso que ves es un punto de partida.</p></section>` : '';
   dlg('wsheet').html = `<div class="dlg"><div class="dlg-head w-head"><button class="link danger" data-action="cancel-workout">Salir</button><div class="w-title"><strong>${esc(W.dayName)}</strong><span class="w-count">${done} de ${total} series</span></div><button class="link" data-action="finish-workout">Terminar</button>
-      <div class="w-track" role="progressbar" aria-label="Series hechas" aria-valuemin="0" aria-valuemax="${total}" aria-valuenow="${done}">${track}</div></div>${warm}${body}
+      <div class="w-track" role="progressbar" aria-label="Series hechas" aria-valuemin="0" aria-valuemax="${total}" aria-valuenow="${done}">${track}</div></div>${warm}${calib}${body}
     <button class="cta" data-action="finish-workout">Terminar entreno</button></div>`;
 }
 function setDone(i, j) {

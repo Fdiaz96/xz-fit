@@ -2,6 +2,10 @@
 
 Todos los cambios de XZ Fit (antes Tendón Fuerte), del más nuevo al más viejo.
 
+## 1.19.2 — La calibración se explica una vez
+
+- En el primer entreno, la explicación de cómo calibrar aparece una sola vez, arriba de los ejercicios. Cada ejercicio a calibrar lleva la etiqueta "calibración" junto al peso, y la sesión queda más corta.
+
 ## 1.19.1 — El nombre del día ya no se pisa
 
 - En el inicio y en Entreno, la tilde de "DÍA" ya no se superpone con el texto de arriba.

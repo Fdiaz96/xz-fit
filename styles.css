@@ -244,6 +244,12 @@ button.add-ex { width: 100%; }
 .wex.done .wex-n { color: var(--acc-fg); }
 .target { display: flex; align-items: baseline; flex-wrap: wrap; column-gap: 10px; margin: 4px 0 0; font-size: 14px; color: var(--muted); }
 .target .num { font: 700 22px/1.1 'Oswald', sans-serif; color: var(--text); }
+.calib-tag { font-size: 12px; font-weight: 600; line-height: 1; padding: 3px 8px; border-radius: 999px; color: var(--acc-fg); box-shadow: inset 0 0 0 1.5px var(--acc); white-space: nowrap; }
+.calib-intro { box-shadow: inset 4px 0 0 var(--acc); }
+.calib-intro h3 { margin: 0 0 6px; }
+.calib-intro p { margin: 0; font-size: 14px; line-height: 1.45; }
+.calib-intro p + p { margin-top: 6px; }
+.calib-intro .calib-tag { display: inline-block; vertical-align: 1px; }
 
 /* Series */
 .sets { margin-top: 12px; }
@@ -341,3 +347,4 @@ dialog #rest { bottom: calc(16px + var(--safe-b)); }
 #toast { position: fixed; z-index: 40; left: 16px; right: 16px; top: calc(12px + var(--safe-t)); max-width: 608px; margin: 0 auto; background: var(--card2); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; box-shadow: 0 8px 24px rgba(0, 0, 0, .4); }
 
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+.nowrap { white-space: nowrap; }
