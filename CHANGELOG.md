@@ -2,6 +2,10 @@
 
 Todos los cambios de XZ Fit (antes Tendón Fuerte), del más nuevo al más viejo.
 
+## 1.19.1 — El nombre del día ya no se pisa
+
+- En el inicio y en Entreno, la tilde de "DÍA" ya no se superpone con el texto de arriba.
+
 ## 1.19.0 — Primer uso más claro: perfil, equipo y dolor
 
 - **Días de entreno, de 1 a 7**: ya no hay que elegir "2 o 3 días". Marcás los días que entrenás y la app cuenta cuántos son por semana. También en Ajustes → Perfil.
