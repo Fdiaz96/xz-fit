@@ -2,6 +2,10 @@
 
 Todos los cambios de XZ Fit (antes Tendón Fuerte), del más nuevo al más viejo.
 
+## 1.21.1 — Arrancás por la entrada en calor
+
+- Al empezar un entreno el foco está en la entrada en calor (marcada en verde, con el próximo paso resaltado) y no en el primer ejercicio. Cuando la terminás, o si anotás una serie antes, el foco pasa al ejercicio.
+
 ## 1.21.0 — Elegís cómo se arman tus pesos
 
 - La serie de calibración ya no es obligatoria. Por defecto los pesos son automáticos: cada ejercicio arranca con un peso estimado y, en cuanto anotás tu primera serie, ajustamos los ejercicios que siguen según lo que levantaste.

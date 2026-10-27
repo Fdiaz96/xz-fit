@@ -75,8 +75,8 @@ button.quick-pain { width: 100%; margin: -12px 0 var(--gap); }
 }
 :root[data-theme="light"] .dots i.on { border-color: #9BCB00; }
 :root[data-theme="light"] .today h3, :root[data-theme="light"] .plan-day.now h2 { border-bottom-color: #9BCB00; }
-:root[data-theme="light"] .wex.now, :root[data-theme="light"] button.cta.ghost { box-shadow: inset 0 0 0 2px #9BCB00; }
-:root[data-theme="light"] .set.next .ok, :root[data-theme="light"] .set.done .ok { border-color: #9BCB00; }
+:root[data-theme="light"] .wex.now, :root[data-theme="light"] details.warm.now, :root[data-theme="light"] button.cta.ghost { box-shadow: inset 0 0 0 2px #9BCB00; }
+:root[data-theme="light"] .set.next .ok, :root[data-theme="light"] button.warm-item.next .box, :root[data-theme="light"] .set.done .ok { border-color: #9BCB00; }
 :root[data-theme="light"] .w-track b { background: #9BCB00; }
 :root[data-theme="light"] .set input, :root[data-theme="light"] .set select { background: var(--card); }
 :root[data-theme="light"] .fig { background: #ECEFF3; }
@@ -199,6 +199,9 @@ details.warm summary { display: flex; justify-content: space-between; align-item
 details.warm summary::-webkit-details-marker { display: none; }
 button.warm-item { display: flex; gap: 10px; align-items: flex-start; text-align: left; width: 100%; padding: 8px 0; color: var(--muted); font-size: 14px; }
 button.warm-item .box { flex: none; width: 24px; height: 24px; border-radius: 7px; border: 2px solid var(--line); display: grid; place-items: center; font-weight: 700; }
+details.warm.now { box-shadow: inset 0 0 0 2px var(--acc); }
+button.warm-item.next { color: var(--text); }
+button.warm-item.next .box { border-color: var(--acc); }
 button.warm-item.on { color: var(--faint); text-decoration: line-through; }
 button.warm-item.on .box { background: var(--acc); border-color: var(--acc); color: var(--acc-ink); }
 

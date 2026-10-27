@@ -2,7 +2,7 @@
 // (IndexedDB). Los identificadores internos siguen siendo "tendon-fuerte" para no perder los datos ya guardados.
 // Protocolo de tendones del video de Jeremy Ethier con Keith Baar y Coach Q; reglas en logic.js, bocetos en figures.js.
 
-const APP_VERSION = '1.21.0';
+const APP_VERSION = '1.21.1';
 const DAY_NAMES = { lu: 'Lu', ma: 'Ma', mi: 'Mi', ju: 'Ju', vi: 'Vi', sa: 'Sá', do: 'Do' };
 const SIDES = { der: 'derecha', izq: 'izquierda', ambos: 'ambos lados' };
 const REST_SECS = 90, ISO_REST = 60;
@@ -494,7 +494,9 @@ function startWorkout(day) {
 }
 function renderWorkout() {
   // El ejercicio en curso es el primero con series pendientes; su primera serie pendiente es la que sigue.
-  const cur = W.items.findIndex((it) => it.rows.some((r) => !r.done));
+  // Mientras falte la entrada en calor y no haya series hechas, el foco está en ella y no en el primer ejercicio.
+  const warmNow = W.warm?.some((x) => !x.done) && !W.items.some((it) => it.rows.some((r) => r.done));
+  const cur = warmNow ? -1 : W.items.findIndex((it) => it.rows.some((r) => !r.done));
   const total = W.items.reduce((n, it) => n + it.rows.length, 0), done = W.items.reduce((n, it) => n + it.rows.filter((r) => r.done).length, 0);
   const track = W.items.map((it) => `<i style="flex:${it.rows.length}"><b style="width:${(100 * it.rows.filter((r) => r.done).length) / it.rows.length}%"></b></i>`).join('');
   const body = W.items.map((it, i) => {
@@ -525,8 +527,8 @@ function renderWorkout() {
       ${it.maint || it.rows.some((r) => r.done) ? '' : `<button class="swap-link" data-action="swap-today" data-i="${i}">Cambiar por hoy</button>`}</div>
       <div class="sets">${head}${rows}</div></section>`;
   }).join('');
-  const warm = W.warm?.length ? `<details class="card warm" ${W.warm.every((x) => x.done) ? '' : 'open'}><summary><h3>Entrada en calor</h3><span class="muted small">${W.warm.filter((x) => x.done).length} de ${W.warm.length}</span></summary>
-    ${W.warm.map((x, i) => `<button class="warm-item${x.done ? ' on' : ''}" data-action="warm" data-i="${i}"><span class="box">${x.done ? '✓' : ''}</span><span>${esc(x.txt)}</span></button>`).join('')}</details>` : '';
+  const warm = W.warm?.length ? `<details class="card warm${warmNow ? ' now' : ''}" ${W.warm.every((x) => x.done) ? '' : 'open'}><summary><h3>Entrada en calor</h3><span class="muted small">${W.warm.filter((x) => x.done).length} de ${W.warm.length}</span></summary>
+    ${W.warm.map((x, i) => `<button class="warm-item${x.done ? ' on' : ''}${warmNow && i === W.warm.findIndex((y) => !y.done) ? ' next' : ''}" data-action="warm" data-i="${i}"><span class="box">${x.done ? '✓' : ''}</span><span>${esc(x.txt)}</span></button>`).join('')}</details>` : '';
   const calib = W.calibIntro && W.items.some((it) => it.calib) ? `<section class="card calib-intro"><h3>Hoy calibramos tus pesos</h3>
     <p>En la primera serie de cada ejercicio con <span class="nowrap"><span class="calib-tag">calibración</span>,</span> hacé reps hasta que sientas que te salen solo 2 más y frená ahí. Anotá las reps y el RIR: con eso calculamos tu peso de trabajo.</p>
     <p class="muted small">El peso que ves es un punto de partida.</p></section>`
