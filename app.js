@@ -2,7 +2,7 @@
 // (IndexedDB). Los identificadores internos siguen siendo "tendon-fuerte" para no perder los datos ya guardados.
 // Protocolo de tendones del video de Jeremy Ethier con Keith Baar y Coach Q; reglas en logic.js, bocetos en figures.js.
 
-const APP_VERSION = '1.24.0';
+const APP_VERSION = '1.25.0';
 const DAY_NAMES = { lu: 'Lu', ma: 'Ma', mi: 'Mi', ju: 'Ju', vi: 'Vi', sa: 'Sá', do: 'Do' };
 const SIDES = { der: 'derecha', izq: 'izquierda', ambos: 'ambos lados' };
 const REST_SECS = 90, ISO_REST = 60;
@@ -309,7 +309,7 @@ function renderHome() {
   }
   const stuck = [...new Set(S.routine[plan.id].flat().map((it) => it.ex))].filter((id) => S.lifts[id] && stalled(S, id));
   if (stuck.length >= 2 && S.plan.deload !== weekKey(t) && S.plan.deloadOffer !== weekKey(t)) h += `<div class="card ask"><h3>¿Semana de descarga?</h3><p class="muted small">${stuck.length} ejercicios no progresan hace 3 sesiones (${stuck.slice(0, 3).map((id) => esc(getEx(id)?.name.toLowerCase() || id)).join(', ')}). Una semana con una serie menos y 90 % del peso suele destrabar.</p><div class="btns"><button class="cta" data-action="deload">Hacer descarga esta semana</button></div><button class="link" data-action="deload-no">Ahora no</button></div>`;
-  if (suggestThreeDays(S, t)) h += `<div class="card ask"><h3>¿Pasamos a 3 días por semana?</h3><p class="muted small">Venís constante. Con un día más, el plan rota más rápido.</p><button class="link" data-action="three-days">Sí, 3 días</button></div>`;
+  if (plan.id === 'fb2' && suggestThreeDays(S, t)) h += `<div class="card ask"><h3>¿Probás Full body 3 días?</h3><p class="muted small">Venís constante. Con un día más entrenás cada músculo 3 veces por semana, con ejercicios distintos cada día.</p><button class="link" data-action="three-days">Ver el plan</button></div>`;
   const lvl = suggestLevelUp(S, t, getEx);
   if (lvl) {
     const name = EXPERIENCE.find((x) => x.id === lvl.next).name, times = Math.round(lvl.perWeek);
@@ -330,10 +330,10 @@ let editDay = 0;   // día visible en el editor de rutina (una pestaña por día
 function renderTrain() {
   const plan = activePlan(S), todayDay = dayIndex(plan, S.plan.pos);
   let h = `<div class="title-row"><h1>Entreno</h1><button class="link" data-action="edit-routine">${editRoutine ? 'Listo' : 'Editar rutina'}</button></div>
-    <p class="muted train-sub">${esc(plan.name)}, ${S.profile.days} días por semana: cada ejercicio sube dentro de su rango.</p>`;
+    <p class="muted train-sub">${esc(plan.name)}: cada ejercicio sube dentro de su rango.</p>`;
   if (!S.profile.weight) h += `<div class="note acc">Completá tu peso en Ajustes para que la app estime cuánto levantar.</div>`;
   if (S.plan.deload === weekKey(today())) h += `<div class="note acc">Semana de descarga: una serie menos y 90 % del peso. <button class="link small" data-action="deload-off">Cancelar</button></div>`;
-  if (editRoutine) h += `<div class="note acc">Cambiá, quitá, agregá u ordená ejercicios. Si tenés una máquina que no está, cargala en Ajustes → Equipo y creá tu ejercicio.</div>`;
+  if (editRoutine) h += planCard() + `<div class="note acc">Cambiá, quitá, agregá u ordená ejercicios. Si tenés una máquina que no está, cargala en Ajustes → Equipo y creá tu ejercicio.</div>`;
   if (editRoutine) h += `<div class="chips day-tabs">${plan.days.map((dd, d) => `<button class="chip${d === editDay ? ' on' : ''}" data-action="edit-day" data-day="${d}">${esc(dd.name)}</button>`).join('')}</div>`;
   // Cada día como en la pizarra del inicio: el nombre en grande, el que toca subrayado en lima y con el botón lleno.
   plan.days.forEach((dd, d) => {
@@ -356,6 +356,59 @@ function renderTrain() {
   $('view-train').innerHTML = h;
 }
 function routineSet(day, items) { S.routine[activePlan(S).id][day] = items; persist(); render(); }
+
+// ——— Plan de entrenamiento (Editar rutina → Cambiar plan) ———
+// "Lu, Mi y Vi"
+const daysText = (keys) => { const n = keys.map((k) => DAY_NAMES[k]); return n.length > 1 ? `${n.slice(0, -1).join(', ')} y ${n.at(-1)}` : n[0] || ''; };
+// Semana tipo: los días de entrenamiento con la sigla del día del plan que toca, en orden de rotación.
+function weekStrip(plan, days) {
+  let i = 0;
+  return `<div class="week-strip" role="img" aria-label="${esc(`Entrenás ${daysText(days)}`)}">${Object.entries(DAY_NAMES).map(([k, v]) => {
+    const on = days.includes(k), sigla = on ? plan.days[i++ % plan.days.length].short : '';
+    return `<span class="${on ? 'on' : ''}"><small>${v}</small><b>${esc(sigla)}</b></span>`;
+  }).join('')}</div>`;
+}
+function planCard() {
+  const plan = activePlan(S);
+  return `<div class="plan-card"><div class="row"><div><span class="small muted">Tu plan</span><h3>${esc(plan.name)}</h3></div><button class="sec" data-action="plan-open">Cambiar plan</button></div>
+    ${weekStrip(plan, S.rem.train)}
+    <p class="small muted">Rota ${esc(plan.days.map((d) => d.name).join(', '))}. Si faltás un día, seguís con el que toca. Los días los cambiás en Ajustes.</p></div>`;
+}
+let PS = null;   // plan elegido en la hoja, antes de confirmar
+function openPlans(sel = activePlan(S).id) { PS = sel; renderPlans(); if (!$('plansheet').open) $('plansheet').showModal(); }
+function renderPlans() {
+  const cur = activePlan(S).id, chosen = PLANS[PS];
+  const opt = (p) => {
+    // Para mostrar, la versión guardada del plan (con los cambios del usuario) si existe; si no, la que se armaría hoy.
+    const items = resolvePlan(p, S.equip, engineOpts()), saved = S.routine[p.id]?.length === p.days.length ? S.routine[p.id] : items;
+    const names = (day) => day.filter((it) => getEx(it.ex)).map((it) => getEx(it.ex).name).join(', ');
+    const missing = saved.flat().filter((it) => !possible(it.ex, S.equip, getEx)).length;
+    return `<div class="plan-opt"><label class="tile"><input type="radio" name="plan" data-action="plan-sel" value="${p.id}" ${p.id === PS ? 'checked' : ''}><span>
+        <b>${esc(p.name)}${p.id === cur ? ' <em class="tag-now">el tuyo</em>' : ''}</b>
+        <small>${p.days.length} días por semana, ${p.mins} min por sesión. ${esc(p.for)}</small>
+        ${weekStrip(p, p.week)}
+        ${missing ? `<small class="warn">Con tu equipo, ${missing === 1 ? '1 ejercicio queda' : `${missing} ejercicios quedan`} como "falta equipo".</small>` : ''}
+        ${p.id !== cur && S.routine[p.id] ? '<small>Vuelve con los cambios que le hiciste.</small>' : ''}
+      </span></label>
+      <details class="cues"><summary>Ver ejercicios</summary><ul>${p.days.map((d, i) => `<li><b>${esc(d.name)}:</b> ${esc(names(saved[i]))}</li>`).join('')}</ul>
+      <p class="small"><a href="${p.source.url}" target="_blank" rel="noopener">${esc(p.source.title)}</a></p></details></div>`;
+  };
+  let h = `<div class="dlg"><div class="dlg-head"><button class="link" data-action="close" data-dlg="plansheet">Cancelar</button><strong>Elegí tu plan</strong><span></span></div>
+    <p class="muted small">La app arma los ejercicios de cada día con tu equipo. Después podés cambiar cualquiera en Editar rutina.</p>`;
+  for (const [kind, title] of Object.entries(PLAN_KINDS)) h += `<h2>${esc(title)}</h2>${Object.values(PLANS).filter((p) => p.kind === kind).map(opt).join('')}`;
+  h += `<div class="plan-foot">${PS === cur ? '<button class="cta" disabled>Es tu plan actual</button>'
+    : `<button class="cta" data-action="plan-use">Usar ${esc(chosen.name)}</button><p class="small muted">Entrenás ${daysText(chosen.week)} y el primer entreno es ${esc(chosen.days[0].name)}. Tus pesos y tu historial se mantienen.</p>`}</div></div>`;
+  dlg('plansheet').html = h;
+}
+// Cambiar de plan reinicia la rotación y la rampa de entrada; la rutina del plan anterior queda guardada por si se vuelve.
+function usePlan() {
+  const plan = PLANS[PS];
+  S.plan = { ...S.plan, id: plan.id, pos: 0, since: today(), deload: '' };
+  S.rem.train = [...plan.week]; S.profile.days = plan.week.length;
+  editDay = 0; PS = null;
+  $('plansheet').close(); persist(); render();
+  toast(`Plan cambiado a ${plan.name}. Entrenás ${daysText(plan.week)}.`);
+}
 
 // Selector de ejercicios (agregar o cambiar uno de la rutina)
 let PK = null;   // { day, i }
@@ -1273,7 +1326,9 @@ document.addEventListener('click', (e) => {
       if (Number(d.dir) > 0 && !phaseReady(S, d.zone, today()) && !confirm(`Todavía no cumple el criterio: ${PHASE_DAYS} días en la fase y una semana con dolor en 3 o menos. Avanzar antes de tiempo puede volver a irritar el tendón. ¿Avanzar igual?`)) return;
       S.zones[d.zone] = { ...z, phase: to, since: today() }; persist(); render();
     },
-    'three-days': () => { if (S.rem.train.length < 3) S.rem.train = ['lu', 'mi', 'vi']; S.profile.days = 3; persist(); render(); toast('3 días por semana: el plan sigue rotando.'); },
+    'three-days': () => openPlans('fb3'),
+    'plan-open': () => openPlans(),
+    'plan-use': usePlan,
     'zone-side': () => { S.zones[d.zone].side = d.side; persist(); $('onb').open ? renderOnb() : render(); },
     'zone-pain': () => { S.zones[d.zone].pain0 = +d.n; persist(); renderOnb(); },
     'custom-edit': () => openCustom(d.id),
@@ -1358,6 +1413,7 @@ document.addEventListener('change', (e) => {
     if (i === 'bar') S.equip.db.plates.bar = v >= 0 ? v : 0; else if (v >= 0) S.equip.db.plates.items[+i][k] = v;
     persist(); $('onb').open ? renderOnb() : render(); return;
   }
+  if (a === 'plan-sel') { PS = el.value; renderPlans(); }
   if (a === 'weights-mode') { S.prefs.weights = el.value; persist(); $('onb').open ? renderOnb() : render(); }
   if (a === 'pref-toggle') { S.prefs[el.dataset.k] = el.checked; persist(); if (el.checked && el.dataset.k !== 'auto') cue('go', 'Así suena'); }
   if (a === 'hist-zone') { histZone = el.value; renderHistory(); }

@@ -14,6 +14,8 @@ ctx.equip = equip;
 // Equipo por defecto de la app (copia de DEFAULT().equip en app.js): sin aros, pesas rusas, banco, barra ni banda.
 const defEq = { db: { min: 2, max: 24, step: 2 }, kb: [], rings: false, bench: false, bar: false, band: false, machines: [] };
 ctx.defEq = defEq;
+ctx.fullEq = { ...defEq, kb: [12, 20], rings: true, bench: true, bar: true, band: true };
+ctx.noDb = { ...defEq, db: null };   // sin mancuernas: el deltoides posterior no tiene ningún ejercicio posible
 eq(L('weightSteps(equip, "db")').length, 12, 'mancuernas de 2 a 24 de a 2 = 12 pesos');
 eq(L('weightSteps(equip, "kb")'), [12, 20], 'pesas rusas ordenadas');
 eq(L('roundDown([2,4,6], 5.9)'), 4, 'redondea hacia abajo');
@@ -237,7 +239,14 @@ eq(L('[...new Set(Object.values(SLOTS).flatMap((s) => s.ex))].filter((id) => !EX
   ['curl_iso', 'dead_bug', 'iso_pared', 'plancha', 'remo_aros_iso', 'sentadilla_pared'], 'sin rango solo los por tiempo, isométricos y dead_bug');
 eq(L('repRange(EXERCISES.dead_bug)'), [8, 12], 'dead_bug usa 8–12 por defecto');
 eq(L('repRange({})'), [8, 12], 'ejercicio propio sin rango usa 8–12');
-eq(L('Object.keys(PLANS)'), ['fb2'], 'solo existe el plan fb2');
+eq(L('Object.keys(PLANS)'), ['fb2', 'fb3', 'tp4', 'gr5'], 'catálogo: dos de cuerpo completo y dos por grupos');
+ok(L('Object.values(PLANS).every((p) => PLAN_KINDS[p.kind] && p.week.length === p.days.length && p.days.every((d) => d.short && d.slots.every((s) => !!SLOTS[s.slot])))'),
+  'cada plan tiene tipo, un día de semana por día del plan, sigla y huecos existentes');
+for (const id of ['fb3', 'tp4', 'gr5']) {
+  ok(L(`resolvePlan(PLANS.${id}, defEq).every((d) => d.every((it) => possible(it.ex, defEq)))`), `${id}: con mancuernas solas se arman todos los ejercicios`);
+  ok(L(`resolvePlan(PLANS.${id}, defEq).every((d) => new Set(d.map((it) => it.ex)).size === d.length)`), `${id}: ningún ejercicio se repite en el mismo día`);
+  ok(L(`resolvePlan(PLANS.${id}, fullEq).every((d) => d.every((it) => possible(it.ex, fullEq)))`), `${id}: con todo el equipo se arman todos los ejercicios`);
+}
 eq(L('PLANS.fb2.name'), 'Full body 2 días', 'nombre de fb2');
 eq(L('PLANS.fb2.days.map((d) => d.name)'), ['Día A', 'Día B'], 'fb2 tiene los días A y B');
 ok(L('PLANS.fb2.days.every((d) => d.slots.length === 6 && d.slots.every((s) => s.sets === 3))'), 'fb2: 6 huecos por día, 3 series cada uno');
@@ -252,7 +261,6 @@ ok(L('PLANS.fb2.days.every((d) => d.slots.every((s) => !!SLOTS[s.slot]))'), 'los
 // ——— Motor de planes ———
 const exIds = (expr) => L(`(${expr}).map((it) => it.ex)`);
 const B_NO_RINGS = L('TEMPLATES.B').map((id) => (id === 'remo_aros' ? 'remo_silla' : id));
-ctx.fullEq = { ...defEq, kb: [12, 20], rings: true, bench: true, bar: true, band: true };
 ctx.noEq = { ...defEq, db: null };
 
 // Resolver el plan con el equipo por defecto = lo que hoy arma la app para A y B
@@ -266,7 +274,8 @@ eq(L('resolvePlan(PLANS.fb2, noEq)[0][2].ex'), 'remo_silla', 'resolvePlan: hueco
 // resolveSlot: primer posible, bw, exclude y preferencia
 eq(L('resolveSlot("empuje_h", fullEq)'), 'press_banco', 'resolveSlot con todo el equipo: el primero del hueco');
 eq(L('resolveSlot("empuje_h", defEq)'), 'press_suelo', 'resolveSlot sin banco: saltea press en banco');
-eq(L('resolveSlot("deltoides_post", defEq)'), null, 'resolveSlot sin banda: ningún posible → null');
+eq(L('resolveSlot("deltoides_post", noDb)'), null, 'resolveSlot sin banda ni mancuernas: ningún posible → null');
+eq(L('resolveSlot("deltoides_post", defEq)'), 'pajaros', 'resolveSlot sin banda: pájaros con mancuernas');
 eq(L('resolveSlot("empuje_h", defEq, { bw: true })'), 'flexiones', 'bw: saltea mancuernas y da peso corporal');
 eq(L('resolveSlot("lateral", fullEq, { bw: true })'), null, 'bw en un hueco sin peso corporal → null');
 eq(L('resolveSlot("bisagra", defEq, { exclude: ["rdl"] })'), 'swing', 'exclude: [primero] → el siguiente posible');
@@ -317,14 +326,14 @@ ctx.rdPin = L('resolveDay([{ slot: "empuje_h", ex: "press_banco", pinned: true }
 eq(L('rdPin.items'), [{ slot: 'empuje_h', ex: 'press_suelo', pinned: false }], 'fijado imposible → se re-resuelve y queda sin fijar');
 eq(L('rdPin.notices'), [{ from: 'press_banco', to: 'press_suelo' }], 'fijado imposible → un aviso');
 eq(L('resolveDay(rdPin.items, defEq)'), { items: [{ slot: 'empuje_h', ex: 'press_suelo', pinned: false }], notices: [], changed: false }, 'segunda pasada: sin aviso ni cambios');
-ctx.rdPinMissing = L('resolveDay([{ slot: "deltoides_post", ex: "face_pull", pinned: true }], defEq)');
+ctx.rdPinMissing = L('resolveDay([{ slot: "deltoides_post", ex: "face_pull", pinned: true }], noDb)');
 eq(L('rdPinMissing.notices'), [{ from: 'face_pull', to: null }], 'fijado sin reemplazo posible → aviso con to null');
 eq(L('rdPinMissing.items[0]'), { slot: 'deltoides_post', ex: 'face_pull', pinned: false }, 'fijado sin reemplazo: mismo ejercicio, sin fijar');
-eq(L('resolveDay(rdPinMissing.items, defEq).notices'), [], 'fijado sin reemplazo: la segunda pasada no avisa');
+eq(L('resolveDay(rdPinMissing.items, noDb).notices'), [], 'fijado sin reemplazo: la segunda pasada no avisa');
 
 // Hueco sin ejercicio posible: el ítem se conserva y la app lo muestra como "Falta equipo"
-ctx.rdMissing = L('resolveDay([{ slot: "deltoides_post", ex: "face_pull", pinned: false }], defEq)');
-ok(L('rdMissing.items[0].ex === "face_pull" && !possible(rdMissing.items[0].ex, defEq)'), 'hueco sin posible: mismo ejercicio y possible da false');
+ctx.rdMissing = L('resolveDay([{ slot: "deltoides_post", ex: "face_pull", pinned: false }], noDb)');
+ok(L('rdMissing.items[0].ex === "face_pull" && !possible(rdMissing.items[0].ex, noDb)'), 'hueco sin posible: mismo ejercicio y possible da false');
 ok(L('!rdMissing.changed && rdMissing.notices.length === 0'), 'hueco sin posible no fijado: sin cambios ni avisos (no persiste en cada render)');
 
 // Migración de las plantillas A/B

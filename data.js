@@ -222,6 +222,11 @@ Object.assign(EXERCISES, {
     cues: ['Espalda alta apoyada en el borde de una silla o sillón firme.', 'Mancuerna sobre la cadera, sostenida con las manos.', 'Subí la cadera hasta alinear rodillas, cadera y hombros; apretá 1 s.'],
     fig: { a: { N: [72, 110], P: [106, 134], E1: [86, 124], W1: [104, 128], K1: [130, 114], F1: [136, 150] }, b: { P: [110, 112], E1: [88, 114], W1: [108, 106], K1: [136, 112] }, props: [{ t: 'db', at: 'W1' }], scene: [{ t: 'chair', x: 30, y: 112, w: 36, back: 'left' }] },
   },
+  pajaros: {
+    name: 'Pájaros con mancuernas', kind: 'peso', impl: 'db', ratio: 0.04, cat: 'hombro', tag: ['hombro'],
+    cues: ['Cadera atrás, espalda recta, torso casi paralelo al piso.', 'Abrí los brazos hacia los costados con los codos apenas flexionados, hasta la altura de la espalda.', 'Apretá atrás 1 s y bajá despacio, sin tirar con el cuello.'],
+    fig: { a: { ...HINGE, E1: [122, 94], W1: [124, 118] }, b: { E1: [120, 86], W1: [120, 96], z: { E: -30, W: -48 } }, props: [{ t: 'db', at: 'W1' }] },
+  },
   pullover: {
     name: 'Pullover con mancuerna', kind: 'peso', impl: 'db', needs: ['bench'], ratio: 0.15, cat: 'tiron', tag: ['hombro'],
     cues: ['Acostado en el banco, una mancuerna con las dos manos sobre el pecho.', 'Bajala detrás de la cabeza con los codos apenas flexionados.', 'Volvé usando la espalda y el pecho, sin arquear la zona lumbar.'],
@@ -342,7 +347,7 @@ Object.entries({
   'chest triceps': ['press_suelo', 'press_banco', 'flexiones'], 'back biceps': ['remo_silla', 'remo_inclinado', 'remo_aros', 'remo_aros_iso', 'dominadas'],
   'hams glutes lumbar': ['rdl', 'pm_una_pierna'], 'glutes hams': ['swing', 'puente', 'hip_thrust'], abs: ['plancha', 'dead_bug'],
   'delt triceps': ['press_hombros'], 'biceps forearm': ['curl_martillo'], biceps: ['curl_iso', 'curl_concentrado'],
-  triceps: ['triceps', 'patada_triceps', 'press_frances'], 'delt back': ['face_pull'], 'back chest': ['pullover'],
+  triceps: ['triceps', 'patada_triceps', 'press_frances'], 'delt back': ['face_pull', 'pajaros'], 'back chest': ['pullover'],
 }).forEach(([m, ids]) => ids.forEach((id) => (EXERCISES[id].mus = m.split(' '))));
 
 // Rango de repeticiones de la doble progresión según el tipo de ejercicio (Mono Culturista). Sin dato, logic.js usa [8, 12].
@@ -352,7 +357,7 @@ Object.entries({
   compuesto: ['goblet', 'sumo_kb', 'press_suelo', 'press_banco', 'flexiones', 'press_hombros', 'remo_silla', 'remo_aros', 'remo_inclinado',
     'dominadas', 'rdl', 'swing', 'pm_una_pierna', 'zancada', 'bulgara', 'hip_thrust', 'puente'],
   aislamiento: ['curl_martillo', 'curl_concentrado', 'triceps', 'patada_triceps', 'press_frances', 'pullover', 'elev_frontal', 'gemelos_1pierna'],
-  deltoides: ['lateral', 'face_pull', 'rot_ext_banda'],
+  deltoides: ['lateral', 'face_pull', 'pajaros', 'rot_ext_banda'],
 }).forEach(([type, ids]) => ids.forEach((id) => (EXERCISES[id].reps = [...REP_RANGE[type]])));
 
 // Cómo se ve la mancuerna (ver dumbbell() en figures.js). Sin dato: de frente 'end', de costado 'neutral'.
@@ -388,7 +393,7 @@ const SLOTS = {
   empuje_h: { name: 'Empuje horizontal', ex: ['press_banco', 'press_suelo', 'flexiones'] },
   empuje_inc: { name: 'Empuje inclinado', ex: ['press_banco', 'flexiones'] },
   empuje_v: { name: 'Empuje vertical', ex: ['press_hombros'] },
-  traccion_v: { name: 'Tracción vertical', ex: ['dominadas', 'pullover'] },
+  traccion_v: { name: 'Tracción vertical', ex: ['dominadas', 'pullover', 'remo_inclinado', 'remo_silla'] },   // sin barra ni banco, un remo
   traccion_h: { name: 'Tracción horizontal', ex: ['remo_aros', 'remo_silla', 'remo_inclinado'] },
   rodilla: { name: 'Rodilla dominante', ex: ['goblet', 'sumo_kb'] },
   unilateral: { name: 'Unilateral', ex: ['zancada', 'bulgara'] },
@@ -396,7 +401,7 @@ const SLOTS = {
   gluteo: { name: 'Glúteo', ex: ['hip_thrust', 'puente'] },
   gemelos: { name: 'Gemelos', ex: ['gemelos_1pierna'] },
   lateral: { name: 'Lateral', ex: ['lateral', 'elev_frontal'] },
-  deltoides_post: { name: 'Deltoides posterior', ex: ['face_pull', 'rot_ext_banda'] },
+  deltoides_post: { name: 'Deltoides posterior', ex: ['face_pull', 'pajaros', 'rot_ext_banda'] },
   biceps: { name: 'Bíceps', ex: ['curl_martillo', 'curl_concentrado'] },
   triceps: { name: 'Tríceps', ex: ['triceps', 'patada_triceps', 'press_frances'] },
   abdominal: { name: 'Abdominal', ex: ['plancha', 'dead_bug'] },
@@ -404,11 +409,15 @@ const SLOTS = {
 };
 
 // Planes: lista de días, cada día una lista de huecos con sus series. `ex` fija la preferencia cuando un hueco se repite en el plan.
+// `kind` agrupa los planes en el selector, `week` son los días de entrenamiento que propone y `short` es la sigla del día en la semana tipo.
 // Full body 2 días equivale a TEMPLATES.A/B (mismo orden de huecos).
+const PLAN_KINDS = { fb: 'Cuerpo completo', grupos: 'Por grupos musculares' };
 const PLANS = {
   fb2: {
     id: 'fb2',
     name: 'Full body 2 días',
+    kind: 'fb', week: ['lu', 'ju'], mins: '40–50',
+    for: 'Para arrancar o si tenés poco tiempo: todo el cuerpo en cada sesión.',
     source: {
       title: 'Mono Culturista: rangos por ejercicio, 3 series por ejercicio, cada músculo al menos 2 veces por semana',
       url: 'https://www.youtube.com/@MonoCulturista',
@@ -416,17 +425,119 @@ const PLANS = {
     },
     days: [
       {
-        name: 'Día A',
+        name: 'Día A', short: 'A',
         slots: [
           { slot: 'rodilla', sets: 3 }, { slot: 'empuje_h', sets: 3 }, { slot: 'traccion_h', sets: 3, ex: 'remo_silla' },
           { slot: 'bisagra', sets: 3, ex: 'rdl' }, { slot: 'lateral', sets: 3 }, { slot: 'abdominal', sets: 3 },
         ],
       },
       {
-        name: 'Día B',
+        name: 'Día B', short: 'B',
         slots: [
           { slot: 'unilateral', sets: 3 }, { slot: 'empuje_v', sets: 3 }, { slot: 'traccion_h', sets: 3, ex: 'remo_aros' },
           { slot: 'bisagra', sets: 3, ex: 'swing' }, { slot: 'biceps', sets: 3 }, { slot: 'triceps', sets: 3 },
+        ],
+      },
+    ],
+  },
+  fb3: {
+    id: 'fb3',
+    name: 'Full body 3 días',
+    kind: 'fb', week: ['lu', 'mi', 'vi'], mins: '40–50',
+    for: 'Todo el cuerpo en cada sesión, con ejercicios distintos cada día: cada músculo 3 veces por semana.',
+    source: { title: 'Mono Culturista: Rutina full body en casa', url: 'https://www.youtube.com/watch?v=NAdjjNPJKw0', videos: ['NAdjjNPJKw0'] },
+    days: [
+      {
+        name: 'Día A', short: 'A',
+        slots: [
+          { slot: 'rodilla', sets: 3 }, { slot: 'empuje_h', sets: 3 }, { slot: 'traccion_h', sets: 3, ex: 'remo_silla' },
+          { slot: 'bisagra', sets: 3, ex: 'rdl' }, { slot: 'lateral', sets: 3 }, { slot: 'abdominal', sets: 3 },
+        ],
+      },
+      {
+        name: 'Día B', short: 'B',
+        slots: [
+          { slot: 'unilateral', sets: 3 }, { slot: 'empuje_v', sets: 3 }, { slot: 'traccion_v', sets: 3 },
+          { slot: 'gluteo', sets: 3 }, { slot: 'biceps', sets: 3 }, { slot: 'triceps', sets: 3 },
+        ],
+      },
+      {
+        name: 'Día C', short: 'C',
+        slots: [
+          { slot: 'unilateral', sets: 3, ex: 'bulgara' }, { slot: 'empuje_inc', sets: 3, ex: 'flexiones' }, { slot: 'traccion_h', sets: 3, ex: 'remo_inclinado' },
+          { slot: 'bisagra', sets: 3, ex: 'pm_una_pierna' }, { slot: 'deltoides_post', sets: 3 }, { slot: 'abdominal', sets: 3, ex: 'dead_bug' },
+        ],
+      },
+    ],
+  },
+  tp4: {
+    id: 'tp4',
+    name: 'Torso y pierna 4 días',
+    kind: 'grupos', week: ['lu', 'ma', 'ju', 'vi'], mins: '40–55',
+    for: 'Para ganar músculo: la parte de arriba y las piernas en días separados, cada músculo 2 veces por semana.',
+    source: { title: 'Mono Culturista: El método griego (forma de V)', url: 'https://www.youtube.com/watch?v=aEawunv6L9I', videos: ['aEawunv6L9I', 'xAAB_3xZ-Ho'] },
+    days: [
+      {
+        name: 'Torso A', short: 'TA',
+        slots: [
+          { slot: 'empuje_h', sets: 3 }, { slot: 'traccion_v', sets: 3 }, { slot: 'traccion_h', sets: 3, ex: 'remo_silla' },
+          { slot: 'empuje_v', sets: 3 }, { slot: 'lateral', sets: 3 }, { slot: 'biceps', sets: 3 }, { slot: 'triceps', sets: 3 },
+        ],
+      },
+      {
+        name: 'Pierna A', short: 'PA',
+        slots: [{ slot: 'rodilla', sets: 3 }, { slot: 'bisagra', sets: 3, ex: 'rdl' }, { slot: 'gemelos', sets: 3 }, { slot: 'abdominal', sets: 3 }],
+      },
+      {
+        name: 'Torso B', short: 'TB',
+        slots: [
+          { slot: 'empuje_inc', sets: 3 }, { slot: 'traccion_h', sets: 3, ex: 'remo_inclinado' }, { slot: 'traccion_v', sets: 3 },
+          { slot: 'lateral', sets: 3 }, { slot: 'deltoides_post', sets: 3 }, { slot: 'biceps', sets: 3, ex: 'curl_concentrado' }, { slot: 'triceps', sets: 3, ex: 'press_frances' },
+        ],
+      },
+      {
+        name: 'Pierna B', short: 'PB',
+        slots: [
+          { slot: 'unilateral', sets: 3, ex: 'bulgara' }, { slot: 'bisagra', sets: 3, ex: 'pm_una_pierna' }, { slot: 'gluteo', sets: 3 },
+          { slot: 'gemelos', sets: 3 }, { slot: 'abdominal', sets: 3, ex: 'dead_bug' },
+        ],
+      },
+    ],
+  },
+  gr5: {
+    id: 'gr5',
+    name: 'Por grupos 5 días',
+    kind: 'grupos', week: ['lu', 'ma', 'mi', 'ju', 'vi'], mins: '30–40',
+    for: 'Un grupo muscular por día, sesiones cortas. Mejor si entrenás hace más de 6 meses.',
+    source: { title: 'Mono Culturista: Físico atlético en 90 días', url: 'https://www.youtube.com/watch?v=48OsVIHE9jk', videos: ['48OsVIHE9jk'] },
+    days: [
+      {
+        name: 'Pecho', short: 'Pe',
+        slots: [{ slot: 'empuje_h', sets: 3 }, { slot: 'empuje_inc', sets: 3 }, { slot: 'triceps', sets: 3 }, { slot: 'triceps', sets: 3, ex: 'press_frances' }],
+      },
+      {
+        name: 'Hombros', short: 'Ho',
+        slots: [
+          { slot: 'empuje_v', sets: 3 }, { slot: 'lateral', sets: 3 }, { slot: 'lateral', sets: 3, ex: 'elev_frontal' },
+          { slot: 'deltoides_post', sets: 3 }, { slot: 'abdominal', sets: 3 }, { slot: 'abdominal', sets: 3, ex: 'dead_bug' },
+        ],
+      },
+      {
+        name: 'Espalda', short: 'Es',
+        slots: [
+          { slot: 'traccion_v', sets: 3 }, { slot: 'traccion_h', sets: 3, ex: 'remo_silla' }, { slot: 'bisagra', sets: 3, ex: 'rdl' },
+          { slot: 'deltoides_post', sets: 3 }, { slot: 'biceps', sets: 3 },
+        ],
+      },
+      {
+        name: 'Piernas', short: 'Pi',
+        slots: [{ slot: 'rodilla', sets: 3 }, { slot: 'unilateral', sets: 3 }, { slot: 'gluteo', sets: 3 }, { slot: 'gemelos', sets: 3 }, { slot: 'abdominal', sets: 3 }],
+      },
+      {
+        name: 'Brazos', short: 'Br',
+        slots: [
+          { slot: 'biceps', sets: 3 }, { slot: 'triceps', sets: 3 }, { slot: 'biceps', sets: 3, ex: 'curl_concentrado' },
+          { slot: 'triceps', sets: 3, ex: 'patada_triceps' }, { slot: 'lateral', sets: 3 },
         ],
       },
     ],

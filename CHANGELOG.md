@@ -2,6 +2,16 @@
 
 Todos los cambios de XZ Fit (antes Tendón Fuerte), del más nuevo al más viejo.
 
+## 1.25.0 — Elegí tu plan de entrenamiento
+
+- En **Entreno → Editar rutina** ves tu plan y sus días de la semana, y con **Cambiar plan** elegís entre cuatro:
+  - **Cuerpo completo:** Full body 2 días (lunes y jueves) o Full body 3 días (lunes, miércoles y viernes, con ejercicios distintos cada día).
+  - **Por grupos musculares:** Torso y pierna 4 días (lunes, martes, jueves y viernes) o Por grupos 5 días (pecho, hombros, espalda, piernas y brazos, de lunes a viernes).
+- La app arma sola los ejercicios de cada día con tu equipo. Antes de elegir podés ver la lista con **Ver ejercicios**.
+- Al cambiar de plan tus pesos y tu historial se mantienen. Si volvés a un plan que ya usaste, vuelve con los cambios que le habías hecho.
+- Nuevo ejercicio: **pájaros con mancuernas**, para la parte de atrás del hombro sin banda elástica.
+- La sugerencia "¿Pasamos a 3 días?" ahora te muestra el plan Full body 3 días.
+
 ## 1.24.0 — Historial más claro
 
 - El gráfico de peso por ejercicio aparece siempre. Antes del primer entreno con pesas muestra una línea de ejemplo de cómo se va a ver.

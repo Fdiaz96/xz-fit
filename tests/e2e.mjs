@@ -251,6 +251,31 @@ await click('#pickersheet [data-action="close"]');
 await click('[data-action="edit-routine"]');
 ok(JSON.stringify(await page.locator('#view-train h2').allTextContents()) === JSON.stringify(['Día A · toca hoy', 'Día B']), 'al salir de editar vuelven los dos días apilados');
 
+// Elegir plan desde Editar rutina: los ejercicios se arman solos, cambian los días y la rutina anterior queda guardada
+await trainTab(); await click('[data-action="edit-routine"]');
+ok(await page.locator('#view-train .plan-card h3').textContent() === 'Full body 2 días', 'Editar rutina muestra el plan actual');
+await shot('plan-editor');
+await click('#view-train [data-action="plan-open"]');
+await page.waitForSelector('#plansheet[open]');
+ok(JSON.stringify(await page.locator('#plansheet h2').allTextContents()) === JSON.stringify(['Cuerpo completo', 'Por grupos musculares']), 'la hoja agrupa los planes en cuerpo completo y por grupos');
+ok(await page.locator('#plansheet .plan-foot .cta').isDisabled(), 'con el plan actual elegido no hay nada que confirmar');
+await page.locator('#plansheet [data-action="plan-sel"][value="fb3"]').check({ force: true }); await page.waitForTimeout(80);
+await shot('plan-sheet');
+await click('#plansheet [data-action="plan-use"]');
+ps = await state();
+ok(ps.plan.id === 'fb3' && ps.plan.pos === 0 && ps.routine.fb3.length === 3 && JSON.stringify(ps.rem.train) === '["lu","mi","vi"]' && ps.profile.days === 3, 'Full body 3 días: arma los 3 días y propone lunes, miércoles y viernes');
+ok(ps.routine.fb2[0][1].ex === 'press_banco' && ps.routine.fb2[0][1].pinned, 'la rutina editada de Full body 2 días queda guardada');
+ok(JSON.stringify(await page.locator('#view-train .chips .chip').allTextContents()) === JSON.stringify(['Día A', 'Día B', 'Día C']), 'el editor muestra los 3 días del plan nuevo');
+await click('#view-train [data-action="plan-open"]');
+await page.locator('#plansheet [data-action="plan-sel"][value="gr5"]').check({ force: true }); await page.waitForTimeout(80);
+await click('#plansheet [data-action="plan-use"]');
+ok(JSON.stringify(await page.locator('#view-train .chips .chip').allTextContents()) === JSON.stringify(['Pecho', 'Hombros', 'Espalda', 'Piernas', 'Brazos']) && (await state()).profile.days === 5, 'por grupos 5 días: un día por grupo muscular, de lunes a viernes');
+await click('#view-train [data-action="plan-open"]');
+await page.locator('#plansheet [data-action="plan-sel"][value="fb2"]').check({ force: true }); await page.waitForTimeout(80);
+await click('#plansheet [data-action="plan-use"]');
+ok(JSON.stringify((await dayRoutine(0))[1]) === JSON.stringify(pinnedBench), 'volver a Full body 2 días recupera la rutina editada');
+await click('[data-action="edit-routine"]');
+
 // CK-12: quitar el banco con el press en banco fijado avisa una sola vez
 await click('[data-tab="settings"]');
 await page.uncheck('#view-settings [data-action="eq-flag"][data-k="bench"]');
