@@ -28,6 +28,7 @@ Las features que ya existían antes de adoptar SDD están **retro-documentadas**
 - [Arquitectura](analysis/arquitectura.md): archivos, capas, flujo de render y eventos, PWA, pruebas.
 - [Modelo de datos](analysis/modelo-de-datos.md): el estado `S`, sesiones, zonas, equipo y migración.
 - [Reglas de negocio](analysis/reglas-de-negocio.md): constantes y fórmulas de `logic.js` en un solo lugar.
+- [Fuente: Mono Culturista](analysis/fuente-mono-culturista.md): principios y rutinas del canal, base de los planes de entrenamiento.
 
 ## Features (todas en `tasks/done/`)
 
