@@ -2,7 +2,7 @@
 // (IndexedDB). Los identificadores internos siguen siendo "tendon-fuerte" para no perder los datos ya guardados.
 // Protocolo de tendones del video de Jeremy Ethier con Keith Baar y Coach Q; reglas en logic.js, bocetos en figures.js.
 
-const APP_VERSION = '1.20.0';
+const APP_VERSION = '1.20.1';
 const DAY_NAMES = { lu: 'Lu', ma: 'Ma', mi: 'Mi', ju: 'Ju', vi: 'Vi', sa: 'Sá', do: 'Do' };
 const SIDES = { der: 'derecha', izq: 'izquierda', ambos: 'ambos lados' };
 const REST_SECS = 90, ISO_REST = 60;
@@ -858,13 +858,20 @@ function renderHistory() {
   const exIds = [...new Set(S.sessions.filter((s) => s.type === 'entreno').flatMap((s) => s.items.filter((i) => getEx(i.ex)?.kind === 'peso').map((i) => i.ex)))];
   if (!exIds.includes(histEx)) histEx = exIds[0] || '';
   let h = `<div class="title-row"><h1>Historial</h1>${S.sessions.length ? '<button class="link" data-action="report">Informe para el fisio</button>' : ''}</div>`;
-  h += `<h2>Dolor por zona</h2><div class="card pain">${zones.length ? `<select data-action="hist-zone" aria-label="Zona">${zones.map((z) => `<option value="${z}" ${z === histZone ? 'selected' : ''}>${esc(zoneName(z))}</option>`).join('')}</select>
-    ${lineChart(painHistory(histZone), { yMax: 10, limit: PAIN_MAX, unit: '/10', color: 'var(--pain)' })}` : '<p class="muted small">Cuando registres dolor vas a ver su evolución acá.</p>'}</div>`;
-  h += `<h2>Peso por ejercicio</h2><div class="card acc">${exIds.length ? `<select data-action="hist-ex" aria-label="Ejercicio">${exIds.map((e) => `<option value="${e}" ${e === histEx ? 'selected' : ''}>${esc(getEx(e)?.name || e)}</option>`).join('')}</select>
-    ${lineChart(weightHistory(histEx), { unit: 'kg', color: 'var(--acc)' })}` : '<p class="muted small">Después de tus primeros entrenos vas a ver el progreso acá.</p>'}</div>`;
-  h += `<h2>Sesiones</h2><div class="card">${S.sessions.length ? S.sessions.slice(0, 60).map((s) => `<details class="sess-d"><summary class="sess"><span><span class="what">${s.type === 'entreno' ? `Entreno ${s.tpl}` : s.type === 'dolor' ? 'Registro de dolor' : `Rehab · ${s.slot}`}</span><br><span class="muted small">${fmtDate(s.date)}${s.min ? ` · ${s.min} min · ${s.sets} series` : ''}${s.prs?.length ? ' · 🏆' : ''}${s.pain ? ' · dolor ' + Object.entries(s.pain).map(([z, v]) => `${zoneName(z).toLowerCase()} ${v}`).join(', ') : ''}</span></span><span class="tag ${s.type === 'entreno' ? 'acc' : 'pain'}">${s.items.length} ej.</span></summary>
+  // Sin entrenos, un solo vacío arriba que invita a empezar el día que toca.
+  if (!S.sessions.some((s) => s.type === 'entreno')) {
+    const plan = activePlan(S), day = dayIndex(plan, S.plan.pos);
+    h += `<div class="card acc empty-hist"><h3>Todavía no entrenaste</h3><p class="muted small">Tu progreso aparece acá después del primer entreno.</p>
+      <button class="cta" data-action="start-workout" data-day="${day}">Empezar ${esc(plan.days[day].name.toLowerCase())}</button></div>`;
+  }
+  if (exIds.length) h += `<h2>Peso por ejercicio</h2><div class="card acc"><select data-action="hist-ex" aria-label="Ejercicio">${exIds.map((e) => `<option value="${e}" ${e === histEx ? 'selected' : ''}>${esc(getEx(e)?.name || e)}</option>`).join('')}</select>
+    ${lineChart(weightHistory(histEx), { unit: 'kg', color: 'var(--acc)' })}</div>`;
+  if (S.sessions.length) h += `<h2>Sesiones</h2><div class="card">${S.sessions.slice(0, 60).map((s) => `<details class="sess-d"><summary class="sess"><span><span class="what">${s.type === 'entreno' ? `Entreno ${s.tpl}` : s.type === 'dolor' ? 'Registro de dolor' : `Rehab · ${s.slot}`}</span><br><span class="muted small">${fmtDate(s.date)}${s.min ? ` · ${s.min} min · ${s.sets} series` : ''}${s.prs?.length ? ' · 🏆' : ''}${s.pain ? ' · dolor ' + Object.entries(s.pain).map(([z, v]) => `${zoneName(z).toLowerCase()} ${v}`).join(', ') : ''}</span></span><span class="tag ${s.type === 'entreno' ? 'acc' : 'pain'}">${s.items.length} ej.</span></summary>
       <ul class="small muted">${s.items.map((i) => `<li>${esc(getEx(i.ex)?.name || i.name || i.ex)}: ${i.sets.map((x) => (x.w ? `${x.w}×` : '') + (x.reps || (x.secs ? x.secs + 's' : '✓'))).join(', ')}</li>`).join('')}</ul>
-      <button class="link danger small" data-action="del-session" data-id="${s.id}">Eliminar sesión</button></details>`).join('') : '<p class="muted small">Todavía no hay sesiones.</p>'}</div>`;
+      <button class="link danger small" data-action="del-session" data-id="${s.id}">Eliminar sesión</button></details>`).join('')}</div>`;
+  // Dolor por zona va al final y solo si hay zonas o registros.
+  if (zones.length) h += `<h2>Dolor por zona</h2><div class="card pain"><select data-action="hist-zone" aria-label="Zona">${zones.map((z) => `<option value="${z}" ${z === histZone ? 'selected' : ''}>${esc(zoneName(z))}</option>`).join('')}</select>
+    ${lineChart(painHistory(histZone), { yMax: 10, limit: PAIN_MAX, unit: '/10', color: 'var(--pain)' })}</div>`;
   $('view-history').innerHTML = h;
 }
 // Informe para el fisio: página HTML independiente (se puede imprimir como PDF) con las últimas 6 semanas.

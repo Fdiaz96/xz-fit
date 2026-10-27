@@ -67,6 +67,13 @@ await click('#view-tendons [data-action="zone-toggle"][data-zone="hombro"]');
 ok(await painTab.isVisible() && (await painTab.textContent()).trim() === 'Dolor', 'al marcar una zona aparece la pestaña "Dolor"');
 await click('#view-tendons [data-action="zone-toggle"][data-zone="hombro"]');
 ok(await painTab.isHidden() && await page.locator('#view-home').isVisible(), 'al desmarcar la última zona la pestaña se va y volvés a Hoy');
+// Historial sin entrenos: un solo vacío con el botón del día que toca, sin la sección de dolor
+await click('[data-tab="history"]');
+ok(await page.locator('#view-history .empty-hist [data-action="start-workout"]').count() === 1 && await page.locator('#view-history h2').count() === 0, 'historial nuevo: un solo vacío con botón para empezar, sin dolor');
+await click('#view-history .empty-hist [data-action="start-workout"]');
+ok(await page.locator('#wsheet[open]').count() === 1, 'el botón del historial arranca el entreno');
+await click('#wsheet [data-action="cancel-workout"]');
+await click('[data-tab="home"]');
 
 // CK-6: next 'B' → pos 1, se quitan budget/week/next y lifts/sesiones no cambian
 const liftsB = { goblet: { w: 12, e1rm: 18 }, press_suelo: { w: 8 } };

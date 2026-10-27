@@ -2,6 +2,11 @@
 
 Todos los cambios de XZ Fit (antes Tendón Fuerte), del más nuevo al más viejo.
 
+## 1.20.1 — Historial: primero tu entreno
+
+- El historial arranca con el peso por ejercicio y tus sesiones. El dolor por zona va al final y solo aparece si marcaste alguna zona.
+- Si todavía no entrenaste, ves un solo aviso con el botón para empezar el día que toca.
+
 ## 1.20.0 — La pestaña Dolor, solo si te duele algo
 
 - La pestaña "Tendones" ahora se llama "Dolor" y aparece solo si tenés el modo dolor activo o alguna zona marcada. Si solo entrenás, la barra tiene cuatro pestañas.

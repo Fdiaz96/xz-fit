@@ -354,3 +354,5 @@ dialog #rest { bottom: calc(16px + var(--safe-b)); }
 
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 .nowrap { white-space: nowrap; }
+.empty-hist { margin-top: 16px; }
+.empty-hist p { margin: 4px 0 14px; }
