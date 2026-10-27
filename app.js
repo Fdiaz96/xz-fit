@@ -2,7 +2,7 @@
 // (IndexedDB). Los identificadores internos siguen siendo "tendon-fuerte" para no perder los datos ya guardados.
 // Protocolo de tendones del video de Jeremy Ethier con Keith Baar y Coach Q; reglas en logic.js, bocetos en figures.js.
 
-const APP_VERSION = '1.21.1';
+const APP_VERSION = '1.21.2';
 const DAY_NAMES = { lu: 'Lu', ma: 'Ma', mi: 'Mi', ju: 'Ju', vi: 'Vi', sa: 'Sá', do: 'Do' };
 const SIDES = { der: 'derecha', izq: 'izquierda', ambos: 'ambos lados' };
 const REST_SECS = 90, ISO_REST = 60;
@@ -521,7 +521,7 @@ function renderWorkout() {
     const state = it.rows.every((r) => r.done) ? ' done' : i === cur ? ' now' : '';
     return `<section class="card wex${it.r || it.maint ? ' pain' : ''}${state}"><div class="ex">
       <span class="wex-n" aria-hidden="true">${it.rows.every((r) => r.done) ? '✓' : i + 1}</span>
-      <div class="info"><h3>${esc(it.ex.name)}</h3><p class="target"><span>${it.sets} × ${setLabel(it)}</span>${it.pick ? '<b>a elegir</b>' : weighted ? `<b class="num">${fmtKg(it.w)}</b>` : ''}${loadTag(it)}</p>${it.impl === 'db' && it.w && platesFor(S.equip, it.w) ? `<p class="plates">Por lado: ${platesLabel(it.w)}</p>` : ''}</div>
+      <div class="info"><h3>${esc(it.ex.name)}</h3><p class="target"><span>${it.sets} × ${setLabel(it)}</span>${it.pick ? '<b>a elegir</b>' : ''}${loadTag(it)}</p>${it.impl === 'db' && it.w && platesFor(S.equip, it.w) ? `<p class="plates">Por lado: ${platesLabel(it.w)}</p>` : ''}</div>
       <div class="thumb" data-action="ex-detail" data-ex="${it.ex.id}" title="Ver en grande">${figureSVG(it.ex, { crop: true })}</div></div>
       ${notes.join('')}<div class="cues-row"><details class="cues"><summary>Cómo se hace</summary><ul>${it.ex.cues.map((c) => `<li>${esc(c)}</li>`).join('')}</ul></details>
       ${it.maint || it.rows.some((r) => r.done) ? '' : `<button class="swap-link" data-action="swap-today" data-i="${i}">Cambiar por hoy</button>`}</div>

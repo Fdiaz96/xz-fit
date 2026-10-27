@@ -2,6 +2,10 @@
 
 Todos los cambios de XZ Fit (antes Tendón Fuerte), del más nuevo al más viejo.
 
+## 1.21.2 — Sin peso repetido en el título
+
+- En el entreno, el peso ya no aparece al lado de las series del ejercicio: lo ves y lo cambiás en cada serie.
+
 ## 1.21.1 — Arrancás por la entrada en calor
 
 - Al empezar un entreno el foco está en la entrada en calor (marcada en verde, con el próximo paso resaltado) y no en el primer ejercicio. Cuando la terminás, o si anotás una serie antes, el foco pasa al ejercicio.
