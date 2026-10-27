@@ -2,6 +2,11 @@
 
 Todos los cambios de XZ Fit (antes Tendón Fuerte), del más nuevo al más viejo.
 
+## 1.23.0 — Te avisamos cuando subís de nivel
+
+- Si venís entrenando seguido, la app te propone cambiar tu experiencia: a "6 meses a 2 años" después de 6 meses y a "más de 2 años" después de 2 años, siempre que entrenes unas 2 veces por semana sin cortes de más de 2 meses y que levantes más de lo estimado o tus pesos se hayan frenado aunque hiciste una descarga.
+- Lo confirmás vos desde el Inicio. Tus pesos de trabajo no cambian; si pasás de novato, el rango de repeticiones vuelve a ser el completo. Con "Ahora no" no te lo volvemos a preguntar por un mes.
+
 ## 1.22.0 — Confirmás la serie con un toque
 
 - Podés tocar el ✓ sin anotar las repeticiones: se guardan las sugeridas (las que ves en gris). La serie de calibración sigue pidiendo las reales.

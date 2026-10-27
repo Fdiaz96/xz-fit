@@ -47,6 +47,8 @@ Referencia rápida de las reglas que implementa `logic.js`. Todas son funciones 
 - El entreno y el resumen muestran el rango real ("3 × 12–20", "cuando hagas 20 en todas, sube").
 - `weekBudget`, `setsPerExercise` y `targetSets` (presupuesto semanal con +30 %) siguen en `logic.js` con sus pruebas, pero el entreno ya no los usa.
 - Sugerir 3 días: con 2 días, ≥ 4 entrenos en 14 días y (con modo dolor) todo el dolor ≤ 3.
+- Novato: el rango se achica a 4 repeticiones alrededor del mismo centro (`noviceRange`: 6–12 → 7–11). El ✓ sin reps anotadas guarda el centro del rango (no en la serie de calibración).
+- Sugerir subir de nivel (`suggestLevelUp`): tiempo entrenando desde el último corte de más de 8 semanas ≥ 182 días (novato → medio) o ≥ 730 (medio → avanzado), ≥ 1,5 entrenos por semana en ese tramo, el último hace ≤ 14 días, y una señal: `strengthScale` ≥ 1,3 o ≥ 2 ejercicios `stalled` habiendo hecho una descarga. No en fase 1 de dolor; "Ahora no" (`plan.levelOffer`) la calla 30 días. Fuentes: Santos Junior et al., Strength Cond J 2021 (tiempo continuo y desentrenamiento); Loenneke et al., Muscle & Nerve 2017 (el tiempo pesa más que la fuerza); Starting Strength (pasar de nivel cuando el progreso sesión a sesión se agota, después de una descarga).
 
 ## Modo dolor
 

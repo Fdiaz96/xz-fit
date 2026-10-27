@@ -2,7 +2,7 @@
 // (IndexedDB). Los identificadores internos siguen siendo "tendon-fuerte" para no perder los datos ya guardados.
 // Protocolo de tendones del video de Jeremy Ethier con Keith Baar y Coach Q; reglas en logic.js, bocetos en figures.js.
 
-const APP_VERSION = '1.22.0';
+const APP_VERSION = '1.23.0';
 const DAY_NAMES = { lu: 'Lu', ma: 'Ma', mi: 'Mi', ju: 'Ju', vi: 'Vi', sa: 'Sá', do: 'Do' };
 const SIDES = { der: 'derecha', izq: 'izquierda', ambos: 'ambos lados' };
 const REST_SECS = 90, ISO_REST = 60;
@@ -304,6 +304,15 @@ function renderHome() {
   const stuck = [...new Set(S.routine[plan.id].flat().map((it) => it.ex))].filter((id) => S.lifts[id] && stalled(S, id));
   if (stuck.length >= 2 && S.plan.deload !== weekKey(t) && S.plan.deloadOffer !== weekKey(t)) h += `<div class="card ask"><h3>¿Semana de descarga?</h3><p class="muted small">${stuck.length} ejercicios no progresan hace 3 sesiones (${stuck.slice(0, 3).map((id) => esc(getEx(id)?.name.toLowerCase() || id)).join(', ')}). Una semana con una serie menos y 90 % del peso suele destrabar.</p><div class="btns"><button class="cta" data-action="deload">Hacer descarga esta semana</button></div><button class="link" data-action="deload-no">Ahora no</button></div>`;
   if (suggestThreeDays(S, t)) h += `<div class="card ask"><h3>¿Pasamos a 3 días por semana?</h3><p class="muted small">Venís constante. Con un día más, el plan rota más rápido.</p><button class="link" data-action="three-days">Sí, 3 días</button></div>`;
+  const lvl = suggestLevelUp(S, t, getEx);
+  if (lvl) {
+    const name = EXPERIENCE.find((x) => x.id === lvl.next).name, times = Math.round(lvl.perWeek);
+    h += `<div class="card ask"><h3>¿Actualizamos tu experiencia?</h3>
+      <p class="muted small">Entrenás hace ${lvl.months} meses, unas ${times} veces por semana, y ${lvl.why === 'strong' ? 'levantás más de lo que estimamos para tu nivel' : 'tus pesos dejaron de subir aunque ya hiciste una descarga'}. Te proponemos pasar a «${esc(name.toLowerCase())}».</p>
+      <p class="muted small">${lvl.next === 'medio' ? 'El rango de repeticiones vuelve a ser el completo (por ejemplo 6–12) y los' : 'Los'} pesos de ejercicios nuevos se estiman más altos. Tus pesos de trabajo no cambian.</p>
+      <div class="btns"><button class="cta" data-action="level-up" data-v="${lvl.next}">Cambiar experiencia</button></div>
+      <button class="link" data-action="level-no">Ahora no</button></div>`;
+  }
   if (S.onboarded && S.seenVersion !== APP_VERSION && S.seenVersion !== '') h += `<div class="card ask"><div class="row"><h3>Novedades de la versión ${APP_VERSION}</h3><button class="link" data-action="news-seen" aria-label="Cerrar">✕</button></div><button class="link" data-action="news">Ver qué cambió</button></div>`;
   h += installCard();
   $('view-home').innerHTML = h;
@@ -1211,6 +1220,8 @@ document.addEventListener('click', (e) => {
     'theme': () => { S.prefs.theme = d.v; applyTheme(); persist(); render(); },
     'quick-pain': () => askPain({ id: uid(), date: today(), type: 'dolor', items: [] }, activeZones()),
     'deload': () => { S.plan.deload = weekKey(today()); persist(); render(); toast('Semana de descarga: una serie menos y 90 % del peso. La próxima semana seguís normal.'); },
+    'level-up': () => { S.profile.exp = d.v; persist(); render(); toast(`Experiencia cambiada: ${EXPERIENCE.find((x) => x.id === d.v).name.toLowerCase()}.`); },
+    'level-no': () => { S.plan.levelOffer = today(); persist(); render(); },
     'deload-no': () => { S.plan.deloadOffer = weekKey(today()); persist(); render(); },
     'deload-off': () => { S.plan.deload = ''; persist(); render(); },
     'unstall': () => { const l = S.lifts[d.ex], steps = weightSteps(S.equip, implFor(getEx(d.ex), S.equip)); l.w = roundDown(steps, l.w * 0.9); persist(); render(); toast(`${getEx(d.ex).name}: ${fmtKg(l.w)}. Volvé a subir desde acá.`); },

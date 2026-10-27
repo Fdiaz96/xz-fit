@@ -1,24 +1,24 @@
 # Graph Report - TendonApp  (2026-10-27)
 
 ## Corpus Check
-- 62 files · ~93,753 words
+- 62 files · ~94,945 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 14 file(s) not represented in the graph (top: (none) 11, .woff2 1, .webmanifest 1)
 
 ## Summary
-- 727 nodes · 1397 edges · 49 communities (46 shown, 3 thin omitted)
+- 729 nodes · 1402 edges · 56 communities (53 shown, 3 thin omitted)
 - Extraction: 92% EXTRACTED · 8% INFERRED · 0% AMBIGUOUS · INFERRED: 108 edges (avg confidence: 0.89)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `3ce6b43d`
+- Built from commit: `c1af3b1d`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
 ## Community Hubs (Navigation)
 - app.js
 - Specs de features (datos, editor, calor)
-- Reglas puras logic.js
+- logic.js
 - resolveDay
 - Figuras 3D (figures.js)
 - Pruebas e2e
@@ -61,10 +61,17 @@
 - Barrido de UX (2026-10-27): índice y reglas comunes
 - UX 5: explicar "al 60 %" y "a calibrar"
 - UX 6: la pestaña Tendones solo cuando importa
+- guessWeight
 - UX 13: textos sin jerga ni cadenas con puntos medios
 - saveV114
+- addDays
 - UX 8: zonas con dolor con el mismo componente que el alta
+- daysBetween
 - UX 4: el primer día no recibe al usuario con "día de descanso"
+- resolveSlot
+- UX 9: el botón de fase invita a avanzar solo cuando corresponde
+- isoAdjust
+- suggestLevelUp
 
 ## God Nodes (most connected - your core abstractions)
 1. `Training Plan Engine skill (SKILL.md)` - 30 edges
@@ -107,7 +114,7 @@
 - **Plans of the 'planes de entrenamiento' roadmap built on the plan engine** — _specs_tasks_done_motor_de_planes_feature_plans_fb2, _specs_tasks_draft_plan_full_body_3_dias_feature_fb3, _specs_tasks_draft_plan_torso_pierna_4_dias_feature_tp4, _specs_tasks_draft_plan_empuje_traccion_4_dias_feature_et4, _specs_tasks_draft_plan_grupos_5_dias_feature_gr5, _specs_tasks_draft_plan_isometricos_feature_iso [INFERRED 0.95]
 - **Exportaciones via shareFile (Web Share o descarga)** — _specs_tasks_done_datos_locales_copia_feature_backup_restore, _specs_tasks_done_informe_fisio_feature_physio_report, _specs_tasks_done_recordatorios_calendario_feature_ics_calendar [INFERRED 0.95]
 
-## Communities (49 total, 3 thin omitted)
+## Communities (56 total, 3 thin omitted)
 
 ### Community 0 - "app.js"
 Cohesion: 0.05
@@ -117,9 +124,9 @@ Nodes (125): activeZones(), altEx(), answerCheck(), applyTheme(), askPain(), bod
 Cohesion: 0.05
 Nodes (67): Copia de seguridad (exportData/importData), IndexedDB tendon-fuerte kv store, Almacenamiento persistente, Guardado local, copia de seguridad y migracion (feature spec), Ejercicio propio (S.exlib, ids c_), Biblioteca EXERCISES / CATS (49 ejercicios), Selector de ejercicios (#pickersheet), Editor de rutina (dias A/B) (+59 more)
 
-### Community 2 - "Reglas puras logic.js"
-Cohesion: 0.05
-Nodes (58): activePlan(), addDays(), calibrate(), DAY_KEYS, dayIndex(), dayKey(), DAYS_ICS, daysBetween() (+50 more)
+### Community 2 - "logic.js"
+Cohesion: 0.11
+Nodes (12): DAY_KEYS, dayIndex(), DAYS_ICS, isDayOf(), LEVEL_UP, nextDay(), plateCombos(), platesFor() (+4 more)
 
 ### Community 3 - "resolveDay"
 Cohesion: 0.18
@@ -277,6 +284,10 @@ Nodes (4): Criterios de aceptación, Problema, Propuesta, UX 5: explicar "al 60 
 Cohesion: 0.40
 Nodes (4): Criterios de aceptación, Problema, Propuesta, UX 6: la pestaña Tendones solo cuando importa
 
+### Community 45 - "guessWeight"
+Cohesion: 0.26
+Nodes (12): calibrate(), epley1RM(), estimate1RM(), guessWeight(), noviceRange(), painCap(), repCenter(), roundDown() (+4 more)
+
 ### Community 46 - "UX 13: textos sin jerga ni cadenas con puntos medios"
 Cohesion: 0.40
 Nodes (4): Criterios de aceptación, Problema, Propuesta, UX 13: textos sin jerga ni cadenas con puntos medios
@@ -285,13 +296,37 @@ Nodes (4): Criterios de aceptación, Problema, Propuesta, UX 13: textos sin jerg
 Cohesion: 0.40
 Nodes (5): bootSaved(), buildV114(), putData(), saveV114(), wipeDb()
 
+### Community 48 - "addDays"
+Cohesion: 0.22
+Nodes (11): activePlan(), addDays(), dayKey(), parseDay(), pendingChecks(), streak(), targetSets(), weekBudget() (+3 more)
+
 ### Community 49 - "UX 8: zonas con dolor con el mismo componente que el alta"
 Cohesion: 0.40
 Nodes (4): Criterios de aceptación, Problema, Propuesta, UX 8: zonas con dolor con el mismo componente que el alta
 
+### Community 50 - "daysBetween"
+Cohesion: 0.28
+Nodes (9): daysBetween(), painLog(), phaseProgress(), phaseReady(), restriction(), suggestThreeDays(), weeksSince(), zoneFlare() (+1 more)
+
 ### Community 51 - "UX 4: el primer día no recibe al usuario con "día de descanso""
 Cohesion: 0.33
 Nodes (5): Criterios de aceptación, Dónde, Problema, Propuesta, UX 4: el primer día no recibe al usuario con "día de descanso"
+
+### Community 52 - "resolveSlot"
+Cohesion: 0.47
+Nodes (6): equipUsed(), implFor(), possible(), resolveDay(), resolvePlan(), resolveSlot()
+
+### Community 53 - "UX 9: el botón de fase invita a avanzar solo cuando corresponde"
+Cohesion: 0.40
+Nodes (4): Criterios de aceptación, Dónde, Problema, UX 9: el botón de fase invita a avanzar solo cuando corresponde
+
+### Community 54 - "isoAdjust"
+Cohesion: 0.67
+Nodes (4): isoAdjust(), progress(), stepDown(), stepUp()
+
+### Community 55 - "suggestLevelUp"
+Cohesion: 0.67
+Nodes (3): stalled(), strengthScale(), suggestLevelUp()
 
 ## Knowledge Gaps
 - **61 isolated node(s):** `Sugerencia de pasar a 3 dias (suggestThreeDays)`, `Eliminar sesion con Deshacer`, `Tarjeta de instalacion (beforeinstallprompt / iOS)`, `Service worker sw.js (red primero, cache tendon-v<version>)`, `Tema claro/oscuro (applyTheme, tf-theme)` (+56 more)
@@ -301,8 +336,8 @@ Nodes (5): Criterios de aceptación, Dónde, Problema, Propuesta, UX 4: el prime
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `README.md XZ Fit` connect `Modo dolor y README` to `app.js`, `Reglas puras logic.js`, `Figuras 3D (figures.js)`, `Catálogos data.js`, `Shell HTML, PWA y fuente`, `Progresión y versiones del plan`, `Historial de versiones`?**
-  _High betweenness centrality (0.150) - this node is a cross-community bridge._
+- **Why does `README.md XZ Fit` connect `Modo dolor y README` to `app.js`, `logic.js`, `Figuras 3D (figures.js)`, `Catálogos data.js`, `Shell HTML, PWA y fuente`, `Progresión y versiones del plan`, `Historial de versiones`?**
+  _High betweenness centrality (0.151) - this node is a cross-community bridge._
 - **Are the 6 inferred relationships involving `render()` (e.g. with `noticeText()` and `renderHistory()`) actually correct?**
   _`render()` has 6 INFERRED edges - model-reasoned connections that need verification._
 - **What connects `Sugerencia de pasar a 3 dias (suggestThreeDays)`, `Eliminar sesion con Deshacer`, `Tarjeta de instalacion (beforeinstallprompt / iOS)` to the rest of the system?**

@@ -540,6 +540,22 @@ ok(await finishLaterales(20) === 6, 'progress con rango: laterales 3 × 20 (tope
 await bootSaved({ profile: { exp: 'medio' }, sessions: [{ ago: 20 }], lifts: { lateral: { w: 4, e1rm: 8 } }, equip: { db: { min: 2, max: 24, step: 2 } } });
 ok(await finishLaterales(12) === 4, 'progress con rango: laterales 3 × 12 (mínimo, no el tope) no cambian de peso');
 
+// Subir de nivel: 7 meses entrenando cada 4 días y más fuerte de lo estimado → la tarjeta propone "6 meses a 2 años"
+{
+  const lvBoot = () => bootSaved({ sessions: Array.from({ length: 53 }, (_, k) => ({ ago: k * 4 })), lifts: { goblet: { w: 20, e1rm: 200 } } });
+  await lvBoot();
+  const lvCard = page.locator('#view-home .card.ask', { hasText: '¿Actualizamos tu experiencia?' });
+  ok(await lvCard.count() === 1 && (await lvCard.textContent()).includes('«6 meses a 2 años»'), 'nivel: con 7 meses constantes aparece la tarjeta que propone 6 meses a 2 años');
+  await click('#view-home [data-action="level-up"]');
+  ok(await page.evaluate(() => S.profile.exp) === 'medio' && await lvCard.count() === 0, 'nivel: "Cambiar experiencia" pasa a medio y saca la tarjeta');
+  await openDay(0);
+  ok((await card('Sentadilla goblet').textContent()).includes('× 6–12'), 'nivel: ya en medio, la goblet vuelve a "× 6–12"');
+  await page.evaluate(() => { $('wsheet').close(); W = null; keepAwake(false); });
+  await lvBoot();
+  await click('#view-home [data-action="level-no"]');
+  ok(await lvCard.count() === 0 && await page.evaluate(() => S.plan.levelOffer === today() && S.profile.exp === 'novato'), 'nivel: "Ahora no" la oculta y deja la experiencia igual');
+}
+
 // Novato: rango más chico (6–12 → 7–11) y el ✓ sin reps anotadas guarda las sugeridas
 await bootSaved({ sessions: [{ ago: 20 }], lifts: { goblet: { w: 14, e1rm: 22 } }, equip: { db: { min: 2, max: 24, step: 2 } } });
 await openDay(0);

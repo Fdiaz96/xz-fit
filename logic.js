@@ -275,6 +275,27 @@ function suggestThreeDays(state, today) {
   return Object.keys(state.zones).every((zone) => painLog(state, zone).filter((p) => daysBetween(p.date, today) <= 13).every((p) => p.val <= 3));
 }
 
+// ——— Nivel de experiencia ———
+// Sugerir subir de nivel (Santos Junior 2021, Loenneke 2017): tiempo entrenando sin cortes de más de 8 semanas
+// (6 meses para pasar a medio, 2 años a avanzado), constancia (1,5 entrenos por semana y el último hace 2 semanas
+// como mucho) y una señal de que el nivel quedó chico: levanta 30 % más de lo que estima su perfil, o tiene
+// 2 ejercicios estancados aunque ya hizo una descarga. "Ahora no" la calla 30 días; en fase 1 de dolor no se ofrece.
+const LEVEL_UP = { novato: ['medio', 182], medio: ['avanzado', 730] };
+function suggestLevelUp(state, today, getEx) {
+  const up = LEVEL_UP[state.profile.exp || 'novato'];
+  if (!up || (state.plan?.levelOffer && daysBetween(state.plan.levelOffer, today) < 30)) return null;
+  if (state.painMode && Object.values(state.zones).some((z) => z.phase === 1)) return null;
+  const dates = state.sessions.filter((s) => s.type === 'entreno').map((s) => s.date).sort();
+  if (!dates.length || daysBetween(dates[dates.length - 1], today) > 14) return null;
+  let i = dates.length - 1;
+  while (i > 0 && daysBetween(dates[i - 1], dates[i]) <= 56) i--;
+  const span = daysBetween(dates[i], today), perWeek = ((dates.length - i) * 7) / span;
+  if (span < up[1] || perWeek < 1.5) return null;
+  const strong = strengthScale(state.profile, state.lifts, getEx) >= 1.3;
+  const stuck = !!state.plan?.deload && Object.keys(state.lifts).filter((id) => stalled(state, id)).length >= 2;
+  return strong || stuck ? { next: up[0], months: Math.round(span / 30.4), perWeek, why: strong ? 'strong' : 'stuck' } : null;
+}
+
 // ——— Entrada en calor ———
 // Series de aproximación antes del primer ejercicio con peso: 8 reps al 50 % y 4 al 75 % (sin repetir pesos).
 function warmupSets(w, steps) {

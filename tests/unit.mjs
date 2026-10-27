@@ -399,5 +399,24 @@ eq(L('[withoutEquip(ringsEq, ["db"]).db, withoutEquip({ ...ringsEq, kb: [12] }, 
 eq(L('ringsEq.rings && ringsEq.machines.length'), 1, 'withoutEquip no toca el equipo original');
 eq(L('resolveSlot("traccion_h", withoutEquip(ringsEq, ["rings"]), { exclude: ["remo_aros"] })'), 'remo_silla', 'sin aros hoy, el remo pasa a remo en silla');
 
+// Sugerir subir de nivel: tiempo sin cortes largos, constancia y una señal (más fuerte de lo estimado o estancado tras una descarga)
+L(`var lvDates = (days, step, gap) => { const r = []; for (let a = days; a >= 0; a -= step) if (!gap || a > gap[0] || a < gap[1]) r.push(addDays('2026-10-27', -a)); return r.reverse(); };
+var lvState = (o) => ({ profile: { sex: 'h', weight: '70', age: '30', exp: 'novato', ...o.profile }, painMode: false, zones: {}, plan: { ...o.plan },
+  lifts: o.lifts || { goblet: { w: 20, e1rm: 200 } },
+  sessions: lvDates(o.days, o.step || 4, o.gap).map((date) => ({ type: 'entreno', date, items: ['goblet', 'rdl'].map((ex) => ({ ex, sets: [{ w: 20, reps: 8 }] })) })) });
+var lv = (o) => suggestLevelUp(lvState(o), '2026-10-27', (id) => EXERCISES[id])?.next ?? null;
+var weak = { goblet: { w: 20, e1rm: 1 }, rdl: { w: 20, e1rm: 1 } };`);
+eq(L('lv({ days: 150 })'), null, 'nivel: novato con 5 meses todavía no sube');
+eq(L('lv({ days: 210 })'), 'medio', 'nivel: novato con 7 meses, constante y más fuerte de lo estimado → medio');
+eq(L('lv({ days: 210, gap: [120, 40] })'), null, 'nivel: un corte de más de 8 semanas reinicia el tiempo');
+eq(L('lv({ days: 210, step: 7 })'), null, 'nivel: 1 entreno por semana no alcanza');
+eq(L('lv({ days: 210, lifts: weak })'), null, 'nivel: con el tiempo pero sin señal (ni fuerza ni estancamiento) no sube');
+eq(L('lv({ days: 900, profile: { exp: "avanzado" } })'), null, 'nivel: avanzado no tiene a dónde subir');
+eq(L('lv({ days: 760, profile: { exp: "medio" }, lifts: weak, plan: { deload: "2026-W40" } })'), 'avanzado', 'nivel: medio con 2 años, estancado aunque hizo descarga → avanzado');
+eq(L('lv({ days: 760, profile: { exp: "medio" }, lifts: weak })'), null, 'nivel: estancado sin haber hecho descarga no alcanza');
+eq(L('lv({ days: 210, plan: { levelOffer: "2026-10-17" } })'), null, 'nivel: "Ahora no" hace 10 días la calla');
+eq(L('lv({ days: 210, plan: { levelOffer: "2026-09-17" } })'), 'medio', 'nivel: pasados 30 días vuelve a ofrecerse');
+eq(L('suggestLevelUp({ ...lvState({ days: 210 }), painMode: true, zones: { codo_lat: { phase: 1 } } }, "2026-10-27", (id) => EXERCISES[id])'), null, 'nivel: en fase 1 de dolor no se ofrece');
+
 console.log(failures ? `\n${failures} fallaron` : '\nTodo OK');
 process.exit(failures ? 1 : 0);
