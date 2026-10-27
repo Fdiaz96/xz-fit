@@ -18,7 +18,7 @@ Todo el detalle versión por versión está en [CHANGELOG.md](CHANGELOG.md) (tam
 - **Primer uso:** perfil (sexo, peso, altura, edad, experiencia, días y cuáles), equipo y zonas con dolor (opcional).
 - **Equipo a medida:** mancuernas (rango o **discos**, con cálculo de pesos posibles y discos por lado), pesas rusas, aros, banco, barra, bandas y **máquinas propias** con su rango de peso.
 - **Peso sugerido:** estimación por peso corporal × coeficiente del ejercicio (sexo, experiencia y edad), arranque al 70 % y **serie de calibración** (reps + reps en reserva → 1RM con Epley), redondeado a tu equipo.
-- **Entreno:** cuerpo completo A/B **editable** (cambiar, ordenar, agregar, ejercicios propios), 49 ejercicios ilustrados, doble progresión 8–12, volumen +30 % máx por semana, entrada en calor con series de aproximación, detección de estancamiento y semana de descarga.
+- **Entreno:** **plan Full body 2 días** (Día A / Día B) que rota según el último día hecho y es **editable** (cambiar, ordenar, agregar, ejercicios propios; lo que elegís queda fijo), 49 ejercicios ilustrados, doble progresión **dentro del rango de cada ejercicio** (6–12, 10–15, 12–20), una serie menos las 2 primeras semanas, entrada en calor con series de aproximación, detección de estancamiento y semana de descarga.
 - **Modo dolor (lo activa el usuario):** 6 zonas en 3 fases (isométricos → isotónicos lentos → integración), opciones de ejercicio por fase, dolor 0–10 por sesión o en cualquier momento, pregunta "¿cómo amaneció?" y ajuste automático de la carga; en el entreno, tope del 60 % o variante amable.
 - **Sesiones:** temporizador de isométricos manos libres, sonidos, voz opcional, pantalla siempre prendida, descanso configurable, resumen con récords y lo que sube la próxima vez.
 - **Seguimiento:** tarjeta semanal y racha, historial con gráficos de dolor y de peso, **informe para el fisio** (HTML imprimible).
@@ -36,8 +36,8 @@ No es un consejo médico: ante dolor agudo, hinchazón o pérdida de fuerza, con
 
 | Archivo | Qué tiene |
 |---|---|
-| `data.js` | Zonas, ejercicios con sus posturas, opciones de rehabilitación, plantillas A/B |
-| `logic.js` | Reglas puras: equipo y discos, pesos, calibración, progresión, modo dolor, volumen, estancamiento, semana y racha, calendario |
+| `data.js` | Zonas, ejercicios con sus posturas, opciones de rehabilitación, huecos y planes de entreno |
+| `logic.js` | Reglas puras: equipo y discos, pesos, calibración, progresión por rango, planes y rotación, modo dolor, estancamiento, semana y racha, calendario |
 | `figures.js` | Dibujo y animación de las ilustraciones |
 | `app.js` | Pantallas, sesiones, editor de rutina, informe, sonidos y guardado |
 | `CHANGELOG.md` | Cambios por versión (se muestra en la app) |

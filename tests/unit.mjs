@@ -11,6 +11,9 @@ const eq = (a, b, msg) => ok(JSON.stringify(a) === JSON.stringify(b), `${msg} ($
 // Equipo
 const equip = { db: { min: 2, max: 24, step: 2 }, kb: [20, 12], rings: true };
 ctx.equip = equip;
+// Equipo por defecto de la app (copia de DEFAULT().equip en app.js): sin aros, pesas rusas, banco, barra ni banda.
+const defEq = { db: { min: 2, max: 24, step: 2 }, kb: [], rings: false, bench: false, bar: false, band: false, machines: [] };
+ctx.defEq = defEq;
 eq(L('weightSteps(equip, "db")').length, 12, 'mancuernas de 2 a 24 de a 2 = 12 pesos');
 eq(L('weightSteps(equip, "kb")'), [12, 20], 'pesas rusas ordenadas');
 eq(L('roundDown([2,4,6], 5.9)'), 4, 'redondea hacia abajo');
@@ -63,6 +66,27 @@ const steps = '[2,4,6,8,10,12]';
 eq(L(`progress(8, [{reps:12},{reps:12},{reps:12}], ${steps})`), 10, '12 en todas las series → sube un salto');
 eq(L(`progress(8, [{reps:12},{reps:10},{reps:9}], ${steps})`), 8, 'dentro del rango → mismo peso');
 eq(L(`progress(8, [{reps:9},{reps:7}], ${steps})`), 6, 'alguna por debajo de 8 → baja un salto');
+
+// Doble progresión con rango propio del ejercicio
+eq(L(`progress(8, [{reps:20},{reps:20},{reps:20}], ${steps}, [12, 20])`), 10, 'rango 12–20: 20 en todas → sube');
+eq(L(`progress(8, [{reps:20},{reps:20},{reps:19}], ${steps}, [12, 20])`), 8, 'rango 12–20: 20/20/19 → mismo peso');
+eq(L(`progress(8, [{reps:12},{reps:12},{reps:12}], ${steps}, [12, 20])`), 8, 'rango 12–20: 12/12/12 (el mínimo) → mismo peso');
+eq(L(`progress(8, [{reps:15},{reps:11}], ${steps}, [12, 20])`), 6, 'rango 12–20: alguna por debajo de 12 → baja');
+eq(L(`progress(8, [{reps:0},{reps:0}], ${steps}, [6, 12])`), 8, 'rango 6–12: sin reps hechas → mismo peso');
+eq(L(`progress(8, [{reps:12},{reps:12}], ${steps}, [8, 12])`), L(`progress(8, [{reps:12},{reps:12}], ${steps})`), 'rango 8–12 = sin rango');
+const calSteps = 'weightSteps(equip, "db")';
+const calTarget = (reps) => L(`roundDown(${calSteps}, weightForReps(epley1RM(8, 14), ${reps}))`);
+eq(L(`calibrate(8, 10, 4, ${calSteps}, [12, 20])`).w, calTarget(18), 'calibración 12–20 apunta a 18 reps');
+eq(L(`calibrate(8, 10, 4, ${calSteps}, [10, 15])`).w, calTarget(15), 'calibración 10–15 apunta a 15 reps');
+eq(L(`calibrate(8, 10, 4, ${calSteps}, [6, 12])`).w, calTarget(11), 'calibración 6–12 apunta a 11 reps');
+eq(L(`calibrate(8, 10, 4, ${calSteps}, [8, 12])`), L(`calibrate(8, 10, 4, ${calSteps})`), 'calibración 8–12 = sin rango');
+eq(L('repCenter([10, 15])'), 13, 'centro de 10–15 redondea a 13');
+eq(L('repCenter([8, 12])'), 10, 'centro de 8–12 es 10');
+eq(L('repRange({ reps: [12, 20] })'), [12, 20], 'repRange toma el rango del ejercicio');
+eq(L('repRange({}, { reps: [6, 8] })'), [6, 8], 'repRange prefiere el rango del hueco');
+const startWithRange = (range) => L(`startWeight(man, EXERCISES.press_suelo, ${calSteps}${range ? `, ${range}` : ''})`);
+eq(startWithRange('[8, 12]'), startWithRange(), 'startWeight con 8–12 = sin rango');
+ok(startWithRange('[12, 20]') <= startWithRange('[8, 12]'), 'startWeight con 12–20 no supera al de 8–12');
 eq(L(`painCap(10, ${steps})`), 6, 'modo dolor: 60 % redondeado hacia abajo');
 
 // Modo dolor
@@ -179,6 +203,176 @@ ok(Object.values(L('REHAB')).every((p) => L(`EXERCISES['${p[1]}'] && EXERCISES['
 ok(L('Object.values(REHAB_OPTIONS).every((z) => [1, 2].every((f) => z[f].length && z[f].every((id) => EXERCISES[id] && EXERCISES[id].zone !== undefined || EXERCISES[id].tag)))'), 'las opciones de rehabilitación existen');
 ok(L('Object.entries(REHAB).every(([z, p]) => REHAB_OPTIONS[z][1][0] === p[1] && REHAB_OPTIONS[z][2][0] === p[2])'), 'la primera opción de cada fase es la del protocolo base');
 ok(Object.values(L('TEMPLATES')).flat().every((id) => L(`!!EXERCISES['${id}']`)), 'las plantillas usan ejercicios existentes');
+
+// ——— Catálogos de planes ———
+const SLOT_IDS = ['empuje_h', 'empuje_inc', 'empuje_v', 'traccion_v', 'traccion_h', 'rodilla', 'unilateral', 'bisagra', 'gluteo', 'gemelos',
+  'lateral', 'deltoides_post', 'biceps', 'triceps', 'abdominal', 'isometrico'];
+eq(L('Object.keys(SLOTS)'), SLOT_IDS, 'SLOTS tiene los 16 patrones en orden');
+ok(L('Object.values(SLOTS).every((s) => s.name && s.ex.length && s.ex.every((id) => !!EXERCISES[id]))'), 'cada hueco tiene nombre, lista no vacía e ids existentes');
+eq(L('["empuje_h", "empuje_inc"].filter((k) => SLOTS[k].ex.includes("flexiones")).length'), 2, 'flexiones figura en empuje_h y empuje_inc');
+const REP_TYPES = {
+  compuesto: ['goblet', 'sumo_kb', 'press_suelo', 'press_banco', 'flexiones', 'press_hombros', 'remo_silla', 'remo_aros', 'remo_inclinado',
+    'dominadas', 'rdl', 'swing', 'pm_una_pierna', 'zancada', 'bulgara', 'hip_thrust', 'puente'],
+  aislamiento: ['curl_martillo', 'curl_concentrado', 'triceps', 'patada_triceps', 'press_frances', 'pullover', 'elev_frontal', 'gemelos_1pierna'],
+  deltoides: ['lateral', 'face_pull', 'rot_ext_banda'],
+};
+Object.entries(REP_TYPES).forEach(([type, ids]) => ids.forEach((id) => eq(L(`EXERCISES.${id}.reps`), L(`REP_RANGE.${type}`), `${id}: rango de ${type}`)));
+eq(L('REP_RANGE'), { compuesto: [6, 12], aislamiento: [10, 15], deltoides: [12, 20], abdominal: [10, 15] }, 'REP_RANGE: rangos por tipo');
+ok(L('EXERCISES.lateral.reps !== REP_RANGE.deltoides'), 'cada ejercicio recibe una copia del rango, no el arreglo compartido');
+eq(L('[...new Set(Object.values(SLOTS).flatMap((s) => s.ex))].filter((id) => !EXERCISES[id].reps).sort()'),
+  ['curl_iso', 'dead_bug', 'iso_pared', 'plancha', 'remo_aros_iso', 'sentadilla_pared'], 'sin rango solo los por tiempo, isométricos y dead_bug');
+eq(L('repRange(EXERCISES.dead_bug)'), [8, 12], 'dead_bug usa 8–12 por defecto');
+eq(L('repRange({})'), [8, 12], 'ejercicio propio sin rango usa 8–12');
+eq(L('Object.keys(PLANS)'), ['fb2'], 'solo existe el plan fb2');
+eq(L('PLANS.fb2.name'), 'Full body 2 días', 'nombre de fb2');
+eq(L('PLANS.fb2.days.map((d) => d.name)'), ['Día A', 'Día B'], 'fb2 tiene los días A y B');
+ok(L('PLANS.fb2.days.every((d) => d.slots.length === 6 && d.slots.every((s) => s.sets === 3))'), 'fb2: 6 huecos por día, 3 series cada uno');
+ok(!!L('PLANS.fb2.source'), 'fb2 tiene fuente');
+eq(L('PLANS.fb2.days.map((d) => d.slots.map((s) => s.slot))'), [
+  ['rodilla', 'empuje_h', 'traccion_h', 'bisagra', 'lateral', 'abdominal'],
+  ['unilateral', 'empuje_v', 'traccion_h', 'bisagra', 'biceps', 'triceps'],
+], 'fb2 sigue el orden de huecos de A y B');
+eq(L('PLANS.fb2.days.map((d) => d.slots.filter((s) => s.ex).map((s) => s.ex))'), [['remo_silla', 'rdl'], ['remo_aros', 'swing']], 'fb2: preferencias de los huecos repetidos');
+ok(L('PLANS.fb2.days.every((d) => d.slots.every((s) => !!SLOTS[s.slot]))'), 'los huecos de fb2 existen en SLOTS');
+
+// ——— Motor de planes ———
+const exIds = (expr) => L(`(${expr}).map((it) => it.ex)`);
+const B_NO_RINGS = L('TEMPLATES.B').map((id) => (id === 'remo_aros' ? 'remo_silla' : id));
+ctx.fullEq = { ...defEq, kb: [12, 20], rings: true, bench: true, bar: true, band: true };
+ctx.noEq = { ...defEq, db: null };
+
+// Resolver el plan con el equipo por defecto = lo que hoy arma la app para A y B
+eq(exIds('resolvePlan(PLANS.fb2, defEq)[0]'), L('TEMPLATES.A'), 'fb2 con equipo por defecto: Día A = TEMPLATES.A');
+eq(exIds('resolvePlan(PLANS.fb2, defEq)[1]'), B_NO_RINGS, 'fb2 sin aros: Día B = TEMPLATES.B con remo en silla');
+eq(exIds('resolvePlan(PLANS.fb2, { ...defEq, rings: true })[1]'), L('TEMPLATES.B'), 'fb2 con aros: Día B = TEMPLATES.B tal cual');
+ok(L('resolvePlan(PLANS.fb2, defEq).flat().every((it) => it.pinned === false && it.slot)'), 'resolvePlan deja todo sin fijar y con hueco');
+eq(L('resolvePlan(PLANS.fb2, noEq)[0][4]'), { slot: 'lateral', ex: 'lateral', pinned: false }, 'resolvePlan: hueco sin posible guarda su primer ejercicio (Falta equipo)');
+eq(L('resolvePlan(PLANS.fb2, noEq)[0][2].ex'), 'remo_silla', 'resolvePlan: hueco sin posible guarda la preferencia del plan');
+
+// resolveSlot: primer posible, bw, exclude y preferencia
+eq(L('resolveSlot("empuje_h", fullEq)'), 'press_banco', 'resolveSlot con todo el equipo: el primero del hueco');
+eq(L('resolveSlot("empuje_h", defEq)'), 'press_suelo', 'resolveSlot sin banco: saltea press en banco');
+eq(L('resolveSlot("deltoides_post", defEq)'), null, 'resolveSlot sin banda: ningún posible → null');
+eq(L('resolveSlot("empuje_h", defEq, { bw: true })'), 'flexiones', 'bw: saltea mancuernas y da peso corporal');
+eq(L('resolveSlot("lateral", fullEq, { bw: true })'), null, 'bw en un hueco sin peso corporal → null');
+eq(L('resolveSlot("bisagra", defEq, { exclude: ["rdl"] })'), 'swing', 'exclude: [primero] → el siguiente posible');
+eq(L('resolveSlot("bisagra", defEq, { pref: "pm_una_pierna" })'), 'pm_una_pierna', 'la preferencia se prueba primero');
+eq(L('resolveSlot("traccion_h", defEq, { pref: "remo_aros" })'), 'remo_silla', 'preferencia imposible → sigue por el hueco');
+eq(L('resolveSlot("bisagra", defEq, { pref: "swing", exclude: ["swing"] })'), 'rdl', 'una preferencia excluida se saltea');
+ok(L('(() => { try { resolveSlot("zzz", fullEq); return false; } catch (e) { return /zzz/.test(e.message); } })()'), 'hueco inexistente → error');
+ok(L('(() => { try { resolvePlan({ days: [{ slots: [{ slot: "zzz" }] }] }, fullEq); return false; } catch (e) { return true; } })()'), 'resolvePlan con hueco inexistente también falla');
+
+// possible: la única regla es implFor, y los propios se buscan con getEx
+ok(L('possible("remo_aros", defEq)') === false && L('possible("remo_aros", { ...defEq, rings: true })'), 'possible: remo en aros solo con aros');
+ok(L('possible("press_banco", fullEq) === !!implFor(EXERCISES.press_banco, fullEq)'), 'possible coincide con implFor');
+ok(!L('possible("press_banco", defEq)') && L('possible("press_banco", { ...defEq, bench: true })'), 'possible: press en banco solo con banco');
+ok(!L('possible("c_x", defEq)'), 'possible: propio desconocido → no');
+ok(L('possible("c_x", defEq, () => ({ impl: "bw" }))'), 'possible: propio buscado con getEx');
+
+// resolveDay: lo posible queda igual (misma referencia) y la entrada no se modifica
+ctx.keepDay = [{ slot: 'empuje_h', ex: 'press_suelo', pinned: true }, { slot: 'rodilla', ex: 'goblet', pinned: false }];
+ctx.rdKeep = L('resolveDay(keepDay, defEq)');
+ok(L('rdKeep.items[0] === keepDay[0] && rdKeep.items[1] === keepDay[1]'), 'resolveDay: fijado y no fijado posibles quedan iguales');
+ok(L('!rdKeep.changed && rdKeep.notices.length === 0'), 'resolveDay: sin cambios ni avisos');
+ok(L('resolveDay(keepDay, { ...defEq, bench: true }).items[0] === keepDay[0]'), 'resolveDay: al agregar banco, el press en el suelo no se "mejora"');
+ctx.upgDay = [{ slot: 'empuje_h', ex: 'press_suelo', pinned: false }];
+ctx.rdUpg = L('resolveDay(upgDay, { ...defEq, bench: true })');
+ok(L('rdUpg.items[0] === upgDay[0] && !rdUpg.changed'), 'resolveDay: no fijado posible queda igual aunque con banco el preferido del hueco pase a ser posible');
+ctx.ghostDay = [{ slot: 'zzz', ex: 'press_banco', pinned: true }];
+ctx.rdGhost = L('resolveDay(ghostDay, defEq)');
+ok(L('rdGhost.items[0] === ghostDay[0] && !rdGhost.changed && rdGhost.notices.length === 0'), 'resolveDay: hueco inexistente en SLOTS se trata como sin hueco (por referencia, sin aviso)');
+ctx.mixDay = [{ slot: 'empuje_h', ex: 'press_suelo', pinned: false }, { slot: 'empuje_h', ex: 'press_banco', pinned: true },
+  { slot: 'traccion_h', ex: 'remo_aros', pinned: false }, { slot: null, ex: 'c_x', pinned: true }];
+const mixBefore = structuredClone(L('mixDay'));
+ctx.rdMix = L('resolveDay(mixDay, defEq)');
+eq(L('mixDay'), mixBefore, 'resolveDay no modifica el arreglo recibido');
+ok(L('rdMix.items !== mixDay'), 'resolveDay devuelve un arreglo nuevo');
+
+// resolveDay: los no fijados imposibles se re-resuelven sin repetir ejercicios en el día
+eq(L('rdMix.items[2]'), { slot: 'traccion_h', ex: 'remo_silla', pinned: false }, 'no fijado imposible → primer posible del hueco');
+eq(L('rdMix.items[1].ex'), 'flexiones', 'el reemplazo saltea press en el suelo, que ya está en el día');
+eq(exIds('rdMix.items').length, new Set(exIds('rdMix.items')).size, 'el día no queda con ejercicios repetidos');
+ok(L('rdMix.items[3] === mixDay[3]'), 'un ítem sin hueco (propio) imposible queda tal cual');
+ok(L('rdMix.changed'), 'resolveDay marca changed cuando reemplaza');
+eq(L('resolveDay([{ slot: "empuje_h", ex: "press_banco", pinned: false }], defEq).notices'), [], 'reemplazar un no fijado no avisa');
+eq(L('resolveDay([{ slot: "traccion_h", ex: "remo_silla", pinned: false }, { slot: "traccion_h", ex: "remo_aros", pinned: false }], defEq).items[1].ex'),
+  'remo_inclinado', 'dos remos en el mismo día: el segundo pasa al siguiente posible');
+
+// resolveDay: un fijado imposible se re-resuelve y avisa una sola vez
+ctx.rdPin = L('resolveDay([{ slot: "empuje_h", ex: "press_banco", pinned: true }], defEq)');
+eq(L('rdPin.items'), [{ slot: 'empuje_h', ex: 'press_suelo', pinned: false }], 'fijado imposible → se re-resuelve y queda sin fijar');
+eq(L('rdPin.notices'), [{ from: 'press_banco', to: 'press_suelo' }], 'fijado imposible → un aviso');
+eq(L('resolveDay(rdPin.items, defEq)'), { items: [{ slot: 'empuje_h', ex: 'press_suelo', pinned: false }], notices: [], changed: false }, 'segunda pasada: sin aviso ni cambios');
+ctx.rdPinMissing = L('resolveDay([{ slot: "deltoides_post", ex: "face_pull", pinned: true }], defEq)');
+eq(L('rdPinMissing.notices'), [{ from: 'face_pull', to: null }], 'fijado sin reemplazo posible → aviso con to null');
+eq(L('rdPinMissing.items[0]'), { slot: 'deltoides_post', ex: 'face_pull', pinned: false }, 'fijado sin reemplazo: mismo ejercicio, sin fijar');
+eq(L('resolveDay(rdPinMissing.items, defEq).notices'), [], 'fijado sin reemplazo: la segunda pasada no avisa');
+
+// Hueco sin ejercicio posible: el ítem se conserva y la app lo muestra como "Falta equipo"
+ctx.rdMissing = L('resolveDay([{ slot: "deltoides_post", ex: "face_pull", pinned: false }], defEq)');
+ok(L('rdMissing.items[0].ex === "face_pull" && !possible(rdMissing.items[0].ex, defEq)'), 'hueco sin posible: mismo ejercicio y possible da false');
+ok(L('!rdMissing.changed && rdMissing.notices.length === 0'), 'hueco sin posible no fijado: sin cambios ni avisos (no persiste en cada render)');
+
+// Migración de las plantillas A/B
+ctx.migNoRings = L('routineFromTemplates(TEMPLATES, defEq)');
+eq(exIds('migNoRings[0]'), L('TEMPLATES.A'), 'migración: el Día A pasa tal cual');
+ok(L('migNoRings[1].some((it) => it.ex === "remo_silla" && it.pinned) && !migNoRings[1].some((it) => it.ex === "remo_aros")'), 'migración sin aros: remo en silla fijado, sin remo en aros');
+ok(L('migNoRings.flat().every((it) => it.pinned === true && it.slot === slotOf(it.ex))'), 'migración: todo fijado y con su hueco');
+eq(exIds('routineFromTemplates(TEMPLATES, { ...defEq, rings: true })[1]'), L('TEMPLATES.B'), 'migración con aros: B conserva el remo en aros');
+eq(L('routineFromTemplates({ A: ["press_banco", "c_x"], B: ["iso_pared"] }, defEq)'),
+  [[{ slot: 'empuje_h', ex: 'press_banco', pinned: true }, { slot: null, ex: 'c_x', pinned: true }], [{ slot: 'isometrico', ex: 'iso_pared', pinned: true }]],
+  'migración: ediciones y ejercicio propio (slot null) quedan fijados');
+eq(L('ringsSwap("remo_aros", defEq)'), 'remo_silla', 'ringsSwap sin aros: remo_aros → remo_silla');
+eq(L('ringsSwap("remo_aros_iso", defEq)'), 'curl_iso', 'ringsSwap sin aros: remo_aros_iso → curl_iso');
+eq(L('ringsSwap("remo_aros", { ...defEq, rings: true })'), 'remo_aros', 'ringsSwap con aros: sin cambios');
+eq(L('ringsSwap("goblet", defEq)'), 'goblet', 'ringsSwap: un ejercicio sin alternativa queda igual');
+eq(L('slotOf("press_banco")'), 'empuje_h', 'slotOf toma el primer hueco que lo lista');
+eq(L('slotOf("c_x")'), null, 'slotOf de un propio → null');
+
+// Inicio del plan, plan activo y rotación
+eq(L('firstWorkout([{ type: "rehab", date: "2026-01-01" }, { type: "entreno", date: "2026-03-05" }, { type: "entreno", date: "2026-02-10" }])'), '2026-02-10', 'firstWorkout: el entreno más viejo, ignora rehab');
+eq(L('firstWorkout([{ type: "rehab", date: "2026-01-01" }])'), '', 'firstWorkout sin entrenos → vacío');
+ok(L('activePlan({ plan: { id: "zzz" } }) === PLANS.fb2 && activePlan({}) === PLANS.fb2'), 'plan inexistente o ausente → fb2');
+ok(L('activePlan({ plan: { id: "fb2" } }) === PLANS.fb2'), 'plan existente → ese plan');
+ctx.p3 = { days: [{}, {}, {}] };
+eq(L('nextDay(PLANS.fb2, 0)'), 1, 'rotación de 2 días: 0 → 1');
+eq(L('nextDay(PLANS.fb2, 1)'), 0, 'rotación de 2 días: el último vuelve al primero');
+eq(L('nextDay(p3, 2)'), 0, 'rotación de 3 días: el último vuelve al primero');
+eq(L('nextDay(p3, 1)'), 2, 'rotación de 3 días: 1 → 2');
+eq(L('nextDay(PLANS.fb2, 5)'), 0, 'posición fuera de rango → 0');
+eq(L('[-1, 1.5, undefined].map((p) => nextDay(PLANS.fb2, p))'), [0, 0, 0], 'nextDay con posición inválida → 0');
+eq(L('[-1, 1.5, undefined, 2, 1].map((p) => dayIndex(PLANS.fb2, p))'), [0, 0, 0, 0, 1], 'dayIndex corrige posiciones inválidas');
+
+// Series: rampa de entrada y descarga
+eq(L(`weeksSince('', '${T}')`), 0, 'sin inicio de plan → semana 0');
+eq(L(`weeksSince('2026-10-07', '${T}')`), 1, '13 días → 1 semana completa');
+eq(L(`weeksSince('2026-10-06', '${T}')`), 2, '14 días → 2 semanas completas');
+eq(L('setsFor(3, 0, false)'), 2, 'rampa: semana 0 → una serie menos');
+eq(L('setsFor(3, 1, false)'), 2, 'rampa: semana 1 → una serie menos');
+eq(L('setsFor(3, 2, false)'), 3, 'semana 2: series completas');
+eq(L('setsFor(3, 3, false)'), 3, 'semana 3: series completas');
+eq(L('setsFor(3, 5, true)'), 2, 'descarga: una serie menos');
+eq(L('setsFor(3, 0, true)'), 1, 'rampa + descarga: dos series menos');
+eq(L('setsFor(1, 0, true)'), 1, 'nunca menos de 1 serie');
+eq(L('daySlot(PLANS.fb2.days[0], "traccion_h")'), { slot: 'traccion_h', sets: 3, ex: 'remo_silla' }, 'daySlot da el hueco del día');
+eq(L('daySlot(PLANS.fb2.days[0], null)'), null, 'daySlot de un ítem sin hueco → null');
+eq(L('DEFAULT_SETS'), 3, 'un ítem sin hueco lleva 3 series');
+
+// Resumen: qué ejercicios con peso se quedan igual (se cruza por id, no por nombre)
+ctx.sumS = { items: [{ ex: 'a', name: 'Igual', reps: [8, 12] }, { ex: 'b', name: 'Sube', reps: [8, 12] }, { ex: 'c', name: 'Sin rango' }, { ex: 'd', name: 'Sin peso', reps: [8, 12] }], ups: [{ ex: 'b', name: 'Otro nombre', from: 10, to: 12 }] };
+eq(L('unchangedWeightItems(sumS, (id) => id !== "d").map((x) => x.ex)'), ['a'], 'resumen: solo los de peso, con rango y sin cambio de peso (por id)');
+eq(L('unchangedWeightItems({ items: sumS.items }, (id) => id !== "d").map((x) => x.ex)'), ['a', 'b'], 'resumen: sin ups todos los de peso con rango quedan igual');
+ctx.sumCap = { items: [{ ex: 'a', reps: [8, 12], capped: true }, { ex: 'b', reps: [8, 12], capped: false }, { ex: 'c', reps: [8, 12] }] };
+eq(L('unchangedWeightItems(sumCap, () => true).map((x) => x.ex)'), ['b', 'c'], 'resumen: los topados por dolor o en descarga (capped) no prometen subida');
+// Qué ejercicios llevan rango de repeticiones
+eq(L('["peso", "reps", "tiempo", "iso", "lento"].map((kind) => hasRepRange({ kind }))'), [true, true, false, false, false], 'hasRepRange: solo peso y reps llevan rango');
+
+// Tarjeta semanal: el objetivo son los días del plan activo, no los del perfil
+ctx.wk3 = { plan: { id: 'fb2' }, profile: { days: 3 }, painMode: false, zones: {}, sessions: [{ date: T, type: 'entreno' }] };
+eq(L(`weekStats(wk3, '${T}').target`), 2, 'semana: con 3 días en el perfil y fb2, el objetivo es 2 entrenos');
+eq(L(`weekStats({ ...wk3, plan: undefined }, '${T}').target`), 2, 'semana: sin plan guardado se usa fb2 (objetivo 2)');
+eq(L(`weekStats({ ...wk3, plan: { id: 'zzz' } }, '${T}').target`), 2, 'semana: plan inexistente → fb2 (objetivo 2)');
+eq(L(`streak(wk3, '${T}')`), 0, 'la racha sigue usando los días del perfil (1 de 3 no cumple la semana)');
 
 console.log(failures ? `\n${failures} fallaron` : '\nTodo OK');
 process.exit(failures ? 1 : 0);

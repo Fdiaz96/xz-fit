@@ -6,8 +6,8 @@ App web progresiva (PWA) **sin build, sin framework y sin servidor**: HTML, CSS 
 
 | Capa | Archivo | Responsabilidad | Depende de |
 |---|---|---|---|
-| Datos fijos | `data.js` | Zonas (`ZONES`), fases (`PHASES`), protocolo (`REHAB`, `REHAB_OPTIONS`), biblioteca `EXERCISES` con posturas, músculos y cámaras, plantillas `TEMPLATES`, `CATS`, `EXPERIENCE`, `SOURCES`, `NO_RINGS` | — |
-| Reglas puras | `logic.js` | Fechas, equipo y discos, fuerza estimada, calibración, progresión, modo dolor, volumen, entrada en calor, estancamiento, semana/racha, `.ics`. Sin DOM | `data.js` (constantes) |
+| Datos fijos | `data.js` | Zonas (`ZONES`), fases (`PHASES`), protocolo (`REHAB`, `REHAB_OPTIONS`), biblioteca `EXERCISES` con posturas, músculos, cámaras y rango de repeticiones (`reps`), huecos `SLOTS` (patrones de movimiento), planes `PLANS`, plantillas `TEMPLATES` (solo para migrar), `CATS`, `EXPERIENCE`, `SOURCES`, `NO_RINGS` | — |
+| Reglas puras | `logic.js` | Fechas, equipo y discos, fuerza estimada, calibración, progresión por rango, planes (huecos, rotación, series con rampa), modo dolor, entrada en calor, estancamiento, semana/racha, `.ics`. Sin DOM | `data.js` (constantes) |
 | Dibujo | `figures.js` | `figureSVG(ex, opts)`: proyección 3D isométrica, interpolación de posturas, músculos en rojo, utilería (mancuernas, pesa rusa, aros, bandas, silla, banco…) | `data.js` |
 | Interfaz | `app.js` | Estado `S`, IndexedDB, pestañas, diálogos, sesiones de entreno y rehab, editor de rutina, historial, informe, ajustes, eventos | todo lo anterior |
 | Estilos | `styles.css` | Tokens de color oscuro/claro (`[data-theme]`), componentes (card, chips, switch, sheet) | — |
@@ -22,6 +22,7 @@ El orden de carga en `index.html` (`data.js → logic.js → figures.js → app.
 
 - **Estado único**: `let S` (ver [modelo de datos](modelo-de-datos.md)). Toda mutación termina en `persist()` + `render()`.
 - **Render por plantillas de texto**: `render()` llama a `renderHome/Train/Tendons/History/Settings` de la pestaña visible; cada una arma un string HTML y lo asigna a `innerHTML`. Todo texto del usuario pasa por `esc()`.
+- **Motor de planes**: la sección "Planes" de `logic.js` (`resolveSlot`, `resolvePlan`, `resolveDay`, `nextDay`, `setsFor`, `repRange`…) es pura y recibe un `getEx` para buscar ejercicios propios. Los catálogos `SLOTS` y `PLANS` viven en `data.js`. `S.routine` guarda la rutina ya resuelta; `syncRoutine()` corre al principio de `render()`, arma la rutina si falta, re-resuelve solo lo que dejó de ser posible, guarda si algo cambió y muestra los avisos. Así ningún cambio de equipo (Ajustes, primer uso, importación) olvida sincronizar. Un plan nuevo es solo datos en `PLANS`.
 - **Hojas (`<dialog>`)**: `wsheet` (entreno), `rsheet` (rehab), `painsheet`, `exsheet`, `pickersheet`, `exformsheet`, `machsheet`, `customsheet`, `newssheet`, `sumsheet`, `onb`. `dlg(id).html = …` redibuja sin perder el aviso, el descanso ni el tooltip que estén adentro.
 - **Eventos delegados**: un solo `click` en `document` que despacha por `data-action` a un mapa `actions`; los inputs usan `data-set="ruta.del.estado"` (`setPath`) o `data-w` (filas del entreno) / `data-plate`.
 - **Estado efímero de sesión**: `W` (entreno en curso), `R` (rehab en curso), `P` (pregunta de dolor), `PK` (selector), `XF` (formulario de ejercicio propio). No se guardan hasta terminar.

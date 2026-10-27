@@ -2,6 +2,18 @@
 
 Todos los cambios de XZ Fit (antes Tendón Fuerte), del más nuevo al más viejo.
 
+## 1.15.0 — Motor de planes: Full body 2 días con rotación y rango por ejercicio
+
+- **Inicio**: la tarjeta de entreno dice, por ejemplo, "Día A · 6 ejercicios". Tenés los mismos ejercicios de siempre, repartidos en Día A y Día B.
+- **Rotación**: el próximo día es siempre el que sigue al último que hiciste, sin importar qué día de la semana sea ni cuántos días pasaron. Si empezás a mano el otro día, el plan sigue desde ahí.
+- **Rango propio por ejercicio**: cada ejercicio sube de peso dentro de su rango. Compuestos 6–12, aislamiento 10–15, elevaciones laterales y deltoides posterior 12–20. En el entreno ves el rango real ("3 × 12–20") y el resumen te dice cuándo sube ("cuando hagas 20 en todas, sube").
+- **Una serie menos las primeras 2 semanas del plan**, para que el comienzo sea más llevadero. Si ya entrenabas hace 2 semanas o más, no perdés series.
+- **Editar rutina**: una pestaña por día. Al cambiar un ejercicio con ⇄ aparecen primero los que trabajan el mismo movimiento, y el que elegís queda fijo.
+- **Volver al plan original**: arma la rutina de nuevo según tu equipo. Tus ejercicios propios siguen en Mis ejercicios.
+- Si quitás un equipo y un ejercicio que habías fijado ya no se puede hacer, te avisamos una sola vez y lo cambiamos por el primero posible del mismo movimiento.
+- La tarjeta semanal compara tus entrenos con los días del plan (2 en Full body 2 días).
+- Al actualizar se conservan tu rutina editada, tus pesos, tu historial y el día que te tocaba.
+
 ## 1.14.1 — Nueva dirección: fdiaz96.github.io/xz-fit
 
 - La app ahora está en **https://fdiaz96.github.io/xz-fit/** (el repositorio pasó a llamarse `xz-fit`). La dirección vieja `…/tendon-fuerte/` deja de funcionar.

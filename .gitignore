@@ -1,3 +1,6 @@
 node_modules
 tests/tmp-*
 .specs/scratchpad/
+.specs/scratchpad/*.md
+.specs/analysis/*.md
+.specs/reports/*.md

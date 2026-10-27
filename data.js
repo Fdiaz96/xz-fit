@@ -345,6 +345,16 @@ Object.entries({
   triceps: ['triceps', 'patada_triceps', 'press_frances'], 'delt back': ['face_pull'], 'back chest': ['pullover'],
 }).forEach(([m, ids]) => ids.forEach((id) => (EXERCISES[id].mus = m.split(' '))));
 
+// Rango de repeticiones de la doble progresión según el tipo de ejercicio (Mono Culturista). Sin dato, logic.js usa [8, 12].
+// Quedan sin rango los ejercicios por tiempo o isométricos (plancha, *_iso, sentadilla_pared, iso_pared) y dead_bug, que hoy no tiene tipo de rango.
+const REP_RANGE = { compuesto: [6, 12], aislamiento: [10, 15], deltoides: [12, 20], abdominal: [10, 15] };
+Object.entries({
+  compuesto: ['goblet', 'sumo_kb', 'press_suelo', 'press_banco', 'flexiones', 'press_hombros', 'remo_silla', 'remo_aros', 'remo_inclinado',
+    'dominadas', 'rdl', 'swing', 'pm_una_pierna', 'zancada', 'bulgara', 'hip_thrust', 'puente'],
+  aislamiento: ['curl_martillo', 'curl_concentrado', 'triceps', 'patada_triceps', 'press_frances', 'pullover', 'elev_frontal', 'gemelos_1pierna'],
+  deltoides: ['lateral', 'face_pull', 'rot_ext_banda'],
+}).forEach(([type, ids]) => ids.forEach((id) => (EXERCISES[id].reps = [...REP_RANGE[type]])));
+
 // Cómo se ve la mancuerna (ver dumbbell() en figures.js). Sin dato: de frente 'end', de costado 'neutral'.
 Object.entries({
   end: ['iso_ext_muneca', 'ext_muneca_lenta', 'iso_flex_muneca', 'flex_muneca_lenta', 'excentrico_muneca', 'press_suelo', 'press_banco', 'rdl',
@@ -370,6 +380,57 @@ for (const id of ['press_suelo', 'press_banco']) EXERCISES[id].fig = { ...EXERCI
 const TEMPLATES = {
   A: ['goblet', 'press_suelo', 'remo_silla', 'rdl', 'lateral', 'plancha'],
   B: ['zancada', 'press_hombros', 'remo_aros', 'swing', 'curl_martillo', 'triceps'],
+};
+
+// Huecos por patrón de movimiento: cada uno lista los ejercicios de la biblioteca por orden de preferencia (pesado → liviano → peso corporal).
+// El orden de declaración importa: slotOf(id) devuelve el primer hueco que lista el ejercicio.
+const SLOTS = {
+  empuje_h: { name: 'Empuje horizontal', ex: ['press_banco', 'press_suelo', 'flexiones'] },
+  empuje_inc: { name: 'Empuje inclinado', ex: ['press_banco', 'flexiones'] },
+  empuje_v: { name: 'Empuje vertical', ex: ['press_hombros'] },
+  traccion_v: { name: 'Tracción vertical', ex: ['dominadas', 'pullover'] },
+  traccion_h: { name: 'Tracción horizontal', ex: ['remo_aros', 'remo_silla', 'remo_inclinado'] },
+  rodilla: { name: 'Rodilla dominante', ex: ['goblet', 'sumo_kb'] },
+  unilateral: { name: 'Unilateral', ex: ['zancada', 'bulgara'] },
+  bisagra: { name: 'Bisagra', ex: ['rdl', 'swing', 'pm_una_pierna'] },
+  gluteo: { name: 'Glúteo', ex: ['hip_thrust', 'puente'] },
+  gemelos: { name: 'Gemelos', ex: ['gemelos_1pierna'] },
+  lateral: { name: 'Lateral', ex: ['lateral', 'elev_frontal'] },
+  deltoides_post: { name: 'Deltoides posterior', ex: ['face_pull', 'rot_ext_banda'] },
+  biceps: { name: 'Bíceps', ex: ['curl_martillo', 'curl_concentrado'] },
+  triceps: { name: 'Tríceps', ex: ['triceps', 'patada_triceps', 'press_frances'] },
+  abdominal: { name: 'Abdominal', ex: ['plancha', 'dead_bug'] },
+  isometrico: { name: 'Isométrico', ex: ['remo_aros_iso', 'curl_iso', 'sentadilla_pared', 'iso_pared'] },
+};
+
+// Planes: lista de días, cada día una lista de huecos con sus series. `ex` fija la preferencia cuando un hueco se repite en el plan.
+// Full body 2 días equivale a TEMPLATES.A/B (mismo orden de huecos).
+const PLANS = {
+  fb2: {
+    id: 'fb2',
+    name: 'Full body 2 días',
+    source: {
+      title: 'Mono Culturista: rangos por ejercicio, 3 series por ejercicio, cada músculo al menos 2 veces por semana',
+      url: 'https://www.youtube.com/@MonoCulturista',
+      videos: ['ioDqs84m9-Y', 'bJ2N1LdXkeo', 'xAAB_3xZ-Ho'],
+    },
+    days: [
+      {
+        name: 'Día A',
+        slots: [
+          { slot: 'rodilla', sets: 3 }, { slot: 'empuje_h', sets: 3 }, { slot: 'traccion_h', sets: 3, ex: 'remo_silla' },
+          { slot: 'bisagra', sets: 3, ex: 'rdl' }, { slot: 'lateral', sets: 3 }, { slot: 'abdominal', sets: 3 },
+        ],
+      },
+      {
+        name: 'Día B',
+        slots: [
+          { slot: 'unilateral', sets: 3 }, { slot: 'empuje_v', sets: 3 }, { slot: 'traccion_h', sets: 3, ex: 'remo_aros' },
+          { slot: 'bisagra', sets: 3, ex: 'swing' }, { slot: 'biceps', sets: 3 }, { slot: 'triceps', sets: 3 },
+        ],
+      },
+    ],
+  },
 };
 
 const EXPERIENCE = [

@@ -1,7 +1,7 @@
 // Reglas de XZ Fit, sin DOM: pesos sugeridos, calibración, progresión, modo dolor, volumen y calendario.
 // Funciones puras para poder probarlas con node (tests/unit.mjs).
 
-const REPS_MIN = 8, REPS_MAX = 12, TARGET_REPS = 10, TARGET_RIR = 2;
+const REPS_MIN = 8, REPS_MAX = 12, TARGET_RIR = 2;
 const START_FACTOR = 0.7;   // la primera vez se sugiere el 70 % del peso estimado: mejor quedarse corto
 const PAIN_CAP = 0.6;       // con la zona en fase 1–2, los ejercicios que la exigen van al 60 %
 const PAIN_MAX = 4;         // regla del video: dolor tolerable hasta 3–4 sobre 10
@@ -61,6 +61,67 @@ const roundDown = (steps, w) => { if (!steps.length) return 0; let best = steps[
 const stepUp = (steps, w) => steps.find((s) => s > w + 1e-9) ?? w;
 const stepDown = (steps, w) => { const lower = steps.filter((s) => s < w - 1e-9); return lower.length ? lower[lower.length - 1] : (steps[0] ?? w); };
 
+// ——— Planes ———
+// Un plan es una lista de días; cada día, una lista de huecos (patrones de movimiento de SLOTS) con sus series.
+// La rutina guarda ítems ya resueltos { slot, ex, pinned }. Los ejercicios propios ('c_…') no están en EXERCISES:
+// por eso toda función recibe getEx para buscarlos y nunca se re-resuelve un ítem sin hueco.
+const DEFAULT_SETS = 3;   // series de un ítem que no tiene hueco en el día del plan (propio o agregado a mano)
+const libraryEx = (id) => EXERCISES[id];
+// Primer hueco (en orden de declaración) que lista el ejercicio; null si ninguno (siempre null para los propios).
+const slotOf = (id) => Object.keys(SLOTS).find((slot) => SLOTS[slot].ex.includes(id)) ?? null;
+// ¿Se puede hacer con este equipo? Es la única regla de posibilidad: la de implFor.
+const possible = (id, equip, getEx = libraryEx) => { const ex = getEx(id); return !!(ex && implFor(ex, equip)); };
+// Primer ejercicio posible del hueco: prueba primero la preferencia del plan, saltea los excluidos y,
+// con bw, acepta solo los que se hacen con peso corporal. null = el hueco no tiene ejercicio posible.
+// Un hueco que no existe en SLOTS es un error de datos: falla fuerte (igual que resolvePlan), no devuelve null.
+function resolveSlot(slot, equip, { bw = false, exclude = [], pref = null, getEx = libraryEx } = {}) {
+  if (!SLOTS[slot]) throw new Error(`Hueco desconocido: ${slot}`);
+  const candidates = [pref, ...SLOTS[slot].ex].filter((id) => id && !exclude.includes(id));
+  // implFor solo se vuelve a evaluar con bw; sin bw alcanza con possible.
+  const fits = (id) => possible(id, equip, getEx) && (!bw || implFor(getEx(id), equip) === 'bw');
+  return candidates.find(fits) ?? null;
+}
+// Rutina recién armada desde los huecos del plan, sin fijados. La exclusión es por día (sin aros, A y B llevan remo en silla).
+// Un hueco sin ejercicio posible guarda igual un ejercicio (la preferencia o el primero del hueco) para mostrarlo como "Falta equipo".
+const resolvePlan = (plan, equip, opts = {}) => plan.days.map((day) => day.slots.reduce((items, { slot, ex: pref }) => {
+  const chosen = resolveSlot(slot, equip, { ...opts, pref: pref ?? null, exclude: items.map((it) => it.ex) });
+  return [...items, { slot, ex: chosen ?? pref ?? SLOTS[slot].ex[0], pinned: false }];
+}, []));
+// Re-resolución mínima de un día: solo cambia lo que dejó de ser posible y tiene hueco. Lo reemplazado queda sin fijar,
+// así el aviso de un fijado imposible sale una sola vez. No usa la preferencia del plan: el usuario puede haber reordenado.
+function resolveDay(items, equip, opts = {}) {
+  const day = [...items], notices = [];
+  day.forEach((item, i) => {
+    // Un ítem sin hueco, o con un hueco que ya no existe en SLOTS (dato persistido viejo), no se re-resuelve: queda por referencia.
+    if (!SLOTS[item.slot] || possible(item.ex, equip, opts.getEx)) return;
+    const others = day.filter((_, j) => j !== i).map((it) => it.ex);
+    const to = resolveSlot(item.slot, equip, { ...opts, exclude: others });
+    if (item.pinned) notices.push({ from: item.ex, to });
+    // Sin reemplazo se conserva el ejercicio ("Falta equipo"); un no fijado ya está en ese estado y no se toca.
+    if (to) day[i] = { slot: item.slot, ex: to, pinned: false };
+    else if (item.pinned) day[i] = { ...item, pinned: false };
+  });
+  return { items: day, notices, changed: day.some((it, i) => it !== items[i]) };
+}
+// Sin aros, el ejercicio de aros se reemplaza por su alternativa (NO_RINGS); el resto queda igual.
+const ringsSwap = (id, equip) => (!equip.rings && NO_RINGS[id] ? NO_RINGS[id] : id);
+// Migración: las plantillas A/B del usuario pasan tal cual y fijadas; sin aros se guarda el reemplazo que ya veía.
+const routineFromTemplates = (tpls, equip) => [tpls.A, tpls.B].map((ids) => ids.map((id) => {
+  const ex = ringsSwap(id, equip);
+  return { slot: slotOf(ex), ex, pinned: true };
+}));
+// Fecha del primer entreno guardado ('' si no hay): el inicio del plan para quien ya entrenaba.
+const firstWorkout = (sessions = []) => sessions.filter((s) => s.type === 'entreno').map((s) => s.date).sort()[0] ?? '';
+const activePlan = (state) => PLANS[state.plan?.id] || PLANS.fb2;
+const isDayOf = (plan, pos) => Number.isInteger(pos) && pos >= 0 && pos < plan.days.length;
+const dayIndex = (plan, pos) => (isDayOf(plan, pos) ? pos : 0);
+// Rotación: el próximo día es el siguiente al hecho, sin importar el calendario; una posición inválida vuelve al primero.
+const nextDay = (plan, pos) => (isDayOf(plan, pos) ? (pos + 1) % plan.days.length : 0);
+const weeksSince = (since, today) => (since ? Math.floor(daysBetween(since, today) / 7) : 0);
+// Rampa de entrada (−1 serie las 2 primeras semanas del plan) y descarga (−1); se suman y nunca queda menos de 1.
+const setsFor = (sets, weeks, deload) => Math.max(1, sets - (weeks < 2 ? 1 : 0) - (deload ? 1 : 0));
+const daySlot = (day, slot) => day.slots.find((s) => s.slot === slot) ?? null;
+
 // ——— Fuerza estimada ———
 // El 1RM se estima como peso corporal × coeficiente del ejercicio (novato hombre), ajustado por sexo, experiencia y edad.
 // Coeficientes propios y aproximados (no copiados de tablas comerciales). La altura casi no cambia el resultado; no se usa.
@@ -75,19 +136,27 @@ function strengthFactor(profile, ex) {
 const epley1RM = (w, reps) => w * (1 + reps / 30);
 const weightForReps = (oneRM, reps) => oneRM / (1 + reps / 30);
 const estimate1RM = (profile, ex) => (Number(profile.weight) || 70) * (ex.ratio || 0) * strengthFactor(profile, ex);
-// Peso sugerido la primera vez (serie de calibración de 10 repeticiones).
-const startWeight = (profile, ex, steps) => roundDown(steps, START_FACTOR * weightForReps(estimate1RM(profile, ex), TARGET_REPS));
-// Después de la serie de calibración: reps hechas + reps en reserva → 1RM estimado → peso de trabajo (10 reps dejando 2).
-function calibrate(w, reps, rir, steps) {
+// Rango de repeticiones de un ejercicio: el del hueco del plan, si no el del ejercicio, si no el de siempre (8–12).
+const repRange = (ex, spec) => spec?.reps ?? ex?.reps ?? [REPS_MIN, REPS_MAX];
+const repCenter = ([lo, hi]) => Math.round((lo + hi) / 2);
+// Peso sugerido la primera vez (serie de calibración al centro del rango: 10 repeticiones con 8–12).
+const startWeight = (profile, ex, steps, range = [REPS_MIN, REPS_MAX]) => roundDown(steps, START_FACTOR * weightForReps(estimate1RM(profile, ex), repCenter(range)));
+// Después de la serie de calibración: reps hechas + reps en reserva → 1RM estimado → peso de trabajo (centro del rango dejando 2).
+function calibrate(w, reps, rir, steps, range = [REPS_MIN, REPS_MAX]) {
   const e1rm = epley1RM(w, reps + (Number(rir) || 0));
-  return { e1rm: Math.round(e1rm * 10) / 10, w: roundDown(steps, weightForReps(e1rm, TARGET_REPS + TARGET_RIR)) };
+  return { e1rm: Math.round(e1rm * 10) / 10, w: roundDown(steps, weightForReps(e1rm, repCenter(range) + TARGET_RIR)) };
 }
-// Doble progresión: 12 en todas las series → sube un salto; alguna por debajo de 8 → baja un salto.
-function progress(w, sets, steps) {
+// ¿El ejercicio se mide en repeticiones dentro de un rango (con peso o con el propio cuerpo)? Los de tiempo no tienen rango.
+const hasRepRange = (ex) => ex.kind === 'peso' || ex.kind === 'reps';
+// Ejercicios con peso de la sesión cuyo peso no cambió (y que tienen rango): a esos se les dice en qué repeticiones suben.
+// Los topados por dolor o en descarga (capped) no progresan, así que no se les promete subida. Se cruza por id de ejercicio.
+const unchangedWeightItems = (session, isWeighted) => session.items.filter((x) => x.reps && !x.capped && isWeighted(x.ex) && !session.ups?.some((u) => u.ex === x.ex));
+// Doble progresión: el máximo del rango en todas las series → sube un salto; alguna por debajo del mínimo → baja un salto.
+function progress(w, sets, steps, [lo, hi] = [REPS_MIN, REPS_MAX]) {
   const done = sets.filter((s) => s.reps > 0);
   if (!done.length) return w;
-  if (done.every((s) => s.reps >= REPS_MAX)) return stepUp(steps, w);
-  if (done.some((s) => s.reps < REPS_MIN)) return stepDown(steps, w);
+  if (done.every((s) => s.reps >= hi)) return stepUp(steps, w);
+  if (done.some((s) => s.reps < lo)) return stepDown(steps, w);
   return w;
 }
 const painCap = (w, steps) => roundDown(steps, PAIN_CAP * w);
@@ -196,12 +265,12 @@ const DAY_KEYS = ['do', 'lu', 'ma', 'mi', 'ju', 'vi', 'sa'];
 const weekdayKey = (k) => DAY_KEYS[parseDay(k).getDay()];
 
 // ——— Semana y racha ———
-// Entrenos y rehabilitaciones de la semana actual, con su objetivo.
+// Entrenos y rehabilitaciones de la semana actual, con su objetivo (los entrenos, contra los días del plan activo).
 function weekStats(state, today) {
   const wk = weekKey(today), mine = state.sessions.filter((s) => weekKey(s.date) === wk);
   const phases = state.painMode ? Object.values(state.zones).map((z) => z.phase) : [];
   const rehabTarget = phases.includes(1) ? 14 : phases.includes(2) ? 4 : 0;   // fase 1: mañana y noche; fase 2: día por medio
-  return { train: mine.filter((s) => s.type === 'entreno').length, target: state.profile.days, rehab: mine.filter((s) => s.type === 'rehab').length, rehabTarget };
+  return { train: mine.filter((s) => s.type === 'entreno').length, target: activePlan(state).days.length, rehab: mine.filter((s) => s.type === 'rehab').length, rehabTarget };
 }
 // Semanas seguidas cumpliendo los días de entreno (la actual cuenta si ya se cumplió).
 function streak(state, today) {

@@ -20,6 +20,223 @@ const state = () => page.evaluate(() => JSON.parse(JSON.stringify(S)));
 const click = async (sel) => { await page.click(sel); await page.waitForTimeout(80); };
 
 let dl;
+// 0a. Motor de planes: migración, sincronización e inicio
+// Cada caso borra la base, guarda datos como los dejaba la v1.14 (templates A/B y plan con budget/week/next) y recarga.
+const errorsBeforePlans = errors.length;
+let ps;   // estado leído en este bloque (s se declara en la sección 1)
+const wipeDb = () => page.evaluate(() => new Promise((r) => { const q = indexedDB.deleteDatabase('tendon-fuerte'); q.onsuccess = q.onerror = q.onblocked = r; }));
+// putData guarda un estado crudo; buildV114 lo arma en la página (fecha las sesiones con today()/addDays) y saveV114 devuelve lo guardado para compararlo.
+const putData = (d) => page.evaluate((d) => new Promise((res) => {
+  const r = indexedDB.open('tendon-fuerte', 1);
+  r.onupgradeneeded = () => r.result.createObjectStore('kv');
+  r.onsuccess = () => { const t = r.result.transaction('kv', 'readwrite'); t.objectStore('kv').put(d, 'data'); t.oncomplete = () => { r.result.close(); res(); }; };
+}), d);
+const buildV114 = (o) => page.evaluate((o) => {
+  const old = { v: 1, onboarded: true, painMode: false, seenVersion: '1.14.1',
+    profile: { name: 'Vieja', sex: 'm', weight: '60', height: '165', age: '35', exp: 'novato', days: 2, ...o.profile },
+    equip: { db: { min: 2, max: 24, step: 2 }, kb: [], rings: false, bench: false, bar: false, band: false, machines: [], ...o.equip },
+    templates: { ...TEMPLATES, ...o.templates }, exlib: o.exlib || [], zones: {}, lifts: o.lifts || {}, checks: [], custom: [],
+    sessions: (o.sessions || []).map((x, i) => ({ id: 'v' + i, date: addDays(today(), -x.ago), type: 'entreno', tpl: 'A', items: x.items || [] })),
+    plan: { budget: 36, week: weekKey(today()), next: 'A', ...o.plan }, ...o.extra };
+  return old;
+}, o);
+const saveV114 = async (o) => { const old = await buildV114(o); await putData(old); return old; };
+const bootSaved = async (o = {}) => { await wipeDb(); const saved = await saveV114(o); await page.reload(); await page.waitForTimeout(400); return saved; };
+const homeTitle = () => page.locator('#view-home .card:has([data-action="start-workout"]) h3').textContent();
+const daySets = () => page.evaluate(() => planFor(dayIndex(activePlan(S), S.plan.pos)).filter((p) => !p.missing).map((p) => p.sets));
+const dayIds = (st, d) => st.routine.fb2[d].map((it) => it.ex);
+const pinnedNotice = async () => (await toastText()).includes('ya no se puede');
+await page.goto(URL);
+
+// CK-5: la rutina editada pasa tal cual y fijada (con aros y banco, así todo sigue siendo posible)
+const myEx = { id: 'c_mio', name: 'Mi remo en polea', kind: 'peso', impl: 'db', cat: 'tiron', tag: [], start: 0, note: '' };
+const editedTpl = { A: ['goblet', 'press_banco', 'remo_silla', 'rdl', 'lateral', 'plancha'], B: ['swing', 'zancada', 'remo_aros', 'press_hombros', 'triceps', 'curl_martillo', 'c_mio'] };
+await bootSaved({ templates: editedTpl, exlib: [myEx], equip: { rings: true, bench: true } });
+ps = await state();
+ok(JSON.stringify(dayIds(ps, 0)) === JSON.stringify(editedTpl.A) && JSON.stringify(dayIds(ps, 1)) === JSON.stringify(editedTpl.B), 'migración v1.14: la rutina editada queda igual, ítem por ítem y en el mismo orden');
+ok(ps.routine.fb2.flat().every((it) => it.pinned === true), 'migración v1.14: todos los ejercicios quedan fijados');
+ok(ps.routine.fb2[1][6].slot === null && !('templates' in ps), 'el ejercicio propio queda sin hueco y templates desaparece');
+ok(!(await pinnedNotice()), 'migrar una rutina posible no muestra avisos');
+
+// CK-6: next 'B' → pos 1, se quitan budget/week/next y lifts/sesiones no cambian
+const liftsB = { goblet: { w: 12, e1rm: 18 }, press_suelo: { w: 8 } };
+const sessionsB = [{ ago: 3, items: [{ ex: 'goblet', sets: [{ w: 12, reps: 10 }] }] }, { ago: 6, items: [{ ex: 'press_suelo', sets: [{ w: 8, reps: 11 }] }] }];
+const savedB = await bootSaved({ plan: { next: 'B' }, lifts: liftsB, sessions: sessionsB });
+ps = await state();
+ok(ps.plan.pos === 1 && ps.plan.id === 'fb2' && ['budget', 'week', 'next'].every((k) => !(k in ps.plan)), 'migración: next B → pos 1, sin budget/week/next');
+ok((await homeTitle()).startsWith('Día B'), 'migración: el inicio muestra el Día B que tocaba');
+ok(JSON.stringify(ps.lifts) === JSON.stringify(savedB.lifts) && JSON.stringify(ps.sessions) === JSON.stringify(savedB.sessions), 'migración: pesos y sesiones quedan iguales');
+ok(ps.plan.since === savedB.sessions[1].date, 'migración: el plan empieza con el primer entreno guardado');
+const migrated = JSON.stringify({ routine: ps.routine, plan: ps.plan });
+await page.reload(); await page.waitForTimeout(300); await page.reload(); await page.waitForTimeout(300);
+ps = await state();
+ok(JSON.stringify({ routine: ps.routine, plan: ps.plan }) === migrated, 'migración idempotente: recargar dos veces no cambia rutina ni plan');
+await click('[data-tab="settings"]');
+await page.setInputFiles('#import-file', { name: 'v114.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify({ app: 'tendon-fuerte', version: '1.14.1', data: savedB })) });
+await page.waitForTimeout(300);
+ps = await state();
+ok(JSON.stringify({ routine: ps.routine, plan: ps.plan }) === migrated, 'importar la misma copia de la v1.14 deja rutina y plan iguales');
+ok(await page.evaluate(() => JSON.stringify(withDefaults(S)) === JSON.stringify(S)), 'withDefaults sobre datos ya migrados no cambia nada');
+await bootSaved({ plan: { next: 'A' } });
+ok((await state()).plan.pos === 0, 'migración: next A → pos 0');
+
+// CK-7: el inicio del plan de un usuario migrado es su primer entreno (rampa solo si fue hace menos de 14 días)
+for (const [ago, sets] of [[20, 3], [14, 3], [13, 2]]) {
+  await bootSaved({ sessions: [{ ago }] });
+  const all = await daySets();
+  ok(all.length === 6 && all.every((n) => n === sets), `migrado con primer entreno hace ${ago} días: ${sets} series por ejercicio (${all.join(',')})`);
+}
+
+// CK-20 y CK-24: tarjeta de inicio "<día> · N ejercicios" y objetivo semanal por días del plan
+await bootSaved({ profile: { days: 3 } });
+ok((await homeTitle()).trim() === 'Día A · 6 ejercicios', 'inicio con el equipo por defecto: "Día A · 6 ejercicios"');
+const homeText = await page.locator('#view-home').textContent();
+ok(!homeText.includes('Entreno A') && !homeText.includes('Cuerpo completo') && homeText.includes('Full body 2 días'), 'el inicio ya no dice "Entreno A" ni "Cuerpo completo" y nombra el plan');
+ok(await page.locator('#view-home .week .dots i').count() === 2, 'con 3 días en el perfil y fb2, la tarjeta semanal tiene 2 entrenos de objetivo');
+ok(await page.locator('#view-home [data-action="start-workout"][data-day="0"]').count() === 1, 'el botón de empezar lleva el día del plan');
+await bootSaved({ equip: { db: null, kb: [12, 20], rings: true } });
+ok((await homeTitle()).trim() === 'Día A · 5 ejercicios', 'sin mancuernas el hueco lateral no tiene ejercicio posible: N baja a 5');
+ok(await page.evaluate(() => !implFor(EXERCISES.lateral, S.equip) && !implFor(EXERCISES.elev_frontal, S.equip)), 'implFor trata db: null como sin mancuernas');
+
+// CK-27: un plan inexistente vuelve a fb2 sin errores
+await bootSaved({ plan: { id: 'zzz', pos: 0 }, extra: { routine: { zzz: [] } } });
+ok((await state()).plan.id === 'fb2' && (await homeTitle()).startsWith('Día A · '), 'plan guardado "zzz": la app usa fb2 y el inicio muestra el Día A');
+
+// CK-32: sin aros, el remo en aros migra como remo en silla fijado y sin aviso
+await bootSaved();
+ps = await state();
+ok(ps.routine.fb2[1].some((it) => it.ex === 'remo_silla' && it.pinned) && !dayIds(ps, 1).includes('remo_aros'), 'migración sin aros: el Día B tiene el remo en silla fijado');
+ok(!(await pinnedNotice()), 'migración sin aros: no aparece el aviso de ejercicio fijado imposible');
+await page.reload(); await page.waitForTimeout(400);
+ok(!(await pinnedNotice()), 'migración sin aros: tampoco al recargar');
+
+// CK-12 (sincronización): un fijado que ya no es posible se reemplaza, se guarda sin fijar y avisa una sola vez
+await bootSaved({ templates: { A: ['goblet', 'press_banco', 'remo_silla', 'rdl', 'lateral', 'plancha'] } });
+ok((await toastText()).trim() === 'Press en banco con mancuernas ya no se puede con tu equipo: lo cambiamos por press en el suelo con mancuernas.', 'fijado imposible al arrancar: un solo aviso con el reemplazo');
+await page.reload(); await page.waitForTimeout(400);
+ok((await state()).routine.fb2[0][1].ex === 'press_suelo' && (await state()).routine.fb2[0][1].pinned === false && !(await pinnedNotice()), 'el reemplazo quedó guardado sin fijar y al recargar no vuelve a avisar');
+
+// CK-28: el estancamiento se busca en la rutina guardada (press en banco y curl concentrado no están en TEMPLATES)
+const stuckItems = [{ ex: 'press_banco', sets: [{ w: 10, reps: 10 }, { w: 10, reps: 10 }] }, { ex: 'curl_concentrado', sets: [{ w: 6, reps: 10 }, { w: 6, reps: 10 }] }];
+await bootSaved({ templates: { A: ['goblet', 'press_banco', 'remo_silla', 'rdl', 'curl_concentrado', 'plancha'] },
+  equip: { bench: true }, lifts: { press_banco: { w: 10 }, curl_concentrado: { w: 6 } }, sessions: [2, 5, 8].map((ago) => ({ ago, items: stuckItems })) });
+ok(await page.locator('#view-home >> text=¿Semana de descarga?').count() === 1, 'con 2 ejercicios de la rutina estancados 3 sesiones, el inicio ofrece la descarga');
+ok(errors.length === errorsBeforePlans, `motor de planes sin errores de JavaScript${errors.length > errorsBeforePlans ? ': ' + errors.slice(errorsBeforePlans).join(' | ') : ''}`);
+
+// 0b. Motor de planes: vista Entreno y rutina
+// Usuarios v1.14 inyectados en IndexedDB (bootSaved); cada caso edita la rutina por la pantalla y mira lo guardado.
+const errorsBeforeTrain = errors.length;
+const trainTab = () => click('[data-tab="train"]');
+const dayRoutine = (d) => page.evaluate((d) => JSON.parse(JSON.stringify(S.routine.fb2[d])), d);
+
+// Vista Entreno: días apilados desde el plan, "toca hoy" y botones con el día del plan
+await bootSaved();
+await trainTab();
+ok(JSON.stringify(await page.locator('#view-train h2').allTextContents()) === JSON.stringify(['Día A · toca hoy', 'Día B']), 'Entreno: apila "Día A · toca hoy" y "Día B" desde el plan');
+ok(await page.locator('#view-train .ex').count() === 12, 'Entreno: con el equipo por defecto muestra los 12 ejercicios');
+ok(await page.locator('#view-train [data-action="start-workout"][data-day="0"]').count() === 1 && await page.locator('#view-train [data-action="start-workout"][data-day="1"]').count() === 1, 'Entreno: un botón de empezar por día con data-day 0 y 1');
+const trainHead = await page.locator('#view-train p.muted').first().textContent();
+ok(trainHead.includes('Full body 2 días') && trainHead.includes('cada ejercicio sube dentro de su rango') && !trainHead.includes('Cuerpo completo'), 'Entreno: el encabezado nombra el plan y el rango, no "Cuerpo completo A/B"');
+await bootSaved({ plan: { next: 'B' } });
+await trainTab();
+ok(JSON.stringify(await page.locator('#view-train h2').allTextContents()) === JSON.stringify(['Día A', 'Día B · toca hoy']), 'Entreno: con pos 1 "toca hoy" pasa al Día B');
+
+await bootSaved({ equip: { bench: true } });
+// "+ Agregar": ejercicio de la biblioteca (con su hueco) y ejercicio propio (sin hueco), ambos fijados
+await trainTab(); await click('[data-action="edit-routine"]');
+await click('[data-action="edit-day"][data-day="1"]');
+await click('#view-train [data-action="routine-pick"][data-day="1"]:not([data-i])');
+await page.waitForSelector('#pickersheet[open]');
+await click('#pickersheet [data-ex="pullover"]');
+let dayB = await dayRoutine(1);
+ok(dayB.length === 7 && JSON.stringify(dayB.at(-1)) === JSON.stringify({ slot: await page.evaluate(() => slotOf('pullover')), ex: 'pullover', pinned: true }) && dayB.at(-1).slot !== null, 'agregar un ejercicio de la biblioteca: { slot: slotOf(id), ex, pinned: true }');
+await click('#view-train [data-action="routine-pick"][data-day="1"]:not([data-i])');
+await click('#pickersheet [data-action="exform"]:not([data-id])');
+await page.fill('#x-name', 'Remo en polea propio');
+await click('[data-action="exform-save"]');
+dayB = await dayRoutine(1);
+const customId = dayB.at(-1).ex;
+ok(customId.startsWith('c_') && dayB.at(-1).slot === null && dayB.at(-1).pinned === true, 'agregar un ejercicio propio: { slot: null, ex: c_…, pinned: true }');
+
+// Subir y Quitar actúan solo en su día
+const dayABefore = await dayRoutine(0);
+await click('#view-train [data-action="routine-move"][data-day="1"][data-i="7"][data-d="-1"]');
+dayB = await dayRoutine(1);
+ok(dayB[6].ex === customId && dayB[7].ex === 'pullover' && JSON.stringify(await dayRoutine(0)) === JSON.stringify(dayABefore), 'Subir reordena dentro del Día B y no toca el Día A');
+await click('#view-train [data-action="routine-del"][data-day="1"][data-i="6"]');
+dayB = await dayRoutine(1);
+ok(dayB.length === 7 && !dayB.some((it) => it.ex === customId) && JSON.stringify(await dayRoutine(0)) === JSON.stringify(dayABefore), 'Quitar saca el ítem del Día B y deja intacto el Día A');
+await page.evaluate(() => routineSet(1, dayItems(1).slice(0, 1)));
+await click('#view-train [data-action="routine-del"][data-day="1"][data-i="0"]');
+ok((await dayRoutine(1)).length === 1 && (await toastText()).includes('Dejá al menos un ejercicio.'), 'no deja quitar el último ejercicio de un día');
+
+// CK-23: "Volver al plan original" re-resuelve los huecos sin fijados y no toca Mis ejercicios
+const exlibBefore = await page.evaluate(() => JSON.stringify(S.exlib));
+ok(JSON.parse(exlibBefore).some((c) => c.id === customId), 'antes de volver al plan original el ejercicio propio está en Mis ejercicios');
+await click('[data-action="routine-reset"]');
+ok(await page.evaluate(() => JSON.stringify(S.routine.fb2) === JSON.stringify(resolvePlan(activePlan(S), S.equip, { getEx, bw: S.plan.bw }))), 'CK-23: "Volver al plan original" deja la rutina igual a resolver los huecos');
+ok((await state()).routine.fb2.flat().every((it) => it.pinned === false), 'CK-23: tras volver al plan original no queda nada fijado');
+ok(await page.evaluate(() => JSON.stringify(S.exlib)) === exlibBefore, 'CK-23: el ejercicio propio sigue en Mis ejercicios');
+
+// Eliminar un ejercicio propio lo quita de todos los días
+await click('[data-action="edit-day"][data-day="0"]');
+await click('#view-train [data-action="routine-pick"][data-day="0"]:not([data-i])');
+await page.waitForSelector('#pickersheet[open]');
+await click(`#pickersheet [data-ex="${customId}"]`);
+ok((await dayRoutine(0)).some((it) => it.ex === customId), 'el ejercicio propio vuelve a estar en la rutina');
+await click('[data-action="edit-day"][data-day="1"]');
+await click('#view-train [data-action="routine-pick"][data-day="1"]:not([data-i])');
+await click(`#pickersheet [data-ex="${customId}"]`);
+await click('#view-train [data-action="routine-pick"][data-day="1"]:not([data-i])');
+await click(`#pickersheet [data-action="exform"][data-id="${customId}"]`);
+await click('#exformsheet [data-action="exform-del"]');
+ok((await state()).exlib.length === 0 && !(await state()).routine.fb2.flat().some((it) => it.ex === customId), 'eliminar el ejercicio propio lo quita de todos los días de la rutina');
+await click('#pickersheet [data-action="close"]');
+ok(errors.length === errorsBeforeTrain, `vista Entreno y rutina sin errores de JavaScript${errors.length > errorsBeforeTrain ? ': ' + errors.slice(errorsBeforeTrain).join(' | ') : ''}`);
+
+// 8b1. Editor por día y aviso de fijado
+await bootSaved({ equip: { bench: true }, exlib: [myEx], templates: { B: ['swing', 'zancada', 'remo_silla', 'c_mio'] } });
+await trainTab(); await click('[data-action="edit-routine"]');
+ok(JSON.stringify(await page.locator('#view-train .chips .chip').allTextContents()) === JSON.stringify(['Día A', 'Día B']), 'CK-22: Editar rutina muestra las pestañas "Día A" y "Día B"');
+await click('#view-train [data-action="routine-pick"][data-day="0"][data-i="1"]');
+await page.waitForSelector('#pickersheet[open]');
+ok((await page.locator('#pickersheet h2').first().textContent()) === 'Empuje horizontal · mismo hueco', 'CK-22: el selector abre con el hueco "Empuje horizontal · mismo hueco"');
+ok(await page.locator('#pickersheet [data-ex]').first().getAttribute('data-ex') === 'press_banco', 'CK-22: el primer ejercicio del selector es press en banco, antes de Mis ejercicios');
+const sameSlot = await page.locator('#pickersheet h2').first().evaluate((h) => { const ids = []; for (let n = h.nextElementSibling; n && n.tagName !== 'H2'; n = n.nextElementSibling) { const id = n.dataset.ex; if (id) ids.push(id); } return ids; });
+ok(JSON.stringify(sameSlot) === JSON.stringify(['press_banco', 'press_suelo', 'flexiones']), 'CK-22: el mismo hueco lista press en banco, press en el suelo y flexiones');
+ok(await page.evaluate(() => { const v = [...document.querySelectorAll('#pickersheet [data-ex]')].map((e) => e.dataset.ex); return v.length === new Set(v).size; }), 'en el selector de cambio cada [data-ex] aparece una sola vez');
+await click('#pickersheet [data-ex="press_banco"]');
+const pinnedBench = { slot: 'empuje_h', ex: 'press_banco', pinned: true };
+ok(JSON.stringify((await dayRoutine(0))[1]) === JSON.stringify(pinnedBench), 'CK-22: elegir press en banco lo deja fijado');
+await page.reload(); await page.waitForTimeout(400);
+ok(JSON.stringify((await dayRoutine(0))[1]) === JSON.stringify(pinnedBench), 'CK-22: el press en banco fijado sobrevive al recargar');
+
+// Las pestañas muestran un solo día en edición; al salir vuelven los dos
+await trainTab(); await click('[data-action="edit-routine"]');
+await click('[data-action="edit-day"][data-day="1"]');
+ok(JSON.stringify(await page.locator('#view-train h2').allTextContents()) === JSON.stringify(['Día B']) && await page.locator('#view-train .ex').count() === 4, 'la pestaña Día B muestra solo los ítems del Día B');
+const hasSameSlot = () => page.locator('#pickersheet h2', { hasText: 'mismo hueco' }).count();
+await click('#view-train [data-action="routine-pick"][data-day="1"][data-i="3"]');
+await page.waitForSelector('#pickersheet[open]');
+ok(await hasSameSlot() === 0, 'un ejercicio propio (sin hueco) no muestra la sección "mismo hueco"');
+await click('#pickersheet [data-action="close"]');
+await click('#view-train [data-action="routine-pick"][data-day="1"]:not([data-i])');
+await page.waitForSelector('#pickersheet[open]');
+ok(await hasSameSlot() === 0, '"+ Agregar" no muestra la sección "mismo hueco"');
+await click('#pickersheet [data-action="close"]');
+await click('[data-action="edit-routine"]');
+ok(JSON.stringify(await page.locator('#view-train h2').allTextContents()) === JSON.stringify(['Día A · toca hoy', 'Día B']), 'al salir de editar vuelven los dos días apilados');
+
+// CK-12: quitar el banco con el press en banco fijado avisa una sola vez
+await click('[data-tab="settings"]');
+await page.uncheck('#view-settings [data-action="eq-flag"][data-k="bench"]');
+ok((await toastText()).trim() === 'Press en banco con mancuernas ya no se puede con tu equipo: lo cambiamos por press en el suelo con mancuernas.', 'CK-12: al quitar el banco aparece el aviso del fijado');
+ok(JSON.stringify((await dayRoutine(0))[1]) === JSON.stringify({ slot: 'empuje_h', ex: 'press_suelo', pinned: false }), 'CK-12: el ítem pasa a press en el suelo sin fijar');
+await page.reload(); await page.waitForTimeout(400);
+ok(!(await pinnedNotice()), 'CK-12: el aviso no vuelve a aparecer al recargar');
+await click('[data-tab="train"]'); await click('[data-tab="home"]');
+ok(!(await pinnedNotice()), 'CK-12: ni al volver al inicio');
+
 // 1. Primer uso
 await page.goto(URL);
 await page.evaluate(() => new Promise((r) => { const q = indexedDB.deleteDatabase('tendon-fuerte'); q.onsuccess = q.onerror = q.onblocked = r; }));
@@ -58,6 +275,8 @@ ok(Object.keys(s.zones).join() === 'codo_lat,muneca' && s.zones.codo_lat.pain0 =
 ok(s.painMode === false, 'el modo dolor queda apagado');
 ok(await page.locator('[data-action="pain-mode-on"]').count() === 1, 'sugiere activar el modo dolor, sin activarlo solo');
 await shot('05-inicio');
+ok(await page.evaluate(() => S.plan.since === today() && planFor(dayIndex(activePlan(S), S.plan.pos)).every((p) => p.missing || p.sets === 2)),
+  'usuario nuevo: el plan empieza hoy y el primer entreno lleva 2 series por ejercicio (rampa de entrada)');
 
 // 2. Entreno con el modo dolor apagado: pesos completos
 await click('[data-tab="train"]');
@@ -115,7 +334,115 @@ await shot('18-resumen');
 await click('#sumsheet [data-action="close"]');
 ok((await page.locator('#view-home .week .dots i.on').count()) === 1, 'Inicio muestra 1 entreno hecho esta semana');
 ok(s.lifts.goblet && s.lifts.goblet.w === 12, 'el goblet queda calibrado');
-ok(s.plan.next === 'B', 'el próximo entreno es el B');
+ok(s.plan.pos === 1, 'el próximo entreno es el B (Día B)');
+
+// 4b. Rotación, rango visible y sesiones
+// Cada caso inyecta un usuario v1.14 (bootSaved); al final se restaura el usuario del flujo principal.
+const errorsBefore4b = errors.length;
+const mainUser = await state();
+const cards = () => page.locator('#wsheet .card:not(.warm)');
+const card = (name) => cards().filter({ hasText: name }).first();
+const openDay = async (day, from = 'home') => { await click(`[data-tab="${from}"]`); await click(`#view-${from} [data-action="start-workout"][data-day="${day}"]`); await page.waitForSelector('#wsheet[open]'); };
+// Marca la primera serie del primer ejercicio y termina; sin dolor activo se cae directo al resumen.
+const finishQuick = async () => {
+  await cards().first().locator('input[data-w="0.0.reps"]').fill('10');
+  if (await cards().first().locator('select[data-w="0.0.rir"]').count()) await cards().first().locator('select[data-w="0.0.rir"]').selectOption('2');
+  await click('#wsheet [data-action="set-done"][data-i="0"][data-j="0"]');
+  await click('#wsheet .dlg-head [data-action="finish-workout"]');
+  await page.waitForSelector('#sumsheet[open]');
+};
+const closeSummary = () => click('#sumsheet [data-action="close"]');
+
+// CK-19, CK-21, CK-25 y calibración con el rango: Día A con 3 días en el perfil y plan de 20 días
+await bootSaved({ profile: { days: 3 }, sessions: [{ ago: 20 }], equip: { db: { min: 2, max: 24, step: 2 } } });
+await openDay(0);
+ok(await cards().count() === 6, 'Día A: 6 ejercicios en el entreno');
+const setCounts = await cards().evaluateAll((els) => els.map((e) => e.querySelectorAll('.set:not(.head)').length));
+ok(setCounts.every((n) => n === 3), `CK-19: con 3 días en el perfil y fuera de la rampa cada ejercicio tiene 3 series (${setCounts.join(',')})`);
+ok((await card('Elevaciones laterales').textContent()).includes('× 12–20') && (await card('Sentadilla goblet').textContent()).includes('× 6–12'), 'CK-21: laterales muestran "× 12–20" y la goblet "× 6–12"');
+ok(await card('Elevaciones laterales').locator('input[data-w$=".0.reps"]').getAttribute('placeholder') === '16' && await card('Sentadilla goblet').locator('input[data-w$=".0.reps"]').getAttribute('placeholder') === '9', 'el placeholder de reps es el centro del rango (16 y 9)');
+ok((await page.locator('#wsheet .dlg-head strong').textContent()) === 'Día A', 'el encabezado del entreno es el nombre del día');
+// Calibración: 6 kg × 15 reps con RIR 2, rango [12, 20] apunta a 18 reps → 4 kg (sin rango daría 6)
+const lat = card('Elevaciones laterales'), latI = await cards().evaluateAll((els) => els.findIndex((e) => e.textContent.includes('Elevaciones laterales')));
+await lat.locator(`input[data-w="${latI}.0.w"]`).fill('6');
+await lat.locator(`input[data-w="${latI}.0.reps"]`).fill('15');
+await lat.locator(`select[data-w="${latI}.0.rir"]`).selectOption('2');
+await click(`#wsheet [data-action="set-done"][data-i="${latI}"][data-j="0"]`);
+ok((await state()).lifts.lateral.w === 4, 'la calibración usa el rango: 6 kg × 15 con RIR 2 deja lateral en 4 kg');
+const plI = await cards().evaluateAll((els) => els.findIndex((e) => e.textContent.includes('Plancha')));
+await click(`#wsheet [data-action="set-done"][data-i="${plI}"][data-j="0"]`);
+await click('#wsheet .dlg-head [data-action="finish-workout"]');
+await page.waitForSelector('#sumsheet[open]');
+const sumText = await page.locator('#sumsheet').textContent();
+ok(sumText.includes('¡Día A hecho!') && sumText.includes('cuando hagas 20 en todas, sube') && sumText.includes('Próximo: Día B'), 'CK-21: el resumen dice "cuando hagas 20 en todas, sube" y "Próximo: Día B"');
+const holdsText = sumText.split('Mismo peso la próxima')[1] || '';
+ok(holdsText.includes('Elevaciones laterales') && !holdsText.includes('Plancha'), 'el aviso de subida sale en laterales y no en la plancha (por tiempo)');
+s = await state();
+const sess = s.sessions[0], latItem = sess.items.find((i) => i.ex === 'lateral');
+ok(sess.plan === 'fb2' && sess.day === 0 && sess.tpl === 'A' && JSON.stringify(latItem.reps) === '[12,20]', 'CK-25: la sesión guarda plan fb2, day 0, tpl A y reps [12, 20] en laterales');
+ok(sess.items.find((i) => i.ex === 'plancha').reps === undefined, 'los ejercicios por tiempo no guardan rango');
+await closeSummary();
+ok(s.plan.pos === 1, 'CK-14: tras el Día A el próximo es el Día B');
+
+// CK-14: rotación A → B → A, entreno B a mano cuando tocaba A y fechas corridas sin entrenar
+await click('[data-tab="home"]');
+ok((await homeTitle()).startsWith('Día B'), 'CK-14: el inicio propone el Día B');
+await openDay(1); await finishQuick(); await closeSummary();
+ok((await state()).plan.pos === 0 && (await homeTitle()).startsWith('Día A'), 'CK-14: hecho el Día B el inicio propone el Día A');
+await openDay(1, 'train'); await finishQuick(); await closeSummary();
+ok((await state()).plan.pos === 0, 'CK-14: el Día B empezado a mano cuando tocaba el A deja como próximo el Día A');
+await page.evaluate(() => { S.sessions.forEach((x) => { x.date = addDays(x.date, -5); }); persist(); });
+await page.reload(); await page.waitForTimeout(400);
+ok((await homeTitle()).startsWith('Día A'), 'CK-14: con las fechas corridas varios días sigue proponiendo el día que tocaba');
+
+// CK-25: una sesión vieja con solo tpl se lee en el historial
+// La sesión vieja lleva una letra que ninguna sesión nueva usa (fb2 solo tiene A y B), así que la fila solo puede salir de leer tpl.
+await page.evaluate(() => { S.sessions.unshift({ id: 'old-tpl', date: '2025-03-07', type: 'entreno', tpl: 'C', items: [] }); persist(); });
+await page.reload(); await page.waitForTimeout(400);
+await click('[data-tab="history"]');
+ok(await page.locator('#view-history .sess', { hasText: 'Entreno C' }).count() === 1, 'CK-25: el historial muestra la sesión vieja con solo tpl (sin plan ni day)');
+
+// CK-26: sin el equipo de un hueco el ítem dice "Falta equipo" y el entreno empieza con los demás
+await bootSaved({ equip: { db: null, kb: [12, 20], rings: true } });
+await click('[data-tab="train"]');
+ok((await page.locator('#view-train').textContent()).includes('Falta equipo'), 'CK-26: el entreno muestra "Falta equipo" en el ítem sin ejercicio posible');
+await openDay(0, 'train');
+ok(await cards().count() === 5 && !(await page.locator('#wsheet').textContent()).includes('Elevaciones laterales'), 'CK-26: el entreno empieza con 5 ítems, sin el faltante');
+await click('#wsheet [data-action="cancel-workout"]');
+ok(errors.length === errorsBefore4b, `rotación, rango y sesiones sin errores de JavaScript${errors.length > errorsBefore4b ? ': ' + errors.slice(errorsBefore4b).join(' | ') : ''}`);
+
+// progress() recibe el rango del ejercicio: laterales (12–20) suben con 3 × 20 y se quedan con 3 × 12
+const finishLaterales = async (reps) => {
+  await openDay(0);
+  const i = await cards().evaluateAll((els) => els.findIndex((e) => e.textContent.includes('Elevaciones laterales')));
+  for (let j = 0; j < 3; j++) {
+    await card('Elevaciones laterales').locator(`input[data-w="${i}.${j}.reps"]`).fill(String(reps));
+    await card('Elevaciones laterales').locator(`select[data-w="${i}.${j}.rir"]`).selectOption('2');
+    await click(`#wsheet [data-action="set-done"][data-i="${i}"][data-j="${j}"]`);
+  }
+  await click('#wsheet .dlg-head [data-action="finish-workout"]');
+  await page.waitForSelector('#sumsheet[open]');
+  const lift = (await state()).lifts.lateral.w;
+  await closeSummary();
+  return lift;
+};
+await bootSaved({ sessions: [{ ago: 20 }], lifts: { lateral: { w: 4, e1rm: 8 } }, equip: { db: { min: 2, max: 24, step: 2 } } });
+ok(await finishLaterales(20) === 6, 'progress con rango: laterales 3 × 20 (tope de 12–20) suben un salto, de 4 a 6 kg');
+await bootSaved({ sessions: [{ ago: 20 }], lifts: { lateral: { w: 4, e1rm: 8 } }, equip: { db: { min: 2, max: 24, step: 2 } } });
+ok(await finishLaterales(12) === 4, 'progress con rango: laterales 3 × 12 (mínimo, no el tope) no cambian de peso');
+
+// Modo dolor con la zona en brote: el remo pasa a su variante amable (sin aros, el isométrico del curl)
+await bootSaved({ extra: { painMode: true, zones: { codo_lat: { side: 'der', pain0: 5, phase: 1, since: '2026-10-01', load: 2, secs: 30 } } } });
+await page.evaluate(() => { S.checks.push({ id: 'ck', zone: 'codo_lat', val: 'peor', date: today() }); render(); });
+await click('[data-tab="train"]');
+const altName = await page.evaluate(() => EXERCISES.curl_iso.name);
+const altRow = page.locator('#view-train .ex').filter({ hasText: 'variante amable' });
+ok(await altRow.count() >= 1 && (await altRow.first().textContent()).includes(altName), `modo dolor en brote: el remo muestra "variante amable" con ${altName}`);
+
+// Se restaura el usuario del flujo principal
+await wipeDb(); await putData(mainUser); await page.reload(); await page.waitForTimeout(400);
+await click('[data-tab="home"]');
+s = await state();
 
 // 5. Rehabilitación
 await click('[data-action="start-rehab"]');
@@ -185,22 +512,24 @@ s = await state();
 ok(s.equip.machines.length === 1 && s.equip.machines[0].step === 2.5, 'agrega una máquina con su rango de peso');
 await click('[data-tab="train"]');
 await click('[data-action="edit-routine"]');
-await click('#view-train [data-action="routine-pick"][data-tpl="A"][data-i="1"]');
+await click('[data-action="edit-day"][data-day="0"]');
+await click('#view-train [data-action="routine-pick"][data-day="0"][data-i="1"]');
 await page.waitForSelector('#pickersheet[open]');
 ok(!(await page.locator('#pickersheet [data-ex="press_banco"]').isDisabled()), 'con banco, el press en banco se puede elegir');
 ok(!(await page.locator('#pickersheet [data-ex="dominadas"]').isDisabled()), 'con aros, las dominadas se pueden hacer en aros');
 await shot('15-selector');
 await click('#pickersheet [data-ex="press_banco"]');
-ok((await state()).templates.A[1] === 'press_banco', 'cambia el press en el suelo por press en banco');
-await click('#view-train [data-action="routine-pick"][data-tpl="B"]:not([data-i])');
+ok(await page.evaluate(() => S.routine.fb2[0][1].ex === 'press_banco' && S.routine.fb2[0][1].pinned), 'cambia el press en el suelo por press en banco');
+await click('[data-action="edit-day"][data-day="1"]');
+await click('#view-train [data-action="routine-pick"][data-day="1"]:not([data-i])');
 await click('#pickersheet [data-action="exform"]');
 await page.fill('#x-name', 'Jalón en polea'); await page.selectOption('#x-impl', 'm:' + s.equip.machines[0].id);
 await click('#exformsheet [data-action="xf-tag"][data-v="codo_lat"]');
 await click('[data-action="exform-save"]');
 s = await state();
-ok(s.exlib.length === 1 && s.exlib[0].impl.startsWith('m:') && s.templates.B.at(-1) === s.exlib[0].id, 'crea un ejercicio propio con la máquina y lo suma al día B');
-await click('#view-train [data-action="routine-move"][data-tpl="B"][data-i="6"][data-d="-1"]');
-ok((await state()).templates.B[5] === s.exlib[0].id, 'reordena la rutina');
+ok(s.exlib.length === 1 && s.exlib[0].impl.startsWith('m:') && s.routine.fb2[1].at(-1).ex === s.exlib[0].id && s.routine.fb2[1].at(-1).slot === null && s.routine.fb2[1].at(-1).pinned, 'crea un ejercicio propio con la máquina y lo suma al día B');
+await click('#view-train [data-action="routine-move"][data-day="1"][data-i="6"][data-d="-1"]');
+ok((await state()).routine.fb2[1][5].ex === s.exlib[0].id, 'reordena la rutina');
 await shot('16-editar-rutina');
 await click('[data-action="edit-routine"]');
 const jalon = page.locator('#view-train .ex', { hasText: 'Jalón en polea' });
@@ -212,7 +541,7 @@ await page.check('#view-settings [data-action="eq-plates"]');
 ok((await state()).equip.db.plates.on === true, 'activa mancuernas de discos');
 ok((await page.locator('#view-settings').textContent()).includes('Pesos posibles'), 'muestra los pesos posibles');
 await click('[data-tab="train"]');
-await click('#view-train [data-action="start-workout"][data-tpl="A"]');
+await click('#view-train [data-action="start-workout"][data-day="0"]');
 ok(await page.locator('#wsheet .plates').count() > 0, 'en la sesión muestra los discos por lado');
 await shot('19-discos');
 await click('#wsheet [data-action="cancel-workout"]');
@@ -253,7 +582,11 @@ await page.evaluate(() => {
 });
 await click('[data-tab="home"]');
 ok(await page.locator('[data-action="deload"]').count() === 1, 'sugiere semana de descarga con 2 ejercicios estancados');
+const rdlPlan = () => page.evaluate(() => { const it = activePlan(S).days.flatMap((_, d) => planFor(d)).find((x) => x.ex.id === 'rdl'); return { sets: it.sets, w: it.w, steps: weightSteps(S.equip, it.impl) }; });
+const rdlNormal = await rdlPlan();
 await click('[data-action="deload"]');
+const rdlDeload = await rdlPlan();
+ok(rdlDeload.sets === Math.max(1, rdlNormal.sets - 1) && rdlDeload.w === await page.evaluate(([steps, w]) => roundDown(steps, w * 0.9), [rdlNormal.steps, rdlNormal.w]) && rdlDeload.w < rdlNormal.w, 'la descarga baja una serie y deja el peso al 90 %');
 await click('[data-tab="train"]');
 ok((await page.locator('#view-train').textContent()).includes('Semana de descarga'), 'el entreno avisa la semana de descarga');
 await click('#view-train [data-action="deload-off"]');
@@ -297,21 +630,29 @@ ok(await page.locator('#view-home h1').count() === 1, 'abre sin conexión');
 await ctx.setOffline(false);
 
 // 11. Migración: datos guardados por la versión 1.0 (sin rutina, preferencias ni equipo extra)
-await page.evaluate(() => new Promise((res) => {
-  const old = { v: 1, onboarded: true, painMode: true, profile: { name: 'Viejo', sex: 'h', weight: '75', height: '', age: '40', exp: 'novato', days: 2 },
+await putData({ v: 1, onboarded: true, painMode: true, profile: { name: 'Viejo', sex: 'h', weight: '75', height: '', age: '40', exp: 'novato', days: 2 },
     equip: { db: { min: 2, max: 24, step: 2 }, kb: [12], rings: false }, zones: { codo_lat: { side: 'der', pain0: 5, phase: 1, since: '2026-10-01', load: 2, secs: 45 } },
     lifts: { goblet: { w: 12, e1rm: 18 } }, sessions: [{ id: 'x', date: '2026-10-10', type: 'entreno', tpl: 'A', items: [{ ex: 'goblet', sets: [{ w: 12, reps: 10 }] }] }], checks: [], custom: [],
-    plan: { budget: 36, week: '2026-10-05', next: 'B' }, rem: { am: '08:00', pm: '20:00', train: ['lu'], trainAt: '19:00' } };
-  const r = indexedDB.open('tendon-fuerte', 1);
-  r.onsuccess = () => { const t = r.result.transaction('kv', 'readwrite'); t.objectStore('kv').put(old, 'data'); t.oncomplete = () => { r.result.close(); res(); }; };
-}));
+    plan: { budget: 36, week: '2026-10-05', next: 'B' }, rem: { am: '08:00', pm: '20:00', train: ['lu'], trainAt: '19:00' } });
 await page.reload(); await page.waitForTimeout(400);
 s = await state();
-ok(s.profile.name === 'Viejo' && s.templates.A.length === 6 && s.prefs.rest === 90 && Array.isArray(s.equip.machines), 'migra datos de la v1.0 con los valores nuevos por defecto');
+ok(s.profile.name === 'Viejo' && s.routine.fb2.length === 2 && s.routine.fb2.every((d) => d.length === 6) && s.plan.pos === 1 && !('next' in s.plan) && s.prefs.rest === 90 && Array.isArray(s.equip.machines), 'migra datos de la v1.0 con los valores nuevos por defecto');
 ok(await page.locator('#view-home .card').count() > 0 && await page.locator('#view-home >> text=Novedades de la versión').count() === 1, 'quien venía de antes ve la tarjeta de novedades');
 await click('[data-tab="train"]');
 ok(await page.locator('#view-train .ex').count() >= 12, 'la rutina se arma con los datos viejos');
 
+// Borrar todos los datos deja una rutina válida: tocar Banco en el alta no rompe el aviso del banco
+const errorsBeforeReset = errors.length;
+await click('[data-tab="settings"]');
+await click('[data-action="reset"]');
+await page.waitForSelector('#onb[open]');
+await click('[data-action="onb-next"]');
+await page.fill('#o-weight', '70');
+await click('[data-action="onb-next"]');
+await page.locator('#onb [data-action="eq-flag"][data-k="bench"]').check({ force: true });
+await page.waitForTimeout(80);
+ok(errors.length === errorsBeforeReset, `reset → alta → Banco sin errores de JavaScript${errors.length > errorsBeforeReset ? ': ' + errors.slice(errorsBeforeReset).join(' | ') : ''}`);
+errors.length = errorsBeforeReset;
 ok(errors.length === 0, `sin errores de JavaScript${errors.length ? ': ' + errors.join(' | ') : ''}`);
 await browser.close();
 console.log(failures ? `\n${failures} fallaron` : '\nTodo OK');
