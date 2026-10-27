@@ -224,6 +224,11 @@ button.add-ex { width: 100%; }
 .set.done .n { color: var(--acc-fg); }
 .set.done .ok { background: var(--acc); border-color: var(--acc); color: var(--acc-ink); }
 .set.done input, .set.done select { opacity: .6; }
+.rir-help { font: inherit; color: var(--acc-fg); display: inline-flex; align-items: center; justify-content: center; gap: 4px; min-height: 28px; }
+.rir-help b { width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid currentColor; display: grid; place-items: center; font-size: 11px; line-height: 1; }
+.rir-help[aria-expanded="true"] b { background: var(--acc); border-color: var(--acc); color: var(--acc-ink); }
+.note.rir-note { margin: 4px 0 6px; line-height: 1.45; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .note { font-size: 13px; padding: 8px 10px; border-radius: 10px; background: var(--card2); margin-top: 8px; }
 .note.pain { background: var(--note-pain-bg); color: var(--note-pain-fg); }
 .note.acc { background: var(--note-acc-bg); color: var(--note-acc-fg); }

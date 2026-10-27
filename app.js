@@ -2,7 +2,7 @@
 // (IndexedDB). Los identificadores internos siguen siendo "tendon-fuerte" para no perder los datos ya guardados.
 // Protocolo de tendones del video de Jeremy Ethier con Keith Baar y Coach Q; reglas en logic.js, bocetos en figures.js.
 
-const APP_VERSION = '1.18.0';
+const APP_VERSION = '1.18.1';
 const DAY_NAMES = { lu: 'Lu', ma: 'Ma', mi: 'Mi', ju: 'Ju', vi: 'Vi', sa: 'Sá', do: 'Do' };
 const SIDES = { der: 'derecha', izq: 'izquierda', ambos: 'ambos lados' };
 const REST_SECS = 90, ISO_REST = 60;
@@ -439,6 +439,8 @@ function startWorkout(day) {
   if (S.painMode) for (const [zone, z] of Object.entries(S.zones)) if (z.phase < 3) warm.push({ txt: `Isométrico de ${zoneName(zone).toLowerCase()}: 1 × 30–45 s (${rehabEx(zone, 1).name.toLowerCase()}). Suele bajar el dolor para entrenar.` });
   if (first) for (const x of warmupSets(first.w, first.steps)) warm.push({ txt: `${first.ex.name}: ${x.reps} reps con ${fmtKg(x.w)} (aproximación, no cuenta).` });
   W = { plan: activePlan(S).id, day, dayName: activePlan(S).days[day].name, items, started: Date.now(), warm: warm.map((x) => ({ ...x, done: false })), off: [], out: [] };
+  // Qué es el RIR: abierto en el primer ejercicio con peso del primer entreno; después, al tocar la columna.
+  W.rirHelp = S.sessions.some((s) => s.type === 'entreno') ? -1 : items.findIndex((p) => p.ex.kind === 'peso');
   renderWorkout(); $('wsheet').showModal(); calmMotion($('wsheet')); keepAwake(true);
 }
 function renderWorkout() {
@@ -449,12 +451,14 @@ function renderWorkout() {
   const body = W.items.map((it, i) => {
     const k = it.ex.kind, timed = k === 'tiempo' || k === 'iso', weighted = k === 'peso' || (k === 'iso' && it.w);
     const notes = [];
-    if (it.calib) notes.push(`<div class="note acc">Serie de calibración: con ${fmtKg(it.w)} hacé todas las reps que puedas y frená cuando te queden 2 (RIR 2). Anotá reps y RIR: con eso calculamos tu peso real.</div>`);
+    if (it.calib) notes.push(`<div class="note acc">Serie de calibración: con ${fmtKg(it.w)} hacé reps hasta que sientas que te salen solo 2 más, y frená ahí (eso es RIR 2). Anotá las reps y el RIR: con eso calculamos tu peso real.</div>`);
     if (it.r?.mode === 'cap') notes.push(`<div class="note pain">Modo dolor (${it.r.zones.map(zoneName).join(', ')}): al 60 % → ${fmtKg(it.w)}.</div>`);
     if (it.r?.mode === 'alt') notes.push(`<div class="note pain">Modo dolor: ${esc(zoneName(it.r.zones[0]))} está sensible, hoy va ${esc(it.ex.name.toLowerCase())} en vez de ${esc(it.orig.name.toLowerCase())}.</div>`);
     if (it.maint) notes.push(`<div class="note pain">Mantenimiento de ${esc(zoneName(it.maint).toLowerCase())} (fase 3).</div>`);
     if (it.from) notes.push(`<div class="note">Solo por hoy: en vez de ${esc(getEx(it.from).name.toLowerCase())}.</div>`);
-    const head = `<div class="set head"><span>Serie</span><span>${weighted ? 'kg' : ''}</span><span>${timed ? 'seg' : 'reps'}</span><span>${k === 'peso' ? 'RIR' : ''}</span><span></span></div>`;
+    const rirOpen = k === 'peso' && W.rirHelp === i;
+    const head = `<div class="set head"><span>Serie</span><span>${weighted ? 'kg' : ''}</span><span>${timed ? 'seg' : 'reps'}</span>${k === 'peso' ? `<button class="rir-help" data-action="rir-help" data-i="${i}" aria-expanded="${rirOpen}">RIR <b aria-hidden="true">?</b><span class="sr">: qué es</span></button>` : '<span></span>'}<span></span></div>`
+      + (rirOpen ? `<div class="note rir-note"><b>RIR</b> son las repeticiones que te quedaban al terminar la serie: cuántas más te salían bien. <b>0</b>: no podías ni una más. <b>2</b>: te quedaban 2. Con esto la app calcula tu peso y tus récords.</div>` : '');
     const next = i === cur ? it.rows.findIndex((r) => !r.done) : -1;
     const rows = it.rows.map((r, j) => `<div class="set${r.done ? ' done' : ''}${j === next ? ' next' : ''}">
       <span class="n">${j + 1}</span>
@@ -1063,6 +1067,7 @@ document.addEventListener('click', (e) => {
     'cancel-workout': () => { if (confirm('¿Salir sin guardar el entreno?')) { stopRest(); W = null; $('wsheet').close(); keepAwake(false); } },
     'finish-workout': finishWorkout,
     'set-done': () => setDone(+d.i, +d.j),
+    'rir-help': () => { W.rirHelp = W.rirHelp === +d.i ? -1 : +d.i; renderWorkout(); },
     'swap-today': () => openSwapToday(+d.i),
     'swap-why': () => swapToday(+d.i, d.off),
     'skip-rest': stopRest,

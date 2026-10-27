@@ -2,6 +2,11 @@
 
 Todos los cambios de XZ Fit (antes Tendón Fuerte), del más nuevo al más viejo.
 
+## 1.18.1 — Qué es el RIR, explicado en el entreno
+
+- **RIR, explicado**: en el entreno, tocá "RIR ?" arriba de las series para ver qué es: las repeticiones que te quedaban al terminar la serie (0: no podías ni una más; 2: te quedaban 2). En tu primer entreno la explicación aparece sola.
+- La serie de calibración explica mejor cuándo frenar.
+
 ## 1.18.0 — Entreno nuevo: el plan y la sesión, más claros
 
 - **Pestaña Entreno**: cada día se ve como en el inicio, con el nombre en grande. El que toca hoy va subrayado en verde y con el botón lleno; los demás, con un botón con borde.
