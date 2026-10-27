@@ -2,7 +2,7 @@
 // (IndexedDB). Los identificadores internos siguen siendo "tendon-fuerte" para no perder los datos ya guardados.
 // Protocolo de tendones del video de Jeremy Ethier con Keith Baar y Coach Q; reglas en logic.js, bocetos en figures.js.
 
-const APP_VERSION = '1.20.3';
+const APP_VERSION = '1.20.4';
 const DAY_NAMES = { lu: 'Lu', ma: 'Ma', mi: 'Mi', ju: 'Ju', vi: 'Vi', sa: 'Sá', do: 'Do' };
 const SIDES = { der: 'derecha', izq: 'izquierda', ambos: 'ambos lados' };
 const REST_SECS = 90, ISO_REST = 60;
@@ -260,7 +260,8 @@ function renderHome() {
   const first = !last, onMsg = first || doneToday || trainDay;
   const dayMsg = first ? `Tu primer entreno.${doable.some((p) => p.calib) ? ' Con la primera serie de cada ejercicio calibramos tus pesos.' : ''}`
     : doneToday ? '✓ Entreno de hoy hecho' : trainDay ? 'Hoy toca entrenar' : 'Hoy es día de descanso, podés entrenar igual';
-  const load = (p) => p.ex.kind !== 'peso' ? '' : p.calib ? `<span class="load">${CALIB_TAG}</span>` : `<span class="load">${p.w ? `${String(p.w).replace('.', ',')} kg` : 'sin peso'}</span>`;
+  // El peso con su unidad, igual que en Entreno; si es para calibrar, la etiqueta va debajo.
+  const load = (p) => p.ex.kind !== 'peso' ? '' : `<span class="load">${p.w ? fmtKg(p.w) : 'sin peso'}${p.calib ? CALIB_TAG : ''}</span>`;
   h += `<section class="card today${onMsg ? ' on' : ''}">
     <p class="plan-line"><span>${esc(plan.name)}</span>${last ? `<span>Último: ${fmtDate(last.date)}</span>` : ''}</p>
     <p class="day-msg">${dayMsg}${S.plan.deload === weekKey(t) ? '. Semana de descarga.' : ''}</p>
@@ -305,7 +306,7 @@ function renderTrain() {
         <div class="thumb">${figureSVG(p.ex, { crop: true })}</div>
         <div class="info"><h3>${esc(p.ex.name)}</h3><p class="dose">${p.missing ? 'Falta equipo' : `${p.sets} × ${setLabel(p)}`}${p.r ? `<em>${painTag(p.r)}</em>` : ''}</p>${p.stalled && !editRoutine ? `<p class="stall">Estancado: <button class="link small" data-action="unstall" data-ex="${p.ex.id}">bajar 10 % y volver a subir</button></p>` : ''}</div>
         ${editRoutine ? `<div class="tools"><button data-action="routine-move" data-day="${d}" data-i="${i}" data-d="-1" aria-label="Subir" ${i ? '' : 'disabled'}>↑</button><button data-action="routine-move" data-day="${d}" data-i="${i}" data-d="1" aria-label="Bajar" ${i < items.length - 1 ? '' : 'disabled'}>↓</button><button data-action="routine-pick" data-day="${d}" data-i="${i}" aria-label="Cambiar">⇄</button><button data-action="routine-del" data-day="${d}" data-i="${i}" aria-label="Quitar">✕</button></div>`
-          : `<div class="w">${p.ex.kind === 'peso' ? `<span class="num">${p.w || '—'}</span><span class="unit">kg</span>${p.calib ? CALIB_TAG : ''}` : ''}</div>`}</li>`).join('');
+          : `<div class="w">${p.ex.kind === 'peso' ? `${p.w ? `<span class="num">${String(p.w).replace('.', ',')}</span><span class="unit">kg</span>` : '<span class="unit">sin peso</span>'}${p.calib ? CALIB_TAG : ''}` : ''}</div>`}</li>`).join('');
     h += `</ul>`;
     h += editRoutine ? `<button class="sec add-ex" data-action="routine-pick" data-day="${d}">+ Agregar ejercicio</button>`
       : `<button class="cta${now ? '' : ' ghost'}" data-action="start-workout" data-day="${d}" ${items.some((p) => !p.missing) ? '' : 'disabled'}>Empezar ${esc(dd.name)}</button>`;

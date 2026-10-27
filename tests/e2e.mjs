@@ -329,6 +329,8 @@ const remTrain = await page.evaluate(() => { const r = [...S.rem.train]; S.rem.t
 const firstMsg = await page.locator('#view-home .today .day-msg').textContent();
 ok(firstMsg.includes('Tu primer entreno') && !(await page.locator('#view-home .today').textContent()).includes('descanso') && await page.locator('#view-home .today.on').count() === 1, 'el primer día dice "Tu primer entreno", con acento y sin "descanso"');
 ok(!(await page.locator('#view-home .today .plan-line').textContent()).includes('Primer entreno'), 'el primer entreno no se repite en la línea del plan');
+const homeLoads = await page.locator('#view-home .board .load').allTextContents();
+ok(homeLoads.length >= 3 && homeLoads.every((x) => / kg|sin peso/.test(x)) && await page.locator('#view-home .board .load .calib-tag').count() === homeLoads.length, 'inicio: cada peso lleva "kg" y la etiqueta de calibración debajo, como en Entreno');
 await page.evaluate((r) => { S.rem.train = r; render(); }, remTrain);
 await click('#view-home [data-action="start-workout"]');
 await page.waitForSelector('#wsheet[open]');

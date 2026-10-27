@@ -2,6 +2,10 @@
 
 Todos los cambios de XZ Fit (antes Tendón Fuerte), del más nuevo al más viejo.
 
+## 1.20.4 — Todos los pesos con kg
+
+- En el inicio, los ejercicios a calibrar muestran el peso sugerido con "kg" y la etiqueta "calibración" debajo, igual que en Entreno. Si un ejercicio no lleva peso, dice "sin peso" en las dos pantallas.
+
 ## 1.20.3 — Pasar de fase, cuando corresponde
 
 - En Dolor, cada zona muestra cuánto le falta para pasar de fase: los días en la fase y cómo viene el dolor de la semana.
