@@ -1,7 +1,7 @@
 # Graph Report - TendonApp  (2026-10-27)
 
 ## Corpus Check
-- 62 files · ~94,945 words
+- 62 files · ~95,018 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 14 file(s) not represented in the graph (top: (none) 11, .woff2 1, .webmanifest 1)
 
@@ -11,7 +11,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `c1af3b1d`
+- Built from commit: `4d6b1d16`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 

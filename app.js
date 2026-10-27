@@ -2,7 +2,7 @@
 // (IndexedDB). Los identificadores internos siguen siendo "tendon-fuerte" para no perder los datos ya guardados.
 // Protocolo de tendones del video de Jeremy Ethier con Keith Baar y Coach Q; reglas en logic.js, bocetos en figures.js.
 
-const APP_VERSION = '1.23.0';
+const APP_VERSION = '1.23.1';
 const DAY_NAMES = { lu: 'Lu', ma: 'Ma', mi: 'Mi', ju: 'Ju', vi: 'Vi', sa: 'Sá', do: 'Do' };
 const SIDES = { der: 'derecha', izq: 'izquierda', ambos: 'ambos lados' };
 const REST_SECS = 90, ISO_REST = 60;
@@ -67,8 +67,14 @@ function persist() { const snap = JSON.parse(JSON.stringify(S)); saving = saving
 
 // ——— Avisos ———
 // Redibuja un diálogo sin perder el aviso, el descanso ni el tooltip que estén adentro.
+// Si ya está abierto, mantiene el scroll: marcar una serie no te lleva arriba de todo.
 const dlg = (id) => ({
-  set html(v) { const d = $(id), kept = ['toast', 'rest', 'tip'].map($).filter((el) => el.parentNode === d); d.innerHTML = v; kept.forEach((el) => d.appendChild(el)); },
+  set html(v) {
+    const d = $(id), kept = ['toast', 'rest', 'tip'].map($).filter((el) => el.parentNode === d);
+    const top = d.open ? d.querySelector('.dlg')?.scrollTop || 0 : 0;
+    d.innerHTML = v; kept.forEach((el) => d.appendChild(el));
+    const sc = d.querySelector('.dlg'); if (sc && top) sc.scrollTop = top;
+  },
 });
 let toastTimer;
 function overlayHost() { return [...document.querySelectorAll('dialog[open]')].pop() || document.body; }

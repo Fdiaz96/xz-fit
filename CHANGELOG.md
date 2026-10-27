@@ -2,6 +2,10 @@
 
 Todos los cambios de XZ Fit (antes Tendón Fuerte), del más nuevo al más viejo.
 
+## 1.23.1 — El entreno no salta arriba
+
+- Al tocar el ✓ de una serie (o cualquier otro botón del entreno) la pantalla se queda donde estabas, en vez de volver arriba de todo.
+
 ## 1.23.0 — Te avisamos cuando subís de nivel
 
 - Si venís entrenando seguido, la app te propone cambiar tu experiencia: a "6 meses a 2 años" después de 6 meses y a "más de 2 años" después de 2 años, siempre que entrenes unas 2 veces por semana sin cortes de más de 2 meses y que levantes más de lo estimado o tus pesos se hayan frenado aunque hiciste una descarga.
