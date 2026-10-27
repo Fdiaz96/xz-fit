@@ -2,6 +2,13 @@
 
 Todos los cambios de XZ Fit (antes Tendón Fuerte), del más nuevo al más viejo.
 
+## 1.17.0 — Inicio nuevo: el entreno del día en grande
+
+- **El día que toca, bien visible**: el inicio muestra "Día A" en grande y debajo la lista de ejercicios en el orden en que se hacen, con series, rango y el peso que toca. Tocá un ejercicio para ver cómo se hace.
+- **Arriba, la fecha y tu semana**: cuántos entrenos llevás de los que pide el plan, la rehabilitación y tu racha.
+- **Modo dolor**: la rehabilitación muestra mañana y noche lado a lado ("Toca ahora", "Pendiente", "Hecha"). Aparece antes del entreno solo si falta la del momento.
+- Los avisos (semana de descarga, pasar a 3 días, novedades, instalar la app) quedan debajo del entreno y más discretos.
+
 ## 1.16.0 — "Hoy no puedo": cambiá un ejercicio solo por hoy
 
 - **Hoy no puedo**: en el entreno, cada ejercicio tiene este botón para cuando hoy no lo podés hacer (llueve y no podés colgar los aros, la máquina está ocupada, te molesta).

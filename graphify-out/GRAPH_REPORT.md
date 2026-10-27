@@ -1,20 +1,25 @@
-# Graph Report - TendonApp  (2026-10-26)
+# Graph Report - TendonApp  (2026-10-27)
 
 ## Corpus Check
-- 53 files · ~84,504 words
+- 48 files · ~85,160 words
 - Verdict: corpus is large enough that graph structure adds value.
-- Unclassified: 15 file(s) not represented in the graph (top: (none) 12, .woff2 1, .webmanifest 1)
+- Unclassified: 14 file(s) not represented in the graph (top: (none) 11, .woff2 1, .webmanifest 1)
 
 ## Summary
-- 614 nodes · 1223 edges · 27 communities (24 shown, 3 thin omitted)
+- 620 nodes · 1232 edges · 34 communities (31 shown, 3 thin omitted)
 - Extraction: 93% EXTRACTED · 7% INFERRED · 0% AMBIGUOUS · INFERRED: 83 edges (avg confidence: 0.87)
-- Token cost: 483,036 input · 0 output
+- Token cost: 0 input · 0 output
+
+## Graph Freshness
+- Built from commit: `9ae3fa99`
+- Run `git rev-parse HEAD` and compare to check if the graph is stale.
+- Run `graphify update .` after code changes (no API cost).
 
 ## Community Hubs (Navigation)
 - App UI y sesiones
 - Specs de features (datos, editor, calor)
 - Reglas puras logic.js
-- Spec Motor de planes
+- resolveDay
 - Figuras 3D (figures.js)
 - Pruebas e2e
 - Pruebas unitarias
@@ -38,6 +43,13 @@
 - Ícono 512
 - Service worker
 - Rotación nextDay
+- Fuente: canal Mono Culturista
+- recommendPlan() pure recommendation
+- REP_RANGE per exercise type
+- Plan Full body 3 días + selector (task 2/7)
+- Plan engine (slots, rotation, per-exercise range)
+- routineFromTemplates
+- Encuesta de elección de plan (task 7/7)
 
 ## God Nodes (most connected - your core abstractions)
 1. `Training Plan Engine skill (SKILL.md)` - 30 edges
@@ -54,33 +66,33 @@
 ## Surprising Connections (you probably didn't know these)
 - `Routine Item {slot, ex, pinned}` --semantically_similar_to--> `Routine S.routine[planId][dayIdx]`  [INFERRED] [semantically similar]
   .specs/analysis/modelo-de-datos.md → .claude/skills/training-plan-engine/SKILL.md
+- `Double progression by range` --semantically_similar_to--> `Range-aware double progression progress()`  [INFERRED] [semantically similar]
+  .specs/analysis/reglas-de-negocio.md → .claude/skills/training-plan-engine/SKILL.md
 - `REHAB_OPTIONS + Zone.choice similar pattern` --semantically_similar_to--> `Pinned exercise`  [INFERRED] [semantically similar]
   .specs/analysis/analysis-motor-de-planes.md → .claude/skills/training-plan-engine/SKILL.md
-- `Double progression by range` --semantically_similar_to--> `Range-aware double progression progress()`  [INFERRED] [semantically similar]
+- `Strength estimate and calibration (Epley, repCenter)` --semantically_similar_to--> `calibrate() range centre + RIR 2`  [INFERRED] [semantically similar]
   .specs/analysis/reglas-de-negocio.md → .claude/skills/training-plan-engine/SKILL.md
 - `Slot candidate exercises table` --references--> `Slot (hueco, movement pattern)`  [INFERRED]
   .specs/analysis/analysis-motor-de-planes.md → .claude/skills/training-plan-engine/SKILL.md
-- `Picker 'mismo hueco' section` --references--> `Slot (hueco, movement pattern)`  [INFERRED]
-  .specs/sub-tasks/motor-de-planes.feature/04-routine-editor-and-version.md → .claude/skills/training-plan-engine/SKILL.md
 
 ## Import Cycles
 - None detected.
 
 ## Hyperedges (group relationships)
-- **Plan engine resolution pipeline** — _claude_skills_training_plan_engine_skill_resolveslot, _claude_skills_training_plan_engine_skill_resolveday, _specs_sub_tasks_motor_de_planes_feature_02_plan_engine_resolveplan, _specs_sub_tasks_motor_de_planes_feature_02_plan_engine_possible, _specs_sub_tasks_motor_de_planes_feature_03a_state_migration_and_home_syncroutine, _claude_skills_training_plan_engine_skill_setsfor, _claude_skills_training_plan_engine_skill_nextday [INFERRED 0.85]
-- **Motor de planes implementation steps 01-05** — _specs_sub_tasks_motor_de_planes_feature_01_catalogs_and_range_progression, _specs_sub_tasks_motor_de_planes_feature_02_plan_engine, _specs_sub_tasks_motor_de_planes_feature_03a_state_migration_and_home, _specs_sub_tasks_motor_de_planes_feature_03b_train_view_and_routine_data, _specs_sub_tasks_motor_de_planes_feature_03c_workout_loop_and_range_ui, _specs_sub_tasks_motor_de_planes_feature_04_routine_editor_and_version, _specs_sub_tasks_motor_de_planes_feature_05_docs [EXTRACTED 1.00]
-- **Per-exercise range double progression** — _claude_skills_training_plan_engine_skill_rep_range, _claude_skills_training_plan_engine_skill_progress, _claude_skills_training_plan_engine_skill_calibrate, _specs_sub_tasks_motor_de_planes_feature_01_catalogs_and_range_progression_repcenter, _specs_sub_tasks_motor_de_planes_feature_01_catalogs_and_range_progression_rep_range_table [INFERRED 0.85]
+- **App script modules loaded by index.html** — data, logic, figures, app [EXTRACTED 1.00]
 - **Adaptacion del plan diario (planFor)** — _specs_tasks_done_entreno_ab_progresion_volumen_feature_planfor, _specs_tasks_done_entreno_ab_progresion_volumen_feature_weekly_volume_budget, _specs_tasks_done_entreno_ab_progresion_volumen_feature_double_progression, _specs_tasks_done_estancamiento_descarga_feature_deload_week, _specs_tasks_done_modo_dolor_rehabilitacion_feature_pain_restriction_cap, _specs_tasks_done_equipo_a_medida_feature_implfor_filtering [EXTRACTED 1.00]
-- **Exportaciones via shareFile (Web Share o descarga)** — _specs_tasks_done_datos_locales_copia_feature_backup_restore, _specs_tasks_done_informe_fisio_feature_physio_report, _specs_tasks_done_recordatorios_calendario_feature_ics_calendar [INFERRED 0.95]
-- **Reglas de seguridad de carga** — _specs_tasks_done_equipo_a_medida_feature_weight_steps_rounding, _specs_tasks_done_peso_sugerido_calibracion_feature_start_weight_estimate, _specs_tasks_done_modo_dolor_rehabilitacion_feature_iso_adjust, _specs_tasks_done_modo_dolor_rehabilitacion_feature_pain_restriction_cap, _specs_tasks_done_entreno_ab_progresion_volumen_feature_weekly_volume_budget [INFERRED 0.75]
-- **Plans of the 'planes de entrenamiento' roadmap built on the plan engine** — _specs_tasks_done_motor_de_planes_feature_plans_fb2, _specs_tasks_draft_plan_full_body_3_dias_feature_fb3, _specs_tasks_draft_plan_torso_pierna_4_dias_feature_tp4, _specs_tasks_draft_plan_empuje_traccion_4_dias_feature_et4, _specs_tasks_draft_plan_grupos_5_dias_feature_gr5, _specs_tasks_draft_plan_isometricos_feature_iso [INFERRED 0.95]
+- **Motor de planes implementation steps 01-05** — _specs_sub_tasks_motor_de_planes_feature_01_catalogs_and_range_progression, _specs_sub_tasks_motor_de_planes_feature_02_plan_engine, _specs_sub_tasks_motor_de_planes_feature_03a_state_migration_and_home, _specs_sub_tasks_motor_de_planes_feature_03b_train_view_and_routine_data, _specs_sub_tasks_motor_de_planes_feature_03c_workout_loop_and_range_ui, _specs_sub_tasks_motor_de_planes_feature_04_routine_editor_and_version, _specs_sub_tasks_motor_de_planes_feature_05_docs [EXTRACTED 1.00]
+- **Plan engine v1.15 mechanisms** — changelog_v1_15_0_motor_de_planes, changelog_day_rotation, changelog_per_exercise_rep_range, changelog_first_weeks_set_ramp, changelog_pinned_exercise_swap [EXTRACTED 1.00]
 - **Routine resolution flow (sync, resolve, possible)** — _specs_tasks_done_motor_de_planes_feature_syncroutine, _specs_tasks_done_motor_de_planes_feature_resolveplan, _specs_tasks_done_motor_de_planes_feature_resolveday, _specs_tasks_done_motor_de_planes_feature_resolveslot, _specs_tasks_done_motor_de_planes_feature_possible, _specs_tasks_done_motor_de_planes_feature_implfor [EXTRACTED 1.00]
 - **Workout volume and progression rules (sets, range, progress)** — _specs_tasks_done_motor_de_planes_feature_planfor, _specs_tasks_done_motor_de_planes_feature_setsfor, _specs_tasks_done_motor_de_planes_feature_reprange_fn, _specs_tasks_done_motor_de_planes_feature_progress_calibrate, _specs_tasks_done_motor_de_planes_feature_nextday [EXTRACTED 1.00]
-- **Plan engine v1.15 mechanisms** — changelog_v1_15_0_motor_de_planes, changelog_day_rotation, changelog_per_exercise_rep_range, changelog_first_weeks_set_ramp, changelog_pinned_exercise_swap [EXTRACTED 1.00]
+- **Reglas de seguridad de carga** — _specs_tasks_done_equipo_a_medida_feature_weight_steps_rounding, _specs_tasks_done_peso_sugerido_calibracion_feature_start_weight_estimate, _specs_tasks_done_modo_dolor_rehabilitacion_feature_iso_adjust, _specs_tasks_done_modo_dolor_rehabilitacion_feature_pain_restriction_cap, _specs_tasks_done_entreno_ab_progresion_volumen_feature_weekly_volume_budget [INFERRED 0.75]
 - **Exercise animation rendering pipeline** — changelog_v1_12_0_isometric_3d, changelog_v1_13_0_angle_animation, changelog_muscle_zones, changelog_per_exercise_camera, animaciones_figuresvg [INFERRED 0.85]
-- **App script modules loaded by index.html** — data, logic, figures, app [EXTRACTED 1.00]
+- **Plan engine resolution pipeline** — _claude_skills_training_plan_engine_skill_resolveslot, _claude_skills_training_plan_engine_skill_resolveday, _specs_sub_tasks_motor_de_planes_feature_02_plan_engine_resolveplan, _specs_sub_tasks_motor_de_planes_feature_02_plan_engine_possible, _specs_sub_tasks_motor_de_planes_feature_03a_state_migration_and_home_syncroutine, _claude_skills_training_plan_engine_skill_setsfor, _claude_skills_training_plan_engine_skill_nextday [INFERRED 0.85]
+- **Per-exercise range double progression** — _claude_skills_training_plan_engine_skill_rep_range, _claude_skills_training_plan_engine_skill_progress, _claude_skills_training_plan_engine_skill_calibrate, _specs_sub_tasks_motor_de_planes_feature_01_catalogs_and_range_progression_repcenter, _specs_sub_tasks_motor_de_planes_feature_01_catalogs_and_range_progression_rep_range_table [INFERRED 0.85]
+- **Plans of the 'planes de entrenamiento' roadmap built on the plan engine** — _specs_tasks_done_motor_de_planes_feature_plans_fb2, _specs_tasks_draft_plan_full_body_3_dias_feature_fb3, _specs_tasks_draft_plan_torso_pierna_4_dias_feature_tp4, _specs_tasks_draft_plan_empuje_traccion_4_dias_feature_et4, _specs_tasks_draft_plan_grupos_5_dias_feature_gr5, _specs_tasks_draft_plan_isometricos_feature_iso [INFERRED 0.95]
+- **Exportaciones via shareFile (Web Share o descarga)** — _specs_tasks_done_datos_locales_copia_feature_backup_restore, _specs_tasks_done_informe_fisio_feature_physio_report, _specs_tasks_done_recordatorios_calendario_feature_ics_calendar [INFERRED 0.95]
 
-## Communities (27 total, 3 thin omitted)
+## Communities (34 total, 3 thin omitted)
 
 ### Community 0 - "App UI y sesiones"
 Cohesion: 0.06
@@ -94,9 +106,9 @@ Nodes (67): Copia de seguridad (exportData/importData), IndexedDB tendon-fuerte 
 Cohesion: 0.06
 Nodes (49): activePlan(), addDays(), calibrate(), DAY_KEYS, dayIndex(), dayKey(), DAYS_ICS, daysBetween() (+41 more)
 
-### Community 3 - "Spec Motor de planes"
-Cohesion: 0.05
-Nodes (45): Motor de planes (feature spec, task 1/7), Acceptance checklist CK-1..CK-40 and rubric, activePlan()/dayIndex()/weeksSince()/firstWorkout(), 'Falta equipo' missing-slot item, Fuente Mono Culturista (analysis), Implementation phases (steps 01-05, opus review), implFor (logic.js), Lossless migration in withDefaults (templates A/B -> routine.fb2 pinned) (+37 more)
+### Community 3 - "resolveDay"
+Cohesion: 0.18
+Nodes (9): activePlan()/dayIndex()/weeksSince()/firstWorkout(), 'Falta equipo' missing-slot item, implFor (logic.js), possible() via implFor, resolveDay(), resolvePlan(), resolveSlot(), syncRoutine() (app.js, called from render) (+1 more)
 
 ### Community 4 - "Figuras 3D (figures.js)"
 Cohesion: 0.16
@@ -178,25 +190,53 @@ Nodes (3): PWA Home Screen Icon, XZ Fit App Icon (192px), XZ Fit Logo (lime-gree
 Cohesion: 0.67
 Nodes (3): PWA Launcher Icon, XZ Fit App Icon (512px), XZ Fit Brand Identity (lime XZ monogram on dark background)
 
+### Community 27 - "Fuente: canal Mono Culturista"
+Cohesion: 0.33
+Nodes (5): Fuente: canal Mono Culturista, Fuera de alcance, Objetivos (sus tres planes pagos), Principios que se repiten, Rutinas que propone
+
+### Community 28 - "recommendPlan() pure recommendation"
+Cohesion: 0.24
+Nodes (9): PLANS.fb2 Full body 2 días, SLOTS catalog (16 movement patterns), TEMPLATES A/B (legacy routine), recommendPlan() pure recommendation, Survey questions (goal, days 2-5, equipment), Plan fb3 Full body 3 días A/B/C, Plan de isométricos sin equipo (task 6/7), Plan iso Isométricos 3-4 días (+1 more)
+
+### Community 29 - "REP_RANGE per exercise type"
+Cohesion: 0.32
+Nodes (7): planFor(day) workout enrichment, progress()/calibrate()/startWeight() with range, REP_RANGE per exercise type, repRange()/repCenter()/daySlot(), setsFor() entry ramp and deload, Plan Torso/Pierna 4 días (task 3/7), Plan tp4 Torso/Pierna 4 días
+
+### Community 30 - "Plan Full body 3 días + selector (task 2/7)"
+Cohesion: 0.33
+Nodes (7): Motor de planes (feature spec, task 1/7), Acceptance checklist CK-1..CK-40 and rubric, Fuente Mono Culturista (analysis), Implementation phases (steps 01-05, opus review), Roadmap 'planes de entrenamiento' (7 tasks), training-plan-engine skill, Plan Full body 3 días + selector (task 2/7)
+
+### Community 31 - "Plan engine (slots, rotation, per-exercise range)"
+Cohesion: 0.29
+Nodes (3): Plan por grupos 5 días (task 5/7), Editable 'Libre' day, Plan gr5 Por grupos 5 días
+
+### Community 32 - "routineFromTemplates"
+Cohesion: 0.29
+Nodes (6): Lossless migration in withDefaults (templates A/B -> routine.fb2 pinned), NO_RINGS substitution map, routineFromTemplates(), State S.plan / S.routine model, Plan picker sheet #plansheet ('Elegí tu plan'), '¿Probás Full body 3 días?' suggestion card
+
+### Community 33 - "Encuesta de elección de plan (task 7/7)"
+Cohesion: 0.40
+Nodes (4): Encuesta de elección de plan (task 7/7), Onboarding step 5 survey placement, Plan Empuje/Tracción 4 días (task 4/7), Plan et4 (recomposición 'gordiflaco')
+
 ## Knowledge Gaps
-- **61 isolated node(s):** `Integration map (v1.14.1 code)`, `Common pitfalls (custom items, duplicate slot, ramp)`, `Spec-Driven Development workflow (add-task, plan-task, implement-task)`, `Retro-documented features in tasks/done`, `Fuente: Mono Culturista` (+56 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 181 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+- **61 isolated node(s):** `Sugerencia de pasar a 3 dias (suggestThreeDays)`, `Eliminar sesion con Deshacer`, `Tarjeta de instalacion (beforeinstallprompt / iOS)`, `Service worker sw.js (red primero, cache tendon-v<version>)`, `Tema claro/oscuro (applyTheme, tf-theme)` (+56 more)
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 185 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
 - **3 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `README.md XZ Fit` connect `Modo dolor y README` to `App UI y sesiones`, `Reglas puras logic.js`, `Figuras 3D (figures.js)`, `Catálogos data.js`, `Shell HTML, PWA y fuente`, `Progresión y versiones del plan`, `Historial de versiones`?**
-  _High betweenness centrality (0.152) - this node is a cross-community bridge._
+  _High betweenness centrality (0.149) - this node is a cross-community bridge._
 - **Are the 6 inferred relationships involving `render()` (e.g. with `noticeText()` and `renderHistory()`) actually correct?**
   _`render()` has 6 INFERRED edges - model-reasoned connections that need verification._
-- **What connects `Integration map (v1.14.1 code)`, `Common pitfalls (custom items, duplicate slot, ramp)`, `Spec-Driven Development workflow (add-task, plan-task, implement-task)` to the rest of the system?**
+- **What connects `Sugerencia de pasar a 3 dias (suggestThreeDays)`, `Eliminar sesion con Deshacer`, `Tarjeta de instalacion (beforeinstallprompt / iOS)` to the rest of the system?**
   _61 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `App UI y sesiones` be split into smaller, more focused modules?**
-  _Cohesion score 0.061275831087151844 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.061455525606469004 - nodes in this community are weakly interconnected._
 - **Why does `getEx()` connect `App UI y sesiones` to `Pruebas e2e`?**
-  _High betweenness centrality (0.135) - this node is a cross-community bridge._
+  _High betweenness centrality (0.133) - this node is a cross-community bridge._
 - **Should `Specs de features (datos, editor, calor)` be split into smaller, more focused modules?**
   _Cohesion score 0.053313587560162905 - nodes in this community are weakly interconnected._
 - **Why does `index.html (XZ Fit app shell)` connect `Shell HTML, PWA y fuente` to `App UI y sesiones`, `Reglas puras logic.js`, `Figuras 3D (figures.js)`, `Catálogos data.js`?**
-  _High betweenness centrality (0.099) - this node is a cross-community bridge._
+  _High betweenness centrality (0.097) - this node is a cross-community bridge._

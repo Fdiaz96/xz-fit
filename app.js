@@ -2,7 +2,7 @@
 // (IndexedDB). Los identificadores internos siguen siendo "tendon-fuerte" para no perder los datos ya guardados.
 // Protocolo de tendones del video de Jeremy Ethier con Keith Baar y Coach Q; reglas en logic.js, bocetos en figures.js.
 
-const APP_VERSION = '1.16.0';
+const APP_VERSION = '1.17.0';
 const DAY_NAMES = { lu: 'Lu', ma: 'Ma', mi: 'Mi', ju: 'Ju', vi: 'Vi', sa: 'Sá', do: 'Do' };
 const SIDES = { der: 'derecha', izq: 'izquierda', ambos: 'ambos lados' };
 const REST_SECS = 90, ISO_REST = 60;
@@ -213,49 +213,59 @@ function newZone(zone, pain = 5, side = 'der') {
 function renderHome() {
   const t = today(), checks = pendingChecks(S, t);
   const hasZones = activeZones().length > 0;
-  let h = `<p class="greet">${S.profile.name ? `Hola, ${esc(S.profile.name)}` : 'Hola'} · ${fmtDate(t)}</p><h1>Hoy</h1>`;
-  h += installCard();
   const ws = weekStats(S, t), st = streak(S, t);
+  const date = parseDay(t).toLocaleDateString('es', { weekday: 'long', day: 'numeric' }).replace(',', '');
   const dots = (n, of) => Array.from({ length: Math.max(of, n) }, (_, i) => `<i class="${i < n ? 'on' : ''}"></i>`).join('');
-  h += `<div class="week card"><div><span class="muted small">Entrenos esta semana</span><div class="dots">${dots(ws.train, ws.target)}</div></div>
-    ${ws.rehabTarget ? `<div><span class="muted small">Rehab</span><div class="num rehab-n">${ws.rehab}/${ws.rehabTarget}</div></div>` : ''}
-    ${st ? `<div><span class="muted small">Racha</span><div class="num">🔥 ${st}</div></div>` : ''}</div>`;
+  let h = `<header class="home-head"><div><p class="greet">${S.profile.name ? `Hola, ${esc(S.profile.name)}` : 'Hola'}</p><h1>${date[0].toUpperCase() + date.slice(1)}</h1></div>
+    <div class="week"><div class="dots" aria-hidden="true">${dots(ws.train, ws.target)}</div><span>${ws.train} de ${ws.target} entrenos esta semana</span>
+      ${ws.rehabTarget ? `<span class="rehab-n">${ws.rehab} de ${ws.rehabTarget} rehabs</span>` : ''}${st ? `<span>Racha de ${st} ${st === 1 ? 'semana' : 'semanas'}</span>` : ''}</div></header>`;
   for (const zone of checks) {
-    h += `<div class="card pain"><h3>¿Cómo amaneció tu ${esc(zoneName(zone).toLowerCase())}?</h3><p class="muted small">Comparado con ayer. Si está peor, bajamos la carga.</p>
+    h += `<div class="card ask pain"><h3>¿Cómo amaneció tu ${esc(zoneName(zone).toLowerCase())}?</h3><p class="muted small">Comparado con ayer. Si está peor, bajamos la carga.</p>
       <div class="btns">${['mejor', 'igual', 'peor'].map((v) => `<button class="sec" data-action="check" data-zone="${zone}" data-val="${v}">${v[0].toUpperCase() + v.slice(1)}</button>`).join('')}</div></div>`;
   }
+  // Rehabilitación: va antes del entreno si falta la del momento; si ya está hecha, queda abajo y chica.
+  let rehab = '', rehabFirst = false;
+  if (S.painMode) {
+    const items = rehabItems();
+    if (items.length || S.custom.length) {
+      const slot = slotNow(), done = { mañana: rehabDone('mañana'), noche: rehabDone('noche') };
+      rehabFirst = !done[slot];
+      const cell = (s) => `<span class="slot${done[s] ? ' done' : ''}${s === slot ? ' now' : ''}">${s[0].toUpperCase() + s.slice(1)}<b>${done[s] ? 'Hecha' : s === slot ? 'Toca ahora' : 'Pendiente'}</b></span>`;
+      rehab = `<div class="card rehab"><div class="slots">${cell('mañana')}${cell('noche')}</div>
+        <h3>Rehabilitación de la ${slot}</h3>
+        <p class="muted small">${items.map((i) => esc(i.ex.name)).join(', ') || 'Tus ejercicios del fisio'}</p>
+        ${done[slot] ? '' : `<button class="cta pain" data-action="start-rehab">Empezar rehabilitación</button>`}</div>`;
+    } else if (!hasZones) rehab = `<div class="card ask pain"><h3>Modo dolor activo</h3><p class="muted small">Marcá qué te duele en la pestaña Tendones para armar tu rehabilitación.</p></div>`;
+    else rehab = `<div class="card ask pain"><h3>Hoy no hay rehabilitación aparte</h3>${Object.values(S.zones).some((z) => z.phase === 3) ? '<p class="muted small">Los isométricos de mantenimiento van al final del entreno.</p>' : ''}</div>`;
+  }
+  if (rehabFirst) h += rehab;
+  // El entreno del día, como la pizarra del gimnasio: el día en grande y la lista en orden.
+  const plan = activePlan(S), day = dayIndex(plan, S.plan.pos), doable = planFor(day).filter((p) => !p.missing);
+  const last = S.sessions.find((s) => s.type === 'entreno');
+  const doneToday = last?.date === t, trainDay = S.rem.train.includes(weekdayKey(t));
+  const dayMsg = doneToday ? '✓ Entreno de hoy hecho' : trainDay ? 'Hoy toca entrenar' : 'Hoy es día de descanso, podés entrenar igual';
+  const load = (p) => p.ex.kind !== 'peso' ? '' : p.calib ? '<span class="load quiet">a calibrar</span>' : `<span class="load">${p.w ? `${String(p.w).replace('.', ',')} kg` : 'sin peso'}</span>`;
+  h += `<section class="card today${doneToday || trainDay ? ' on' : ''}">
+    <p class="plan-line"><span>${esc(plan.name)}</span><span>${last ? `Último: ${fmtDate(last.date)}` : 'Primer entreno'}</span></p>
+    <p class="day-msg">${dayMsg}${S.plan.deload === weekKey(t) ? '. Semana de descarga.' : ''}</p>
+    <h3><span class="day-name">${esc(plan.days[day].name)}</span><span class="sep"> · </span><span class="day-count">${doable.length} ejercicios</span></h3>
+    <ol class="board">${doable.map((p) => `<li><button data-action="ex-detail" data-ex="${p.ex.id}"><span class="name">${esc(p.ex.name)}${p.r ? `<em>${p.r.mode === 'alt' ? 'variante amable' : 'al 60 %'}</em>` : ''}</span><span class="dose">${p.sets} × ${setLabel(p)}</span>${load(p)}</button></li>`).join('')}</ol>
+    <button class="cta" data-action="start-workout" data-day="${day}">Empezar ${esc(plan.days[day].name.toLowerCase())}</button></section>`;
+  if (S.painMode && hasZones) h += `<button class="sec quick-pain" data-action="quick-pain">Anotar cómo está el dolor ahora</button>`;
+  if (!rehabFirst) h += rehab;
+  // Avisos y decisiones pendientes, debajo del entreno.
+  if (S.painMode) for (const zone of activeZones()) if (phaseReady(S, zone, t)) h += `<div class="card ask pain"><h3>${esc(zoneName(zone))}: lista para avanzar</h3><p class="muted small">Dolor ≤ 3 y sin empeorar toda la semana.</p><button class="link" data-action="phase" data-zone="${zone}" data-dir="1">Pasar a ${esc(PHASES[S.zones[zone].phase + 1].name)}</button></div>`;
   if (!S.painMode && hasZones && !S.hidePainTip) {
-    h += `<div class="card pain"><h3>Tenés dolor en ${esc(activeZones().map((z) => zoneName(z).toLowerCase()).join(' y '))}</h3>
+    h += `<div class="card ask pain"><h3>Tenés dolor en ${esc(activeZones().map((z) => zoneName(z).toLowerCase()).join(' y '))}</h3>
       <p class="muted small">El modo dolor agrega isométricos diarios y cuida esas zonas en el entreno. Lo activás vos.</p>
       <div class="btns"><button class="cta pain" data-action="pain-mode-on">Activar modo dolor</button></div>
       <button class="link" data-action="hide-pain-tip">Ahora no</button></div>`;
   }
-  if (S.painMode) {
-    const items = rehabItems();
-    for (const zone of activeZones()) if (phaseReady(S, zone, t)) h += `<div class="card pain"><h3>${esc(zoneName(zone))}: lista para avanzar</h3><p class="muted small">Dolor ≤ 3 y sin empeorar toda la semana.</p><button class="link" data-action="phase" data-zone="${zone}" data-dir="1">Pasar a ${esc(PHASES[S.zones[zone].phase + 1].name)}</button></div>`;
-    if (items.length || S.custom.length) {
-      const slot = slotNow(), am = rehabDone('mañana'), pm = rehabDone('noche');
-      h += `<div class="card pain"><div class="row"><span class="tag pain">Modo dolor</span><span class="muted small">Mañana ${am ? '✓' : '—'} · Noche ${pm ? '✓' : '—'}</span></div>
-        <h3 style="margin-top:8px">Rehabilitación (${slot})</h3>
-        <p class="muted small">${items.map((i) => esc(i.ex.name)).join(' · ') || 'Tus ejercicios del fisio'}</p>
-        <button class="cta pain" data-action="start-rehab" ${rehabDone(slot) ? 'disabled' : ''}>${rehabDone(slot) ? `Hecha (${slot})` : 'Empezar'}</button></div>`;
-    } else if (!activeZones().length) h += `<div class="card pain"><span class="tag pain">Modo dolor</span><p class="muted small">Marcá qué te duele en la pestaña Tendones para armar tu rehabilitación.</p></div>`;
-  else h += `<div class="card pain"><span class="tag pain">Modo dolor</span><p class="muted small">Hoy no toca rehabilitación aparte${Object.values(S.zones).some((z) => z.phase === 3) ? ': los isométricos de mantenimiento van al final del entreno' : ''}.</p></div>`;
-  }
-  if (S.onboarded && S.seenVersion !== APP_VERSION && S.seenVersion !== '') h += `<div class="card acc"><div class="row"><h3>Novedades de la versión ${APP_VERSION}</h3><button class="link" data-action="news-seen" aria-label="Cerrar">✕</button></div><button class="link" data-action="news">Ver qué cambió</button></div>`;
-  const plan = activePlan(S), day = dayIndex(plan, S.plan.pos), doable = planFor(day).filter((p) => !p.missing);
-  const last = S.sessions.find((s) => s.type === 'entreno');
-  const doneToday = last?.date === t, trainDay = S.rem.train.includes(weekdayKey(t));
-  const dayMsg = doneToday ? '✓ Entreno de hoy hecho' : trainDay ? 'Hoy toca entrenar' : 'Hoy es día de descanso (podés entrenar igual)';
-  h += `<div class="card acc"><div class="row"><span class="tag acc">${esc(plan.name)}</span><span class="muted small">${last ? `Último: ${fmtDate(last.date)}` : 'Primer entreno'}</span></div>
-    <p class="small" style="margin:8px 0 0;color:${doneToday || trainDay ? 'var(--acc-fg)' : 'var(--muted)'}">${dayMsg}${S.plan.deload === weekKey(t) ? ' · semana de descarga' : ''}</p>
-    <h3 style="margin-top:4px">${esc(plan.days[day].name)} · ${doable.length} ejercicios</h3>
-    <p class="muted small">${doable.map((p) => esc(p.ex.name)).join(' · ')}</p>
-    <button class="cta" data-action="start-workout" data-day="${day}">Empezar</button></div>`;
-  if (S.painMode && activeZones().length) h += `<button class="sec" style="width:100%;margin-bottom:12px" data-action="quick-pain">Anotar cómo está el dolor ahora</button>`;
   const stuck = [...new Set(S.routine[plan.id].flat().map((it) => it.ex))].filter((id) => S.lifts[id] && stalled(S, id));
-  if (stuck.length >= 2 && S.plan.deload !== weekKey(t) && S.plan.deloadOffer !== weekKey(t)) h += `<div class="card acc"><h3>¿Semana de descarga?</h3><p class="muted small">${stuck.length} ejercicios no progresan hace 3 sesiones (${stuck.slice(0, 3).map((id) => esc(getEx(id)?.name.toLowerCase() || id)).join(', ')}). Una semana con una serie menos y 90 % del peso suele destrabar.</p><div class="btns"><button class="cta" data-action="deload">Hacer descarga esta semana</button></div><button class="link" data-action="deload-no">Ahora no</button></div>`;
-  if (suggestThreeDays(S, t)) h += `<div class="card acc"><h3>¿Pasamos a 3 días por semana?</h3><p class="muted small">Venís constante. Con un día más, el plan rota más rápido.</p><button class="link" data-action="three-days">Sí, 3 días</button></div>`;
+  if (stuck.length >= 2 && S.plan.deload !== weekKey(t) && S.plan.deloadOffer !== weekKey(t)) h += `<div class="card ask"><h3>¿Semana de descarga?</h3><p class="muted small">${stuck.length} ejercicios no progresan hace 3 sesiones (${stuck.slice(0, 3).map((id) => esc(getEx(id)?.name.toLowerCase() || id)).join(', ')}). Una semana con una serie menos y 90 % del peso suele destrabar.</p><div class="btns"><button class="cta" data-action="deload">Hacer descarga esta semana</button></div><button class="link" data-action="deload-no">Ahora no</button></div>`;
+  if (suggestThreeDays(S, t)) h += `<div class="card ask"><h3>¿Pasamos a 3 días por semana?</h3><p class="muted small">Venís constante. Con un día más, el plan rota más rápido.</p><button class="link" data-action="three-days">Sí, 3 días</button></div>`;
+  if (S.onboarded && S.seenVersion !== APP_VERSION && S.seenVersion !== '') h += `<div class="card ask"><div class="row"><h3>Novedades de la versión ${APP_VERSION}</h3><button class="link" data-action="news-seen" aria-label="Cerrar">✕</button></div><button class="link" data-action="news">Ver qué cambió</button></div>`;
+  h += installCard();
   $('view-home').innerHTML = h;
 }
 

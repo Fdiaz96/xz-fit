@@ -24,7 +24,47 @@ p { margin: 6px 0; }
 a { color: var(--acc-fg); }
 
 #app { padding: calc(14px + var(--safe-t)) 16px calc(96px + var(--safe-b)); max-width: 640px; margin: 0 auto; }
-.greet { color: var(--muted); font-size: 15px; }
+
+/* Inicio: la fecha y la semana arriba, el entreno del día como pizarra (día en grande, lista en orden), avisos abajo */
+.home-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; margin: 4px 0 22px; }
+.home-head h1 { font-size: 26px; line-height: 1.1; text-transform: none; font-weight: 600; margin: 0; text-wrap: balance; }
+.greet { color: var(--muted); font-size: 15px; margin: 0 0 2px; }
+.week { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 2px; font-size: 12px; color: var(--muted); text-align: right; }
+.week .rehab-n { color: var(--pain-fg); }
+.dots { display: flex; gap: 5px; margin-bottom: 4px; }
+.dots i { width: 14px; height: 14px; border-radius: 50%; background: var(--card2); border: 2px solid var(--line); }
+.dots i.on { background: var(--acc); border-color: var(--acc); }
+
+.card.today { background: none; padding: 0; border-radius: 0; margin: 0 0 28px; }
+.plan-line { display: flex; justify-content: space-between; gap: 12px; margin: 0; font-size: 13px; color: var(--muted); }
+.day-msg { margin: 14px 0 12px; font-size: 15px; font-weight: 600; color: var(--muted); }
+.today.on .day-msg { color: var(--acc-fg); }
+.today h3 { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; column-gap: 12px; padding-bottom: 8px; border-bottom: 3px solid var(--acc); }
+.today .day-name { font-size: clamp(64px, 24vw, 104px); line-height: .88; font-weight: 700; text-transform: uppercase; letter-spacing: -.01em; }
+.today .sep { display: none; }
+.today .day-count { font: 500 15px/1.4 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; color: var(--muted); }
+.board { list-style: none; margin: 0 0 18px; padding: 0; counter-reset: ex; }
+.board li { counter-increment: ex; border-bottom: 1px solid var(--line); }
+.board button { display: grid; grid-template: "n name load" auto "n dose load" auto / 26px 1fr auto; column-gap: 10px; width: 100%; padding: 11px 0; text-align: left; }
+.board button::before { content: counter(ex); grid-area: n; font: 600 20px/1.1 'Oswald', sans-serif; color: var(--faint); }
+.board .name { grid-area: name; font-weight: 600; }
+.board .name em { font-style: normal; font-size: 13px; color: var(--pain-fg); margin-left: 6px; white-space: nowrap; }
+.board .dose { grid-area: dose; font-size: 13px; color: var(--muted); }
+.board .load { grid-area: load; align-self: center; font: 600 20px 'Oswald', sans-serif; font-variant-numeric: tabular-nums; }
+.board .load.quiet { font: 13px system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; color: var(--faint); }
+
+.card.rehab { background: var(--note-pain-bg); margin-bottom: 24px; }
+.slots { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 14px; }
+.slot { display: flex; flex-direction: column; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line); font-size: 13px; color: var(--muted); }
+.slot b { font: 600 17px 'Oswald', sans-serif; color: var(--text); }
+.slot.now { border-color: var(--pain); }
+.slot.now b { color: var(--pain-fg); }
+.slot.done b { color: var(--muted); }
+.card.rehab .cta { margin-top: 12px; }
+.card.ask { padding: 14px 16px; }
+.card.ask.pain { box-shadow: inset 3px 0 0 var(--pain); }
+.card.ask h3 { font-size: 17px; }
+button.quick-pain { width: 100%; margin: -12px 0 var(--gap); }
 
 /* Tema claro (Ajustes → Tema). El lima queda para fondos de botón; el texto de acento pasa a verde oscuro. */
 :root[data-theme="light"] {
@@ -35,6 +75,7 @@ a { color: var(--acc-fg); }
   color-scheme: light;
 }
 :root[data-theme="light"] .dots i.on { border-color: #9BCB00; }
+:root[data-theme="light"] .today h3 { border-bottom-color: #9BCB00; }
 :root[data-theme="light"] .fig { background: #ECEFF3; }
 :root[data-theme="light"] .chart .dot { stroke: var(--card); }
 
@@ -163,12 +204,6 @@ dialog.full .dlg-head { background: var(--bg); }
 .steps i.on { background: var(--acc); }
 
 /* Semana y resumen */
-.week { display: flex; gap: 18px; align-items: flex-end; justify-content: space-between; padding: 12px 16px; }
-.week .num { font-size: 22px; font-weight: 700; }
-.week .rehab-n { color: var(--pain-fg); }
-.dots { display: flex; gap: 5px; margin-top: 6px; }
-.dots i { width: 18px; height: 18px; border-radius: 50%; background: var(--card2); border: 2px solid var(--line); }
-.dots i.on { background: var(--acc); border-color: var(--acc); }
 .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 8px 0 12px; }
 .stats > div { background: var(--card2); border-radius: 14px; padding: 12px 6px; text-align: center; display: flex; flex-direction: column; gap: 4px; }
 .stats .big { font-size: 36px; color: var(--acc-fg); }
