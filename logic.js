@@ -298,12 +298,31 @@ function suggestLevelUp(state, today, getEx) {
 
 // ——— Entrada en calor ———
 // Series de aproximación antes del primer ejercicio con peso: 8 reps al 50 % y 4 al 75 % (sin repetir pesos).
-function warmupSets(w, steps) {
+// Corta (una serie de 6 al 60 %) para el primer ejercicio de la otra mitad del cuerpo, que ya llega con el cuerpo caliente.
+function warmupSets(w, steps, short) {
   const out = [];
-  for (const [f, reps] of [[0.5, 8], [0.75, 4]]) {
+  for (const [f, reps] of short ? [[0.6, 6]] : [[0.5, 8], [0.75, 4]]) {
     const x = roundDown(steps, w * f);
     if (x > 0 && x < w && !out.some((o) => o.w === x)) out.push({ w: x, reps });
   }
+  return out;
+}
+
+// Mitad del cuerpo que trabaja un ejercicio, por su músculo principal (abdomen no cuenta para ninguna).
+const UPPER_MUS = ['chest', 'delt', 'back', 'triceps', 'biceps', 'forearm'], LOWER_MUS = ['quads', 'glutes', 'hams', 'calves', 'lumbar'];
+function bodyHalf(ex) {
+  const m = ex.mus?.[0];
+  return UPPER_MUS.includes(m) ? 'upper' : LOWER_MUS.includes(m) ? 'lower' : null;
+}
+
+// Activación y movilidad según lo que se entrena hoy: un ítem general y uno por mitad del cuerpo (las dos si no se sabe).
+function warmupMoves(exs) {
+  const mus = new Set(exs.flatMap((ex) => ex.mus || []));
+  let up = UPPER_MUS.some((m) => mus.has(m)), low = LOWER_MUS.some((m) => mus.has(m));
+  if (!up && !low) up = low = true;
+  const out = [{ t: 'Activar', d: '2 min de trote en el lugar o saltos suaves, hasta que suba un poco el pulso.', min: 2 }];
+  if (up) out.push({ t: 'Hombros y brazos', d: `10 círculos de brazos para cada lado, 10 aperturas abrazándote${mus.has('forearm') || mus.has('biceps') ? ' y 10 giros de muñeca para cada lado' : ''}.`, min: 1 });
+  if (low) out.push({ t: 'Cadera y piernas', d: `10 sentadillas sin peso, 10 bisagras de cadera y 10 balanceos de pierna por lado${mus.has('calves') ? ', y 15 rebotes en puntas de pie' : ''}.`, min: 1 });
   return out;
 }
 

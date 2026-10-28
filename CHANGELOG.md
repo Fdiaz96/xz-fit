@@ -2,6 +2,13 @@
 
 Todos los cambios de XZ Fit (antes Tendón Fuerte), del más nuevo al más viejo.
 
+## 1.29.0 — Entrada en calor a medida
+
+- La entrada en calor se arma según lo que entrenás hoy: un minuto de activación y movilidad solo de las partes que vas a usar (hombros y brazos, cadera y piernas, o las dos).
+- Cada paso dice exactamente qué hacer y cuántas veces, con el nombre arriba y el detalle abajo, para leerlo de un vistazo.
+- Las series de aproximación ahora van en un solo paso por ejercicio, y si el día tiene piernas y torso, el primer ejercicio de la otra mitad suma una serie corta.
+- Arriba dice cuánto lleva en total (unos 5 a 7 minutos).
+
 ## 1.28.0 — Repaso de pantallas
 
 - El botón **Empezar** del día que toca queda siempre a la vista, arriba de la barra de pestañas, en Hoy y en Entreno.

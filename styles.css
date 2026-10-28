@@ -237,7 +237,9 @@ button.warm-item .box { flex: none; width: 24px; height: 24px; border-radius: 7p
 details.warm.now { box-shadow: inset 0 0 0 2px var(--acc); }
 button.warm-item.next { color: var(--text); }
 button.warm-item.next .box { border-color: var(--acc); }
-button.warm-item.on { color: var(--faint); text-decoration: line-through; }
+button.warm-item b { display: block; color: var(--text); font-weight: 600; font-size: 15px; margin-bottom: 1px; }
+button.warm-item.on { color: var(--faint); }
+button.warm-item.on b { color: var(--faint); text-decoration: line-through; }
 button.warm-item.on .box { background: var(--acc); border-color: var(--acc); color: var(--acc-ink); }
 
 /* Discos por lado */

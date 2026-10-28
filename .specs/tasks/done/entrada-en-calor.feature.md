@@ -1,7 +1,7 @@
 ---
 title: Implementar la entrada en calor con isométricos y series de aproximación
 status: implementado (retro-documentado)
-versions: 1.5.0
+versions: 1.5.0, 1.29.0
 depends_on: [entreno-ab-progresion-volumen.feature.md, modo-dolor-rehabilitacion.feature.md]
 ---
 
@@ -18,6 +18,8 @@ Bloque desplegable "Entrada en calor" arriba del entreno (abierto hasta que se t
 1. **Movilidad 3–5 min**: círculos de hombros, muñecas y cadera, sentadillas sin peso.
 2. **Con modo dolor**: por cada zona en fase 1–2, "Isométrico de <zona>: 1 × 30–45 s (<ejercicio de fase 1>)".
 3. **Series de aproximación** del primer ejercicio con peso > 0: 8 reps al 50 % y 4 al 75 %, redondeadas al equipo, sin repetir pesos y siempre por debajo del peso de trabajo. "(aproximación, no cuenta)": no suman al volumen ni a la progresión.
+
+**Desde 1.29.0**: cada ítem tiene título y detalle (`{ t, d, min }`) y el encabezado muestra los minutos totales. `warmupMoves` arma "Activar" + movilidad de la mitad del cuerpo que se entrena (`bodyHalf` por el músculo principal; las dos si no hay mitad clara). La aproximación es un ítem por ejercicio: completa para el primer ejercicio con peso y corta (6 reps al 60 %) para el primero de la otra mitad.
 
 ## Acceptance Criteria
 

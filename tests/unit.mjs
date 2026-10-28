@@ -149,6 +149,12 @@ eq(L('setsPerExercise(46, 3, 6)').reduce((a, b) => a + b) * 3, 45, '46 en 3 día
 // Entrada en calor
 eq(L(`warmupSets(10, ${steps})`), [{ w: 4, reps: 8 }, { w: 6, reps: 4 }], 'aproximación para 10 kg: 4 × 8 y 6 × 4');
 eq(L(`warmupSets(2, ${steps})`), [], 'con el peso mínimo no hay aproximación');
+eq(L(`warmupSets(10, ${steps}, true)`), [{ w: 6, reps: 6 }], 'aproximación corta para la otra mitad: 6 × 6');
+eq(L('warmupMoves([EXERCISES.press_banco, EXERCISES.curl_martillo]).map((x) => x.t)'), ['Activar', 'Hombros y brazos'], 'día de torso: solo movilidad de arriba');
+eq(L('warmupMoves([EXERCISES.goblet, EXERCISES.talones_lenta]).map((x) => x.t)'), ['Activar', 'Cadera y piernas'], 'día de pierna: solo movilidad de abajo');
+ok(L('warmupMoves([EXERCISES.goblet, EXERCISES.talones_lenta])[1].d').includes('puntas de pie'), 'con gemelos suma rebotes en puntas');
+eq(L('warmupMoves([EXERCISES.plancha]).length'), 3, 'sin mitad clara: las dos movilidades');
+eq(L('bodyHalf(EXERCISES.rdl)'), 'lower', 'peso muerto rumano es de la mitad de abajo');
 
 // Estancamiento y día de la semana
 const ses = (w, reps) => `{ type: 'entreno', items: [{ ex: 'rdl', sets: [{ w: ${w}, reps: ${reps[0]} }, { w: ${w}, reps: ${reps[1]} }] }] }`;

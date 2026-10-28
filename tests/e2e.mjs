@@ -420,6 +420,7 @@ await page.waitForSelector('#wsheet[open]');
 ok((await page.locator('#wsheet .warm').textContent()).includes('Isométrico de codo lateral'), 'la entrada en calor incluye el isométrico de la zona sensible');
 await click('#wsheet [data-action="warm"][data-i="0"]');
 ok(await page.locator('#wsheet .warm-item.on').count() === 1, 'marca un ítem de la entrada en calor');
+await shot('09b-entrada-en-calor');
 const first = page.locator('#wsheet .wex').first();
 ok(await page.locator('#wsheet .calib-intro').count() === 1 && (await page.locator('#wsheet .calib-intro').textContent()).includes('Hoy calibramos tus pesos'), 'el primer entreno explica la calibración una sola vez, arriba');
 ok(await first.locator('.calib-tag').count() === 1 && !(await page.locator('#wsheet').textContent()).includes('Serie de calibración'), 'cada ejercicio a calibrar lleva la etiqueta, sin repetir la explicación');
