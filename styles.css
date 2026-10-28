@@ -187,7 +187,7 @@ h3.grp { font-size: 15px; color: var(--muted); margin: 18px 0 8px; }
 .ex .tools .move { width: 44px; height: 44px; border-radius: 10px; background: var(--card2); font-size: 18px; }
 .ex .tools .move:disabled { opacity: .35; }
 .ex .tools .sec { min-height: 44px; margin-left: auto; }
-.ex .tools .quiet.del { padding: 0 6px; color: var(--danger); text-decoration-color: currentColor; }
+.ex .tools .sec.del { min-height: 44px; margin-left: 0; color: var(--danger); }
 .routine-reset { margin-top: 40px; text-align: center; }
 
 /* Plan de entrenamiento: la semana tipo es la pieza que se reconoce; los días de entreno en lima con la sigla del día que toca */
@@ -423,7 +423,10 @@ dialog #rest { bottom: calc(16px + var(--safe-b)); }
 dialog.full #toast { bottom: calc(16px + var(--safe-b)); }
 :has(> #rest:not([hidden])) > #toast { bottom: calc(148px + var(--safe-b)); }
 dialog.full:has(> #rest:not([hidden])) > #toast { bottom: calc(88px + var(--safe-b)); }
-dialog.sheet #toast { top: calc(12px + var(--safe-t)); bottom: auto; animation-name: toast-down; }
+dialog.sheet #toast, #onb #toast { top: calc(12px + var(--safe-t)); bottom: auto; animation-name: toast-down; }
+/* El botón del día que toca queda sobre la barra de pestañas; el aviso sube para no taparlo. */
+button.cta.stick { position: sticky; z-index: 5; bottom: calc(76px + var(--safe-b)); box-shadow: 0 -14px 14px 2px var(--bg), 0 18px 0 2px var(--bg); }
+body:has(.view:not([hidden]) .cta.stick) > #toast { bottom: calc(144px + var(--safe-b)); }
 @keyframes toast-up { from { opacity: 0; transform: translateY(12px); } }
 @keyframes toast-down { from { opacity: 0; transform: translateY(-12px); } }
 @media (prefers-reduced-motion: reduce) { #toast { animation: none; } }

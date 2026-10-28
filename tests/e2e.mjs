@@ -15,6 +15,7 @@ const errors = [];
 page.on('pageerror', (e) => errors.push(e.message));
 page.on('dialog', (d) => d.accept());
 const shot = async (name) => SHOTS && page.screenshot({ path: `${SHOTS}/${name}.png` });
+const overlaps = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
 const toastText = () => page.locator('#toast span').textContent();
 const state = () => page.evaluate(() => JSON.parse(JSON.stringify(S)));
 const click = async (sel) => { await page.click(sel); await page.waitForTimeout(80); };
@@ -307,6 +308,7 @@ await shot('01-bienvenida');
 await click('[data-action="onb-next"]');
 await click('[data-action="onb-next"]');
 ok((await toastText()).includes('peso'), 'pide el peso para estimar cargas');
+ok(!overlaps(await page.locator('#toast').boundingBox(), await page.locator('#onb [data-action="onb-next"]').boundingBox()), 'en el primer uso el aviso no tapa Siguiente');
 await page.fill('#onb [data-set="profile.name"]', 'Fede'); await page.dispatchEvent('#onb [data-set="profile.name"]', 'change');
 await page.fill('#o-weight', '80'); await page.dispatchEvent('#o-weight', 'change');
 await page.fill('#onb [data-set="profile.age"]', '30'); await page.dispatchEvent('#onb [data-set="profile.age"]', 'change');
@@ -369,6 +371,10 @@ ok(Object.keys(s.zones).join() === 'codo_lat,muneca' && s.zones.codo_lat.pain0 =
 ok(s.painMode === false, 'el modo dolor queda apagado');
 ok(await page.locator('[data-action="pain-mode-on"]').count() === 1, 'sugiere activar el modo dolor, sin activarlo solo');
 await shot('05-inicio');
+{
+  const cta = await page.locator('#view-home [data-action="start-workout"]').boundingBox(), bar = await page.locator('.tabbar').boundingBox();
+  ok(cta && cta.y + cta.height <= bar.y, 'Hoy muestra Empezar sobre la barra de pestañas sin bajar');
+}
 ok(await page.evaluate(() => S.plan.since === today() && planFor(dayIndex(activePlan(S), S.plan.pos)).every((p) => p.missing || p.sets === 2)),
   'usuario nuevo: el plan empieza hoy y el primer entreno lleva 2 series por ejercicio (rampa de entrada)');
 
@@ -441,6 +447,7 @@ s = await state();
 ok(s.sessions[0].type === 'entreno' && s.sessions[0].pain.codo_lat === 3, 'guarda el entreno con el dolor');
 await page.waitForSelector('#sumsheet[open]');
 ok((await page.locator('#sumsheet').textContent()).includes('series') && s.sessions[0].sets === 2, 'muestra el resumen del entreno (2 series)');
+ok((await page.locator('#sumsheet').textContent()).includes('kg levantados') && !(await page.locator('#sumsheet').textContent()).includes('1minutos'), 'el resumen habla de kg levantados y pluraliza los minutos');
 await shot('18-resumen');
 await click('#sumsheet [data-action="close"]');
 ok((await page.locator('#view-home .week .dots i.on').count()) === 1, 'Inicio muestra 1 entreno hecho esta semana');
@@ -704,6 +711,14 @@ await click('[data-tab="history"]');
 ok(await page.locator('#view-history .chart svg').count() >= 1, 'muestra el gráfico de dolor');
 await page.locator('#view-history .hit').first().click();
 ok(!(await page.locator('#tip').isHidden()), 'tocar un punto muestra el valor');
+{
+  const sess = await page.locator('#view-history .sess').allTextContents();
+  ok(sess.some((t) => t.startsWith('Día A')) && !sess.some((t) => t.includes('Entreno A')), 'el historial nombra el entreno con el día del plan');
+  ok(sess.some((t) => t.includes('Rehabilitación de la noche') && t.includes('sin hacer')), 'la rehabilitación sin ejercicios dice "sin hacer"');
+  await page.evaluate(() => { S.sessions.push({ id: 'tp', date: addDays(today(), -5), type: 'entreno', plan: 'tp4', day: 0, tpl: 'A', items: [] }); render(); });
+  ok((await page.locator('#view-history .sess').allTextContents()).some((t) => t.startsWith('Torso A')), 'con Torso y pierna el historial dice Torso A');
+  await page.evaluate(() => { S.sessions = S.sessions.filter((x) => x.id !== 'tp'); persist(); render(); });
+}
 await shot('13-historial');
 
 // 8b. Equipo propio y rutina editable

@@ -2,7 +2,7 @@
 // (IndexedDB). Los identificadores internos siguen siendo "tendon-fuerte" para no perder los datos ya guardados.
 // Protocolo de tendones del video de Jeremy Ethier con Keith Baar y Coach Q; reglas en logic.js, bocetos en figures.js.
 
-const APP_VERSION = '1.27.0';
+const APP_VERSION = '1.28.0';
 const DAY_NAMES = { lu: 'Lu', ma: 'Ma', mi: 'Mi', ju: 'Ju', vi: 'Vi', sa: 'Sá', do: 'Do' };
 const SIDES = { der: 'derecha', izq: 'izquierda', ambos: 'ambos lados' };
 const REST_SECS = 90, ISO_REST = 60;
@@ -296,7 +296,7 @@ function renderHome() {
     <p class="day-msg">${dayMsg}${S.plan.deload === weekKey(t) ? '. Semana de descarga.' : ''}</p>
     <h3><span class="day-name">${esc(plan.days[day].name)}</span><span class="sep"> · </span><span class="day-count">${doable.length} ejercicios</span></h3>
     <ol class="board">${doable.map((p) => `<li><button data-action="ex-detail" data-ex="${p.ex.id}"><span class="name">${esc(p.ex.name)}${p.r ? `<em>${painTag(p.r)}</em>` : ''}</span><span class="dose">${p.sets} × ${setLabel(p)}</span>${load(p)}</button></li>`).join('')}</ol>
-    <button class="cta" data-action="start-workout" data-day="${day}">Empezar ${esc(plan.days[day].name.toLowerCase())}</button></section>`;
+    <button class="cta stick" data-action="start-workout" data-day="${day}">Empezar ${esc(plan.days[day].name.toLowerCase())}</button></section>`;
   if (S.painMode && hasZones) h += `<button class="sec quick-pain" data-action="quick-pain">Anotar cómo está el dolor ahora</button>`;
   if (!rehabFirst) h += rehab;
   // Avisos y decisiones pendientes, debajo del entreno.
@@ -344,11 +344,11 @@ function renderTrain() {
         <div class="thumb">${figureSVG(p.ex, { crop: true })}</div>
         <div class="info"><h3>${esc(p.ex.name)}</h3><p class="dose">${p.missing ? 'Falta equipo' : `${p.sets} × ${setLabel(p)}`}${p.r ? `<em>${painTag(p.r)}</em>` : ''}</p>${p.stalled && !editRoutine ? `<p class="stall">Estancado: <button class="link small" data-action="unstall" data-ex="${p.ex.id}">bajar 10 % y volver a subir</button></p>` : ''}</div>
         ${editRoutine ? `<div class="tools"><button class="move" data-action="routine-move" data-day="${d}" data-i="${i}" data-d="-1" aria-label="Subir" ${i ? '' : 'disabled'}>↑</button><button class="move" data-action="routine-move" data-day="${d}" data-i="${i}" data-d="1" aria-label="Bajar" ${i < items.length - 1 ? '' : 'disabled'}>↓</button>
-          <button class="sec" data-action="routine-pick" data-day="${d}" data-i="${i}">Cambiar</button><button class="quiet del" data-action="routine-del" data-day="${d}" data-i="${i}">Quitar</button></div>`
+          <button class="sec" data-action="routine-pick" data-day="${d}" data-i="${i}">Cambiar</button><button class="sec del" data-action="routine-del" data-day="${d}" data-i="${i}">Quitar</button></div>`
           : `<div class="w">${p.ex.kind === 'peso' ? `${p.w ? `<span class="num">${String(p.w).replace('.', ',')}</span><span class="unit">kg</span>` : `<span class="unit">${loadText(p)}</span>`}${loadTag(p)}` : ''}</div>`}</li>`).join('');
     h += `</ul>`;
     h += editRoutine ? `<button class="sec add-ex" data-action="routine-pick" data-day="${d}">+ Agregar ejercicio</button>`
-      : `<button class="cta${now ? '' : ' ghost'}" data-action="start-workout" data-day="${d}" ${items.some((p) => !p.missing) ? '' : 'disabled'}>Empezar ${esc(dd.name)}</button>`;
+      : `<button class="cta${now ? ' stick' : ' ghost'}" data-action="start-workout" data-day="${d}" ${items.some((p) => !p.missing) ? '' : 'disabled'}>Empezar ${esc(dd.name)}</button>`;
     h += `</section>`;
   });
   // Lo destructivo y global va al final, lejos de agregar ejercicio.
@@ -796,7 +796,7 @@ function showSummary(s) {
   // Con peso sin cambios: le decimos en qué repeticiones sube (el tope del rango guardado en la sesión).
   const holds = weightMode() === 'manual' ? [] : unchangedWeightItems(s, (id) => getEx(id)?.kind === 'peso');
   dlg('sumsheet').html = `<div class="dlg"><div class="dlg-head"><strong>¡${esc(plan.days[s.day]?.name ?? `Entreno ${s.tpl}`)} hecho! 💪</strong><button class="link" data-action="close" data-dlg="sumsheet">Listo</button></div>
-    <div class="stats"><div><span class="big num">${s.min}</span><span class="muted small">minutos</span></div><div><span class="big num">${s.sets}</span><span class="muted small">series</span></div><div><span class="big num">${s.vol >= 1000 ? (s.vol / 1000).toFixed(1).replace('.', ',') + 'k' : s.vol}</span><span class="muted small">kg × reps</span></div></div>
+    <div class="stats"><div><span class="big num">${s.min}</span><span class="muted small">${s.min === 1 ? 'minuto' : 'minutos'}</span></div><div><span class="big num">${s.sets}</span><span class="muted small">${s.sets === 1 ? 'serie' : 'series'}</span></div><div><span class="big num">${s.vol >= 1000 ? (s.vol / 1000).toFixed(1).replace('.', ',') + 'k' : s.vol}</span><span class="muted small">kg levantados</span></div></div>
     ${st ? `<p class="streak">🔥 ${st} ${st === 1 ? 'semana cumplida' : 'semanas seguidas cumpliendo'}</p>` : ''}
     ${s.prs?.length ? `<h2>Récords</h2>${s.prs.map((p) => `<div class="row"><span>🏆 ${esc(p.name)}</span><b class="num">${esc(p.val)}</b></div>`).join('')}` : ''}
     ${s.ups?.length ? `<h2>La próxima vez</h2>${s.ups.map((u) => `<div class="row"><span>${esc(u.name)}</span><b class="num" style="color:${u.to > u.from ? 'var(--acc-fg)' : 'var(--pain-fg)'}">${fmtKg(u.from)} → ${fmtKg(u.to)}</b></div>`).join('')}` : ''}
@@ -960,7 +960,8 @@ function renderPain() {
   dlg('painsheet').html = `<div class="dlg pain"><div class="dlg-head"><strong>¿Cuánto dolió?</strong><span></span></div>
     <p class="muted small">Durante el ejercicio, de 0 (nada) a 10 (máximo). Hasta 3–4 está bien.</p>
     ${P.zones.map((z) => `<h3 style="margin-top:14px">${esc(zoneName(z))}</h3><div class="chips scale">${Array.from({ length: 11 }, (_, n) => `<button class="chip${P.vals[z] === n ? ' on' : ''}" data-action="pain-val" data-zone="${z}" data-n="${n}">${n}</button>`).join('')}</div>`).join('')}
-    <button class="cta pain" style="margin-top:18px" data-action="save-pain" ${P.zones.every((z) => P.vals[z] != null) ? '' : 'disabled'}>Guardar</button></div>`;
+    <button class="cta pain" style="margin-top:18px" data-action="save-pain" ${P.zones.every((z) => P.vals[z] != null) ? '' : 'disabled'}>Guardar</button>
+    ${P.zones.every((z) => P.vals[z] != null) ? '' : `<p class="faint small" style="text-align:center;margin-top:8px">Marcá el dolor de ${P.zones.length > 1 ? 'cada zona' : 'la zona'} para guardar.</p>`}</div>`;
 }
 function savePain() {
   const { session, vals } = P;
@@ -1083,7 +1084,7 @@ function renderHistory() {
   h += `${helpHead('Peso por ejercicio', 'ex')}<div class="card acc">${histHelp.ex ? `<div class="note acc help-note">Cada punto es el peso más alto que levantaste en ese ejercicio en un día. Si la línea sube, estás ganando fuerza. Tocá un punto para ver el número. Los días con peso bajado por dolor no cuentan.</div>` : ''}
     ${exIds.length ? `<select data-action="hist-ex" aria-label="Ejercicio">${exIds.map((e) => `<option value="${e}" ${e === histEx ? 'selected' : ''}>${esc(getEx(e)?.name || e)}</option>`).join('')}</select>` : ''}
     ${lineChart(weightHistory(histEx), { unit: 'kg', color: 'var(--acc)', empty: 'Cuando termines un entreno con pesas, acá vas a ver cómo sube cada ejercicio.' })}</div>`;
-  if (S.sessions.length) h += `<h2>Sesiones</h2><div class="card">${S.sessions.slice(0, 60).map((s) => `<details class="sess-d"><summary class="sess"><span><span class="what">${s.type === 'entreno' ? `Entreno ${s.tpl}` : s.type === 'dolor' ? 'Registro de dolor' : `Rehabilitación de la ${s.slot}`}</span><br><span class="muted small">${fmtDate(s.date)}${s.min ? `, ${s.min} min y ${s.sets} series` : ''}${s.prs?.length ? ' 🏆' : ''}${s.pain ? '. Dolor: ' + Object.entries(s.pain).map(([z, v]) => `${zoneName(z).toLowerCase()} ${v}`).join(', ') : ''}</span></span><span class="sess-n${s.type === 'entreno' ? '' : ' pain'}"><b>${s.items.length}</b><span>${s.items.length === 1 ? 'ejercicio' : 'ejercicios'}</span></span></summary>
+  if (S.sessions.length) h += `<h2>Sesiones</h2><div class="card">${S.sessions.slice(0, 60).map((s) => `<details class="sess-d"><summary class="sess"><span><span class="what">${s.type === 'entreno' ? esc(PLANS[s.plan]?.days[s.day]?.name ?? `Entreno ${s.tpl}`) : s.type === 'dolor' ? 'Registro de dolor' : `Rehabilitación de la ${s.slot}`}</span><br><span class="muted small">${fmtDate(s.date)}${s.min ? `, ${s.min} min y ${s.sets} series` : ''}${s.prs?.length ? ' 🏆' : ''}${s.pain ? '. Dolor: ' + Object.entries(s.pain).map(([z, v]) => `${zoneName(z).toLowerCase()} ${v}`).join(', ') : ''}</span></span><span class="sess-n${s.type === 'entreno' ? '' : ' pain'}">${s.items.length ? `<b>${s.items.length}</b><span>${s.items.length === 1 ? 'ejercicio' : 'ejercicios'}</span>` : '<span>sin hacer</span>'}</span></summary>
       <ul class="small muted">${s.items.map((i) => `<li>${esc(getEx(i.ex)?.name || i.name || i.ex)}: ${i.sets.map((x) => (x.w ? `${x.w}×` : '') + (x.reps || (x.secs ? x.secs + 's' : '✓'))).join(', ')}</li>`).join('')}</ul>
       <button class="link danger small" data-action="del-session" data-id="${s.id}">Eliminar sesión</button></details>`).join('')}</div>`;
   // Dolor por zona va al final y solo si hay zonas o registros.
@@ -1178,7 +1179,7 @@ function renderSettings() {
   <h2>Recordatorios</h2><div class="card">
     <p class="muted small">Se agregan a tu calendario: es la forma más confiable de recibir avisos sin servidor.</p>
     <div class="grid2"><label class="field"><span>Isométricos mañana</span><input type="time" data-set="rem.am" value="${S.rem.am}"></label><label class="field"><span>Isométricos noche</span><input type="time" data-set="rem.pm" value="${S.rem.pm}"></label></div>
-    <label class="field"><span>Hora del entreno (los días se eligen en Perfil)</span><input type="time" data-set="rem.trainAt" value="${S.rem.trainAt}"></label>
+    <label class="field"><span>Hora del entreno</span><input type="time" data-set="rem.trainAt" value="${S.rem.trainAt}"></label>
     <button class="sec" style="width:100%" data-action="ics">📅 Agregar al calendario</button>
     ${S.painMode ? '' : '<p class="faint small">Los isométricos se incluyen solo con el modo dolor activado.</p>'}</div>
   <h2>Copia de seguridad</h2><div class="card">
@@ -1365,7 +1366,7 @@ document.addEventListener('click', (e) => {
       z.choice = { ...z.choice, [Math.min(2, z.phase)]: d.ex };
       // Otra herramienta: la carga arranca de nuevo desde lo mínimo del ejercicio elegido.
       if (ex.impl === 'bw') z.load = 0; else if (!steps.includes(z.load)) z.load = ex.load0 ? roundDown(steps, ex.load0) : 0;
-      persist(); render(); toast(`${zoneName(d.zone)}: ${ex.name.toLowerCase()}.`);
+      persist(); render(); toast(`${zoneName(d.zone)}: ${ex.name}.`);
     },
     'plate-add': () => { S.equip.db.plates.items.push({ kg: 1.25, n: 4 }); persist(); render(); },
     'plate-del': () => { S.equip.db.plates.items.splice(+d.i, 1); persist(); render(); },

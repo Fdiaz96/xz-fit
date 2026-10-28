@@ -2,6 +2,16 @@
 
 Todos los cambios de XZ Fit (antes Tendón Fuerte), del más nuevo al más viejo.
 
+## 1.28.0 — Repaso de pantallas
+
+- El botón **Empezar** del día que toca queda siempre a la vista, arriba de la barra de pestañas, en Hoy y en Entreno.
+- Los avisos ya no tapan los botones: en el primer uso aparecen arriba, y en Hoy y Entreno suben por encima de Empezar.
+- El historial nombra cada entreno con el día de tu plan (por ejemplo, Torso A o Pecho) y marca como "sin hacer" la rehabilitación que no hiciste.
+- El resumen del entreno dice "1 minuto" y "kg levantados".
+- En Editar rutina, **Quitar** es un botón del mismo tamaño que Cambiar, más fácil de tocar.
+- Al anotar el dolor, si falta una zona te dice qué marcar para poder guardar.
+- Arreglos de textos: la hora del entreno en Ajustes y el nombre de los ejercicios de rehabilitación en los avisos.
+
 ## 1.27.0 — Tus días y un plan a tu medida
 
 - En el plan que elegís, tocá los días de la semana para decidir cuáles entrenás. El plan pone la cantidad (por ejemplo, 2 días en Full body 2 días) y vienen marcados sus días por defecto si no cambiás nada.
