@@ -1145,6 +1145,8 @@ dl = page.waitForEvent('download'); await click('[data-action="report"]');
 const rep = fs.readFileSync(await (await dl).path(), 'utf8');
 if (SHOTS) fs.writeFileSync(`${SHOTS}/informe.html`, rep);
 ok(rep.includes('Informe') && rep.includes('Codo lateral') && rep.includes('<svg'), 'el informe trae zonas y gráfico de dolor');
+ok((await toastText()) === 'Informe descargado.', 'avisa "Informe descargado"');
+ok(rep.includes(`del ${await page.evaluate(() => fmtDate(S.sessions.map((s) => s.date).concat(S.checks.map((c) => c.date)).sort()[0]))} al`), 'el período del informe arranca en la primera sesión');
 
 // 8d2. Estancamiento y descarga
 await page.evaluate(() => {
@@ -1153,7 +1155,24 @@ await page.evaluate(() => {
   S.lifts.lateral = { w: 4, e1rm: 5 };
   S.painMode = false; persist(); render();
 });
+// Sin modo dolor, Historial ofrece exportar los entrenos en vez del informe para el fisio.
+await click('[data-tab="history"]');
+ok(await page.locator('#view-history [data-action="report"]').count() === 0, 'sin modo dolor no ofrece el informe para el fisio');
+dl = page.waitForEvent('download'); await click('#view-history [data-action="export-train"]');
+const trainRep = fs.readFileSync(await (await dl).path(), 'utf8');
+if (SHOTS) fs.writeFileSync(`${SHOTS}/entrenos.html`, trainRep);
+ok(trainRep.includes('Mis entrenos') && trainRep.includes('Peso muerto rumano') && trainRep.includes('10 kg × 9 reps') && !trainRep.includes('rehabilitación'), '"Exportar mis entrenos" trae las sesiones con kg y reps');
+ok((await toastText()) === 'Informe descargado.', 'avisa al exportar los entrenos');
+// Con 4 entrenos o más y sin copia, Hoy recuerda guardarla; "Ahora no" la pospone.
+await page.evaluate(() => { S.backup = { last: '', snooze: '' }; render(); });
 await click('[data-tab="home"]');
+ok(await page.locator('#view-home .backup-ask').count() === 1, 'Hoy recuerda guardar una copia');
+await click('#view-home .backup-ask [data-action="backup-no"]');
+ok(await page.locator('#view-home .backup-ask').count() === 0 && (await state()).backup.snooze > await page.evaluate(() => today()), '"Ahora no" pospone el recordatorio');
+await page.evaluate(() => { S.backup = { last: addDays(today(), -40), snooze: '' }; render(); });
+ok(await page.locator('#view-home .backup-ask').count() === 1 && (await page.locator('#view-home .backup-ask').textContent()).includes('hace 40 días'), 'vuelve a recordarla si la última copia tiene más de un mes');
+await page.evaluate(() => { S.backup = { last: today(), snooze: '' }; render(); });
+ok(await page.locator('#view-home .backup-ask').count() === 0, 'con una copia reciente no la recuerda');
 ok(await page.locator('[data-action="deload"]').count() === 1, 'sugiere semana de descarga con 2 ejercicios estancados');
 const rdlPlan = () => page.evaluate(() => { const it = activePlan(S).days.flatMap((_, d) => planFor(d)).find((x) => x.ex.id === 'rdl'); return { sets: it.sets, w: it.w, steps: weightSteps(S.equip, it.impl) }; });
 const rdlNormal = await rdlPlan();
@@ -1188,6 +1207,8 @@ dl = page.waitForEvent('download'); await click('[data-action="export"]');
 const backupPath = await (await dl).path();
 const backup = JSON.parse(fs.readFileSync(backupPath, 'utf8'));
 ok(backup.app === 'tendon-fuerte' && backup.data.sessions.length === 3, 'la copia trae las sesiones');
+ok((await toastText()) === 'Copia guardada.' && (await page.locator('#view-settings .backup-last').textContent()) === 'Última copia: hoy.', 'avisa "Copia guardada" y muestra la última copia');
+await page.waitForTimeout(150); await shot('14b-ajustes-copia');
 await page.evaluate(() => { S.sessions = []; persist(); });
 await page.setInputFiles('#import-file', { name: 'copia.json', mimeType: 'application/json', buffer: fs.readFileSync(backupPath) });
 await page.waitForTimeout(300);

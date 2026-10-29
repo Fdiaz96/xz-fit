@@ -141,6 +141,9 @@ button:disabled { opacity: .4; cursor: default; }
 button:focus-visible, .chip:focus-visible, a:focus-visible, summary:focus-visible { outline: 2px solid var(--acc-fg); outline-offset: 2px; }
 .btns { display: flex; gap: 8px; flex-wrap: wrap; }
 .btns > * { flex: 1; }
+/* Ajustes, Copia de seguridad: la fecha de la última copia; en naranja si pasó más de un mes. */
+.backup-last { margin: 8px 0 0; color: var(--faint); }
+.backup-last.due { color: var(--pain); font-weight: 600; }
 
 /* Chips (opciones) */
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }

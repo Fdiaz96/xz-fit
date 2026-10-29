@@ -2,7 +2,7 @@
 // (IndexedDB). Los identificadores internos siguen siendo "tendon-fuerte" para no perder los datos ya guardados.
 // Protocolo de tendones del video de Jeremy Ethier con Keith Baar y Coach Q; reglas en logic.js, bocetos en figures.js.
 
-const APP_VERSION = '1.30.16';
+const APP_VERSION = '1.30.17';
 const DAY_NAMES = { lu: 'Lu', ma: 'Ma', mi: 'Mi', ju: 'Ju', vi: 'Vi', sa: 'Sá', do: 'Do' };
 const SIDES = { der: 'derecha', izq: 'izquierda', ambos: 'ambos lados' };
 const REST_SECS = 90, ISO_REST = 60;
@@ -39,6 +39,7 @@ const DEFAULT = () => ({
   equipBak: null,   // el equipo que había antes de elegir "Solo peso corporal", para devolverlo al destildarlo
   routine: {}, exlib: [],
   zones: {}, lifts: {}, sessions: [], checks: [], custom: [],
+  backup: { last: '', snooze: '' },   // última copia guardada y hasta cuándo no recordarla
   plan: { id: 'fb2', custom: false, pos: 0, since: '', bw: false, deload: '', deloadOffer: '' },
   rem: { am: '08:00', pm: '20:00', train: ['lu', 'ju'], trainAt: '19:00' },
   prefs: { sound: true, voice: false, rest: 90, auto: true, theme: 'dark', weights: 'auto' }, seenVersion: '',
@@ -63,7 +64,7 @@ function withDefaults(d) {
   const base = DEFAULT(), { templates, ...rest } = d;
   const { budget, week, next, ...plan } = { ...base.plan, ...d.plan };   // el presupuesto semanal y la alternancia A/B ya no existen
   const out = { ...base, ...rest, profile: { ...base.profile, ...d.profile }, equip: { ...base.equip, ...d.equip },
-    plan: { ...plan, id: PLANS[plan.id] ? plan.id : 'fb2' }, routine: { ...d.routine }, rem: { ...base.rem, ...d.rem }, prefs: { ...base.prefs, ...d.prefs }, exlib: d.exlib || [] };
+    plan: { ...plan, id: PLANS[plan.id] ? plan.id : 'fb2' }, backup: { ...base.backup, ...d.backup }, routine: { ...d.routine }, rem: { ...base.rem, ...d.rem }, prefs: { ...base.prefs, ...d.prefs }, exlib: d.exlib || [] };
   if (out.rem.train.length) out.profile.days = out.rem.train.length;   // los días por semana son los días elegidos
   if ('routine' in d) return out;
   // Datos anteriores a los planes (v1.0 a v1.14): la rutina A/B pasa tal cual y fijada, se conserva el día que tocaba
@@ -144,6 +145,9 @@ function showTab(t) {
 }
 // La pestaña Dolor aparece con el modo dolor o alguna zona marcada; desde Ajustes se llega igual.
 const hasPainTab = () => S.painMode || Object.keys(S.zones).length > 0;
+// Recordar la copia cada tanto: con 4 entrenos o más, si nunca guardaste una o pasó más de un mes (y no dijiste "Ahora no" hace poco).
+const BACKUP_EVERY = 30;
+const backupDue = (t) => S.sessions.filter((s) => s.type === 'entreno').length >= 4 && backupAge(t) > BACKUP_EVERY && !(S.backup.snooze > t);
 function render() {
   const painTab = document.querySelector('.tabbar [data-tab="tendons"]');
   // Si desaparece mientras estás en ella, volvés a Hoy.
@@ -406,6 +410,7 @@ function renderHome() {
       <div class="btns"><button class="cta" data-action="level-up" data-v="${lvl.next}">Cambiar experiencia</button></div>
       <button class="link" data-action="level-no">Ahora no</button></div>`;
   }
+  if (backupDue(t)) h += `<div class="card ask backup-ask"><h3>¿Guardás una copia?</h3><p class="muted small">Tus datos viven solo en este teléfono. ${lastBackupText(t)} Guardala en Drive, el correo o WhatsApp.</p><div class="btns"><button class="cta" data-action="export">Guardar copia</button></div><button class="link" data-action="backup-no">Ahora no</button></div>`;
   if (S.onboarded && S.seenVersion !== APP_VERSION && S.seenVersion !== '') h += `<div class="card ask"><div class="row"><h3>Novedades de la versión ${APP_VERSION}</h3><button class="link" data-action="news-seen" aria-label="Cerrar">✕</button></div><button class="link" data-action="news">Ver qué cambió</button></div>`;
   h += installCard();
   $('view-home').innerHTML = h;
@@ -1479,7 +1484,7 @@ function renderHistory() {
   const exIds = [...new Set(S.sessions.filter((s) => s.type === 'entreno').flatMap((s) => s.items.filter((i) => getEx(i.ex)?.kind === 'peso').map((i) => i.ex)))];
   if (!exIds.includes(histEx)) histEx = exIds[0] || '';
   const recs = exRecords(S.sessions, getEx);
-  let h = `<div class="title-row"><h1>Historial</h1>${S.sessions.length ? '<button class="link" data-action="report">Informe para el fisio</button>' : ''}</div>`;
+  let h = `<div class="title-row"><h1>Historial</h1>${!S.sessions.length ? '' : S.painMode ? '<button class="link" data-action="report">Informe para el fisio</button>' : S.sessions.some((s) => s.type === 'entreno') ? '<button class="link" data-action="export-train">Exportar mis entrenos</button>' : ''}</div>`;
   // Sin entrenos, un solo vacío arriba que invita a empezar el día que toca.
   if (!S.sessions.some((s) => s.type === 'entreno')) {
     const plan = activePlan(S), day = dayIndex(plan, S.plan.pos);
@@ -1498,14 +1503,22 @@ function renderHistory() {
     ${painHistory(histZone).length ? '<p class="chart-cap">Cada punto es el dolor más alto del día, no el último que anotaste.</p>' : ''}</div>`;
   $('view-history').innerHTML = h;
 }
-// Informe para el fisio: página HTML independiente (se puede imprimir como PDF) con las últimas 6 semanas.
+// Desde cuándo cuenta el informe: las últimas 6 semanas, pero no antes de la primera sesión o registro guardado.
+function reportFrom(t) {
+  const first = S.sessions.map((s) => s.date).concat(S.checks.map((c) => c.date)).sort()[0] || t, from = addDays(t, -41);
+  return first > from ? first : from;
+}
+const reportCSS = ':root{--pain:#E8590C;--acc:#5C940D;--line:#DEE2E6;--faint:#868E96;--card:#fff}body{font:15px/1.45 system-ui,sans-serif;color:#212529;max-width:760px;margin:24px auto;padding:0 16px}h1{margin:0}h2{margin:28px 0 6px;font-size:19px}.muted{color:#6C757D}table{border-collapse:collapse;width:100%;font-size:13px;margin-top:8px}th,td{border:1px solid var(--line);padding:5px;text-align:center}th{text-align:left;background:#F8F9FA}section{break-inside:avoid}@media print{button{display:none}}';
+// Informe para el fisio: página HTML independiente (se puede imprimir como PDF) con las últimas 6 semanas
+// (o desde la primera sesión, si empezaste hace menos: la tabla tiene una columna por semana desde ahí).
 function reportHTML() {
-  const t = today(), from = addDays(t, -41), recent = S.sessions.filter((s) => s.date >= from);
+  const t = today(), from = reportFrom(t), recent = S.sessions.filter((s) => s.date >= from);
+  const nWeeks = Math.ceil((Math.round((parseDay(t) - parseDay(from)) / 864e5) + 1) / 7);
   const zones = [...new Set([...activeZones(), ...recent.flatMap((s) => Object.keys(s.pain || {}))])];
   const avg = (xs) => (xs.length ? (xs.reduce((a, b) => a + b, 0) / xs.length).toFixed(1).replace('.', ',') : '—');
   const zoneBlock = (zone) => {
     const z = S.zones[zone], pts = painHistory(zone).filter((p) => p.x >= from);
-    const weeks = Array.from({ length: 6 }, (_, i) => { const a = addDays(t, -7 * (6 - i) + 1), b = addDays(a, 6); return { a, vals: pts.filter((p) => p.x >= a && p.x <= b).map((p) => p.y) }; });
+    const weeks = Array.from({ length: nWeeks }, (_, i) => { const a = i ? addDays(t, -7 * (nWeeks - i) + 1) : from, b = addDays(a, 6); return { a, vals: pts.filter((p) => p.x >= a && p.x <= b).map((p) => p.y) }; });
     const checks = S.checks.filter((c) => c.zone === zone && c.date >= from);
     return `<section><h2>${esc(zoneName(zone))}${z ? `, ${{ der: 'lado derecho', izq: 'lado izquierdo', ambos: 'ambos lados' }[z.side] || ''}` : ''}</h2>
       ${z ? `<p><b>${esc(PHASES[z.phase].name)}</b>, desde el ${fmtDateLong(z.since)}. Ejercicio: ${esc(rehabEx(zone, z.phase).name)}${z.load ? ` con ${fmtKg(z.load)}` : ''}${z.phase === 1 ? `, ${z.secs || ISO_SECS} s por serie` : ''}. Dolor inicial: ${z.pain0 ?? '—'}/10.</p>` : ''}
@@ -1516,13 +1529,30 @@ function reportHTML() {
   const train = recent.filter((s) => s.type === 'entreno'), rehab = recent.filter((s) => s.type === 'rehab');
   const custom = S.custom.length ? `<h2>Ejercicios indicados por el fisio</h2><ul>${S.custom.map((c) => `<li>${esc(c.name)}: ${c.sets} × ${c.value} ${c.mode === 'segundos' ? 's' : 'reps'}${c.note ? ` — ${esc(c.note)}` : ''}</li>`).join('')}</ul>` : '';
   return `<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Informe XZ Fit</title>
-<style>:root{--pain:#E8590C;--acc:#5C940D;--line:#DEE2E6;--faint:#868E96;--card:#fff}body{font:15px/1.45 system-ui,sans-serif;color:#212529;max-width:760px;margin:24px auto;padding:0 16px}h1{margin:0}h2{margin:28px 0 6px;font-size:19px}.muted{color:#6C757D}table{border-collapse:collapse;width:100%;font-size:13px;margin-top:8px}th,td{border:1px solid var(--line);padding:5px;text-align:center}th{text-align:left;background:#F8F9FA}.chart svg{width:100%;max-width:520px;display:block}.chart .grid{stroke:var(--line)}.chart .axis{fill:var(--faint);font-size:11px}.chart .limit{stroke:var(--pain);stroke-dasharray:4 4;opacity:.7}.chart .series{fill:none;stroke-width:2}.chart .dot{stroke:#fff;stroke-width:2}.chart .hit{fill:transparent}.chart .empty,.chart .chart-cap{color:var(--faint);padding:8px 0;margin:0}.chart .ghost{fill:none;stroke:var(--line);stroke-width:2;stroke-dasharray:5 5}section{break-inside:avoid}@media print{button{display:none}}</style></head><body>
+<style>${reportCSS}.chart svg{width:100%;max-width:520px;display:block}.chart .grid{stroke:var(--line)}.chart .axis{fill:var(--faint);font-size:11px}.chart .limit{stroke:var(--pain);stroke-dasharray:4 4;opacity:.7}.chart .series{fill:none;stroke-width:2}.chart .dot{stroke:#fff;stroke-width:2}.chart .hit{fill:transparent}.chart .empty,.chart .chart-cap{color:var(--faint);padding:8px 0;margin:0}.chart .ghost{fill:none;stroke:var(--line);stroke-width:2;stroke-dasharray:5 5}</style></head><body>
 <h1>Informe de rehabilitación</h1>
 <p class="muted">${esc(S.profile.name || 'Paciente')}, del ${fmtDate(from)} al ${fmtDate(t)}. Generado con XZ Fit ${APP_VERSION}.</p>
 <p>Protocolo: isométricos (3 × 30–45 s, mañana y noche), luego isotónicos lentos 3 s/3 s y reintegración, con dolor tolerado hasta 3–4/10 y sin empeorar al día siguiente. Modo dolor ${S.painMode ? 'activo' : 'apagado'}.</p>
 <p><b>${rehab.length}</b> sesiones de rehabilitación y <b>${train.length}</b> entrenos en el período.</p>
 ${zones.map(zoneBlock).join('') || '<p class="muted">Sin zonas con dolor registradas.</p>'}
 ${custom}
+<button onclick="print()">Imprimir o guardar como PDF</button>
+</body></html>`;
+}
+// Sin modo dolor: tus entrenos desde el primero, con récords y cada serie, para guardar o mostrarle a quien quieras.
+function trainingHTML() {
+  const t = today(), list = S.sessions.filter((s) => s.type === 'entreno'), from = list.map((s) => s.date).sort()[0] || t;
+  const recs = exRecords(S.sessions, getEx), min = list.reduce((a, s) => a + (s.min || 0), 0);
+  const name = (s) => esc(PLANS[s.plan]?.days[s.day]?.name ?? `Entreno ${s.tpl}`);
+  const sets = (i) => i.sets.map((x) => (x.w ? `${String(x.w).replace('.', ',')} kg × ` : '') + (x.secs ? `${x.secs} s` : `${x.reps ?? '–'} reps`) + (x.rir != null ? ` (RIR ${x.rir})` : '')).join(', ');
+  return `<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Mis entrenos XZ Fit</title>
+<style>${reportCSS}td{text-align:left}h3{margin:18px 0 0;font-size:16px}</style></head><body>
+<h1>Mis entrenos</h1>
+<p class="muted">${S.profile.name ? esc(S.profile.name) + ', del' : 'Del'} ${fmtDate(from)} al ${fmtDate(t)}. Generado con XZ Fit ${APP_VERSION}.</p>
+<p><b>${list.length}</b> ${list.length === 1 ? 'entreno' : 'entrenos'}${min ? `, ${min} minutos en total` : ''}.</p>
+${recs.length ? `<h2>Récords</h2><table><tr><th>Ejercicio</th><th>Mejor serie</th><th>Fecha</th></tr>${recs.map((r) => `<tr><td>${esc(getEx(r.ex)?.name || r.ex)}</td><td>${recVal(r)}</td><td>${fmtDate(r.date)}</td></tr>`).join('')}</table>` : ''}
+<h2>Sesiones</h2>
+${list.map((s) => `<section><h3>${name(s)}, ${fmtDateLong(s.date)}</h3><table>${s.items.map((i) => `<tr><th>${esc(getEx(i.ex)?.name || i.name || i.ex)}</th><td>${sets(i) || 'sin series'}</td></tr>`).join('')}</table></section>`).join('')}
 <button onclick="print()">Imprimir o guardar como PDF</button>
 </body></html>`;
 }
@@ -1624,6 +1654,7 @@ function renderSettings() {
   <h2>Copia de seguridad</h2><div class="card">
     <p class="muted small">Tus datos viven solo en este teléfono. Guardá una copia de vez en cuando (Drive, correo, WhatsApp).</p>
     <div class="btns"><button class="sec" data-action="export">Guardar copia</button><button class="sec" data-action="import">Restaurar copia</button></div>
+    <p class="small backup-last${backupAge(today()) > BACKUP_EVERY && S.sessions.length ? ' due' : ''}">${lastBackupText(today())}</p>
     <input type="file" id="import-file" accept=".json,application/json" hidden>
     <p class="faint small" id="persist-status"></p></div>
   <h2>Fuentes</h2><div class="card small">
@@ -1800,12 +1831,31 @@ function onbNext() {
 async function shareFile(name, text, type) {
   const file = new File([text], name, { type });
   if (navigator.canShare?.({ files: [file] })) {
-    try { await navigator.share({ files: [file], title: name }); return; } catch (e) { if (e.name === 'AbortError') return; }
+    try { await navigator.share({ files: [file], title: name }); return 'shared'; } catch (e) { if (e.name === 'AbortError') return null; }
   }
   const a = document.createElement('a'); a.href = URL.createObjectURL(file); a.download = name;
   document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  return 'saved';
 }
-function exportData() { shareFile(`xz-fit-${today()}.json`, JSON.stringify({ app: 'tendon-fuerte', version: APP_VERSION, data: S }, null, 1), 'application/json'); }
+// Comparte o descarga un informe y avisa cómo salió (si cancelás el menú de compartir, no dice nada).
+async function shareReport(name, html) {
+  const r = await shareFile(name, html, 'text/html');
+  if (r) toast(r === 'shared' ? 'Informe compartido.' : 'Informe descargado.');
+}
+// La copia ya lleva la fecha de hoy como última copia, así restaurarla no vuelve a pedir otra enseguida.
+async function exportData() {
+  const t = today(), data = { ...S, backup: { last: t, snooze: '' } };
+  const r = await shareFile(`xz-fit-${t}.json`, JSON.stringify({ app: 'tendon-fuerte', version: APP_VERSION, data }, null, 1), 'application/json');
+  if (!r) return;
+  S.backup = data.backup; persist(); render(); toast('Copia guardada.');
+}
+const backupAge = (t) => (S.backup.last ? Math.round((parseDay(t) - parseDay(S.backup.last)) / 864e5) : Infinity);
+// "Última copia: hoy", "ayer" o la fecha; si pasó más de un mes, también cuántos días hace.
+function lastBackupText(t) {
+  const n = backupAge(t);
+  if (n === Infinity) return 'Todavía no guardaste ninguna copia.';
+  return `Última copia: ${n <= 0 ? 'hoy' : n === 1 ? 'ayer' : fmtDate(S.backup.last)}${n > BACKUP_EVERY ? `, hace ${n} días` : ''}.`;
+}
 async function importData(file) {
   try {
     const j = JSON.parse(await file.text()), d = j.data || j;
@@ -1875,7 +1925,9 @@ document.addEventListener('click', (e) => {
     'warm': () => { W.warm[+d.i].done = !W.warm[+d.i].done; renderWorkout(); },
     'hist-help': () => { histHelp[d.k] = !histHelp[d.k]; renderHistory(); },
     'hist-recs': () => { histRecAll = !histRecAll; renderHistory(); },
-    'report': () => shareFile(`informe-xz-fit-${today()}.html`, reportHTML(), 'text/html'),
+    'report': () => shareReport(`informe-xz-fit-${today()}.html`, reportHTML()),
+    'export-train': () => shareReport(`entrenos-xz-fit-${today()}.html`, trainingHTML()),
+    'backup-no': () => { S.backup.snooze = addDays(today(), 14); persist(); render(); },
     'week-day': () => { homePeek = homePeek === d.v ? '' : d.v; renderHome(); },
     'news-seen': () => { S.seenVersion = APP_VERSION; persist(); render(); },
     'pain-val': () => { P.vals[d.zone] = +d.n; renderPain(); },

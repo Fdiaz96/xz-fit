@@ -2,6 +2,14 @@
 
 Todos los cambios de XZ Fit (antes Tendón Fuerte), del más nuevo al más viejo.
 
+## 1.30.17 — Informe y copias que avisan
+
+- "Informe para el fisio" aparece solo con el modo dolor activado; sin él, Historial ofrece "Exportar mis entrenos": tus sesiones con kg, repeticiones y récords, para guardar o imprimir.
+- Al bajar un informe la app avisa "Informe descargado" (o "Informe compartido").
+- El informe para el fisio arranca en tu primera sesión si empezaste hace menos de 6 semanas, sin semanas vacías antes.
+- "Guardar copia" avisa "Copia guardada" y abajo dice cuándo fue la última ("Última copia: hoy"), en naranja si pasó más de un mes.
+- Cada tanto, Hoy te recuerda guardar una copia si nunca guardaste una o la última tiene más de un mes ("Ahora no" la pospone dos semanas).
+
 ## 1.30.16 — Historial con récords y detalle claro
 
 - Nueva sección "Récords": tu mejor serie en cada ejercicio (por ejemplo "14 kg × 12"), con el día en que la hiciste.
