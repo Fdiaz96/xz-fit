@@ -472,6 +472,8 @@ dialog.sheet .dlg-head { background: var(--card); top: -16px; }
 select + .chart { margin-top: 14px; }
 .chart .ghost { fill: none; stroke: var(--faint); stroke-width: 2; stroke-dasharray: 2 6; stroke-linecap: round; stroke-linejoin: round; opacity: .55; }
 .chart .empty { margin: 6px 0 0; color: var(--muted); font-size: 14px; line-height: 1.4; text-align: center; text-wrap: balance; }
+.chart-trend { margin: 0 0 6px; color: var(--muted); font-size: 14px; }
+.chart-trend b { color: var(--text); font-family: 'Oswald'; font-size: 18px; font-weight: 500; margin-right: 2px; }
 .chart-cap { margin: 4px 0 0; color: var(--faint); font-size: 13px; text-align: center; }
 /* Título de sección con "?" que abre la explicación */
 .h2-row { display: flex; align-items: center; gap: 4px; margin: 22px 0 8px; }
@@ -483,6 +485,7 @@ select + .chart { margin-top: 14px; }
 .help-q[aria-expanded="true"] > span[aria-hidden] { background: var(--acc); border-color: var(--acc); color: var(--acc-ink); }
 .note.help-note { margin: 0 0 12px; line-height: 1.45; }
 #tip { position: fixed; z-index: 30; background: var(--card2); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; font-size: 13px; pointer-events: none; transform: translate(-50%, calc(-100% - 10px)); white-space: nowrap; }
+#tip.below { transform: translate(-50%, 10px); }
 #tip b { font-family: 'Oswald'; font-size: 16px; }
 #tip .tip-note { color: var(--muted); font-size: 12px; }
 

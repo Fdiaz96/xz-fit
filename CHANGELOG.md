@@ -2,6 +2,13 @@
 
 Todos los cambios de XZ Fit (antes Tendón Fuerte), del más nuevo al más viejo.
 
+## 1.30.15 — El gráfico de peso muestra el progreso
+
+- El eje del peso va del valor más bajo al más alto que levantaste (ya no desde 0) y dice "kg", así pasar de 12 a 14 kg se nota.
+- Arriba del gráfico, un resumen: "+2 kg en 2 semanas".
+- Abajo se ven más fechas, no solo la primera y la última.
+- La etiqueta que aparece al tocar un punto queda siempre dentro de la tarjeta: si arriba no entra, va debajo del punto.
+
 ## 1.30.14 — El dolor, mejor explicado
 
 - Anotar el dolor fuera de un ejercicio pregunta "¿Cuánto te duele ahora?" y se puede cancelar; después de la rehabilitación se puede dejar para después con "Ahora no".

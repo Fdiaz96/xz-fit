@@ -2,7 +2,7 @@
 // (IndexedDB). Los identificadores internos siguen siendo "tendon-fuerte" para no perder los datos ya guardados.
 // Protocolo de tendones del video de Jeremy Ethier con Keith Baar y Coach Q; reglas en logic.js, bocetos en figures.js.
 
-const APP_VERSION = '1.30.14';
+const APP_VERSION = '1.30.15';
 const DAY_NAMES = { lu: 'Lu', ma: 'Ma', mi: 'Mi', ju: 'Ju', vi: 'Vi', sa: 'Sá', do: 'Do' };
 const SIDES = { der: 'derecha', izq: 'izquierda', ambos: 'ambos lados' };
 const REST_SECS = 90, ISO_REST = 60;
@@ -1476,35 +1476,65 @@ ${custom}
 
 // Gráfico de una serie: fechas en x, valor en y; tocá un punto para ver el valor.
 // Sin puntos dibuja una línea de muestra con el aviso; con uno solo, el punto va al centro.
+// En kg el eje y va del rango real (no desde 0) para que 12→14 kg se note, y arriba resume cuánto subió.
+const numEs = (v) => String(+v.toFixed(2)).replace('.', ',');
+const fmtAxisDate = (k) => parseDay(k).toLocaleDateString('es', { day: 'numeric', month: 'short' }).replace('.', '');
+// Eje y "lindo" para kg: 3 o 4 marcas con paso redondo que cubren del mínimo al máximo.
+function kgTicks(lo, hi) {
+  if (hi - lo < 1) { lo -= 1; hi += 1; }
+  const step = [0.5, 1, 2, 2.5, 5, 10, 20, 25, 50].find((st) => (Math.ceil(hi / st) - Math.floor(lo / st)) <= 3) || 100;
+  const a = Math.max(0, Math.floor(lo / step) * step), z = Math.ceil(hi / step) * step;
+  return Array.from({ length: Math.round((z - a) / step) + 1 }, (_, i) => a + i * step);
+}
+// "+2 kg en 2 semanas": del primer al último punto.
+function weightTrend(pts) {
+  const diff = pts[pts.length - 1].y - pts[0].y, days = Math.round((parseDay(pts[pts.length - 1].x) - parseDay(pts[0].x)) / 864e5);
+  const span = days < 14 ? `${days} ${days === 1 ? 'día' : 'días'}` : days < 61 ? `${Math.round(days / 7)} semanas` : `${Math.round(days / 30.4)} meses`;
+  if (!diff) return `<p class="chart-trend"><b>Mismo peso</b> que hace ${span}</p>`;
+  return `<p class="chart-trend"><b>${diff > 0 ? '+' : '−'}${numEs(Math.abs(diff))} kg</b> en ${span}</p>`;
+}
 function lineChart(pts, { yMax, limit, unit, color, note, empty = 'Sin registros todavía.' }) {
-  const W_ = 320, H = 150, L = 28, Rr = 8, T = 10, B = 22, fmt = (v) => `${v}${unit === 'kg' ? ' kg' : unit}`;
-  const max = yMax ?? (Math.max(0, ...pts.map((p) => p.y)) * 1.15 || 10);
-  const Y = (v) => T + (1 - v / max) * (H - T - B);
-  const ticks = yMax === 10 ? [0, 5, 10] : [0, Math.round(max / 2), Math.round(max)];
-  const grid = (labels) => ticks.map((v) => `<line class="grid" x1="${L}" x2="${W_ - Rr}" y1="${Y(v)}" y2="${Y(v)}"/>${labels ? `<text class="axis" x="${L - 6}" y="${Y(v) + 4}" text-anchor="end">${v}</text>` : ''}`).join('')
+  const kg = unit === 'kg' && yMax == null, W_ = 320, H = 150, L = 30, Rr = 8, T = kg ? 20 : 10, B = 22, fmt = (v) => `${unit === 'kg' ? fmtKg(v) : v + unit}`;
+  const ticks = yMax != null ? (yMax === 10 ? [0, 5, 10] : [0, yMax / 2, yMax])
+    : pts.length && kg ? kgTicks(Math.min(...pts.map((p) => p.y)), Math.max(...pts.map((p) => p.y)))
+    : [0, 5, 10];
+  const lo = ticks[0], hi = ticks[ticks.length - 1];
+  const Y = (v) => T + (1 - (v - lo) / (hi - lo)) * (H - T - B);
+  const grid = (labels) => ticks.map((v) => `<line class="grid" x1="${L}" x2="${W_ - Rr}" y1="${Y(v)}" y2="${Y(v)}"/>${labels ? `<text class="axis" x="${L - 6}" y="${Y(v) + 4}" text-anchor="end">${numEs(v)}</text>` : ''}`).join('')
+    + (labels && kg ? `<text class="axis" x="${L - 6}" y="${T - 8}" text-anchor="end">kg</text>` : '')
     + (limit != null ? `<line class="limit" x1="${L}" x2="${W_ - Rr}" y1="${Y(limit)}" y2="${Y(limit)}"/>` : '');
   if (!pts.length) {
-    const ghost = [0.22, 0.3, 0.28, 0.45, 0.52, 0.66].map((v, i, a) => `${i ? 'L' : 'M'}${(L + 10 + (i / (a.length - 1)) * (W_ - L - Rr - 20)).toFixed(1)} ${Y(v * max).toFixed(1)}`).join('');
+    const ghost = [0.22, 0.3, 0.28, 0.45, 0.52, 0.66].map((v, i, a) => `${i ? 'L' : 'M'}${(L + 10 + (i / (a.length - 1)) * (W_ - L - Rr - 20)).toFixed(1)} ${Y(lo + v * (hi - lo)).toFixed(1)}`).join('');
     return `<div class="chart is-empty"><svg viewBox="0 0 ${W_} ${H}" aria-hidden="true">${grid(false)}<path class="ghost" d="${ghost}"/></svg><p class="empty">${esc(empty)}</p></div>`;
   }
   const t0 = parseDay(pts[0].x), t1 = parseDay(pts[pts.length - 1].x), span = t1 - t0;
   const X = (k) => (span ? L + ((parseDay(k) - t0) / span) * (W_ - L - Rr) : (L + W_ - Rr) / 2);
   const d = pts.map((p, i) => `${i ? 'L' : 'M'}${X(p.x).toFixed(1)} ${Y(p.y).toFixed(1)}`).join('');
-  const dates = span ? `<text class="axis" x="${L}" y="${H - 4}">${fmtDate(pts[0].x)}</text><text class="axis" x="${W_ - Rr}" y="${H - 4}" text-anchor="end">${fmtDate(pts[pts.length - 1].x)}</text>`
-    : `<text class="axis" x="${X(pts[0].x)}" y="${H - 4}" text-anchor="middle">${fmtDate(pts[0].x)}</text>`;
-  return `<div class="chart"><svg viewBox="0 0 ${W_} ${H}" role="img" aria-label="Gráfico de ${pts.length} registros">
+  // Fechas: la primera, la última y hasta dos del medio si entran sin pisarse.
+  const shown = [pts[0]];
+  if (span) {
+    for (const p of pts.slice(1, -1)) if (shown.length < 3 && X(p.x) - X(shown[shown.length - 1].x) >= 48 && X(pts[pts.length - 1].x) - X(p.x) >= 48) shown.push(p);
+    shown.push(pts[pts.length - 1]);
+  }
+  const dates = shown.map((p, i) => `<text class="axis" x="${X(p.x)}" y="${H - 4}" text-anchor="${!span ? 'middle' : i === 0 ? 'start' : i === shown.length - 1 ? 'end' : 'middle'}">${esc(fmtAxisDate(p.x))}</text>`).join('');
+  return `<div class="chart">${kg && pts.length > 1 ? weightTrend(pts) : ''}<svg viewBox="0 0 ${W_} ${H}" role="img" aria-label="Gráfico de ${pts.length} registros">
     ${grid(true)}${dates}
     <path class="series" d="${d}" stroke="${color}"/>
-    ${pts.map((p) => `<circle class="dot" cx="${X(p.x)}" cy="${Y(p.y)}" r="4" fill="${color}"/><circle class="hit" cx="${X(p.x)}" cy="${Y(p.y)}" r="14" data-tip="${esc(fmtDate(p.x))}|${p.y}${unit === 'kg' ? ' kg' : unit}|${esc(note?.(p) || '')}"/>`).join('')}
+    ${pts.map((p) => `<circle class="dot" cx="${X(p.x)}" cy="${Y(p.y)}" r="4" fill="${color}"/><circle class="hit" cx="${X(p.x)}" cy="${Y(p.y)}" r="14" data-tip="${esc(fmtDate(p.x))}|${esc(fmt(p.y))}|${esc(note?.(p) || '')}"/>`).join('')}
   </svg>${pts.length === 1 ? `<p class="chart-cap">Un día anotado: ${fmt(pts[0].y)}. Desde el segundo se ve la línea.</p>` : ''}</div>`;
 }
 function showTip(el) {
   const [date, val, note] = el.dataset.tip.split('|'), r = el.getBoundingClientRect(), tip = $('tip');
   overlayHost().appendChild(tip);
   tip.innerHTML = `<b>${esc(val)}</b> el ${esc(date)}${note ? `<br><span class="tip-note">${esc(note)}</span>` : ''}`; tip.hidden = false;
-  // Centrado en el punto, pero sin salirse de la pantalla (cerca del borde se corre hacia adentro).
-  const half = tip.offsetWidth / 2, x = Math.min(Math.max(r.left + r.width / 2, half + 8), innerWidth - half - 8);
-  tip.style.left = `${x}px`; tip.style.top = `${r.top + r.height / 2 - 6}px`;
+  // Centrado en el punto, pero siempre dentro de la tarjeta (y de la pantalla): cerca de un borde se corre
+  // hacia adentro, y si arriba del punto no entra, va debajo.
+  const box = (el.closest('.card, dialog, .chart') || document.body).getBoundingClientRect();
+  const left = Math.max(box.left, 0) + 8, right = Math.min(box.right, innerWidth) - 8, top = Math.max(box.top, 0) + 4;
+  const half = tip.offsetWidth / 2, x = Math.min(Math.max(r.left + r.width / 2, left + half), right - half);
+  const cy = r.top + r.height / 2, below = cy - 6 - 10 - tip.offsetHeight < top;
+  tip.classList.toggle('below', below);
+  tip.style.left = `${x}px`; tip.style.top = `${below ? cy + 6 : cy - 6}px`;
 }
 
 // Campo numérico con la unidad adentro.

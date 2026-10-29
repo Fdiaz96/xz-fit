@@ -1010,6 +1010,25 @@ await page.evaluate(() => { const y = addDays(today(), -3); S.sessions.unshift({
   ok(tips.some((t) => t.includes('|5/10|el más alto de 2 registros, el último fue 2')), `el punto aclara que es el más alto y cuál fue el último (${tips.join(' ; ')})`);
 }
 await page.evaluate(() => { S.sessions = S.sessions.filter((x) => x.id !== 'later'); persist(); render(); });
+// Gráfico de peso: eje en el rango real con kg, varias fechas, resumen y etiqueta dentro de la tarjeta.
+{
+  await page.evaluate(() => {
+    [[14, 12], [10, 12], [7, 13], [3, 13], [0, 14]].forEach(([ago, w], i) => S.sessions.push({ id: 'wc' + i, date: addDays(today(), -ago), type: 'entreno', tpl: 'A', items: [{ ex: 'rdl', sets: [{ w, reps: 10 }] }] }));
+    histEx = 'rdl'; render(); scrollTo(0, 0);
+  });
+  const card = page.locator('#view-history .card.acc').filter({ has: page.locator('.chart svg') }).first();
+  const axis = await card.locator('.chart .axis').allTextContents();
+  ok(axis.includes('kg') && axis.includes('12') && axis.includes('14') && !axis.includes('0'), `el eje del peso va del rango real y dice kg (${axis.join(' ; ')})`);
+  ok(axis.filter((t) => /[a-z]{3}/.test(t) && t !== 'kg').length >= 3, `muestra más de dos fechas (${axis.join(' ; ')})`);
+  ok((await card.locator('.chart-trend').textContent()).trim() === '+2 kg en 2 semanas', 'resume "+2 kg en 2 semanas"');
+  const hits = card.locator('.chart .hit');
+  await hits.last().click(); await page.waitForTimeout(80);
+  const [tb, cb] = [await page.locator('#tip').boundingBox(), await card.boundingBox()];
+  ok(tb.y >= cb.y && tb.x >= cb.x && tb.x + tb.width <= cb.x + cb.width, 'la etiqueta del punto más alto queda dentro de la tarjeta');
+  ok(await page.locator('#tip').evaluate((e) => e.classList.contains('below')), 'si arriba no entra, la etiqueta va debajo del punto');
+  ok((await page.locator('#tip').textContent()).startsWith('14 kg'), 'la etiqueta dice el peso con kg');
+  await page.evaluate(() => { S.sessions = S.sessions.filter((x) => !x.id.startsWith('wc')); render(); });
+}
 {
   const sess = await page.locator('#view-history .sess').allTextContents();
   ok(sess.some((t) => t.startsWith('Día A')) && !sess.some((t) => t.includes('Entreno A')), 'el historial nombra el entreno con el día del plan');
