@@ -185,6 +185,16 @@ eq(L(`streak(wk, '${T}')`), 2, 'racha: las 2 semanas anteriores cumplidas (la ac
 L(`wk.sessions.push({ date: '2026-10-21', type: 'entreno' })`);
 eq(L(`streak(wk, '${T}')`), 3, 'al cumplir la semana actual, la racha suma');
 eq(L(`sessionSummary({ items: [{ sets: [{ w: 10, reps: 10 }, { w: 10, reps: 8 }] }, { sets: [{ secs: 30 }] }] }, 25 * 60000)`), { sets: 3, vol: 180, min: 25 }, 'resumen: series, volumen y minutos');
+// Historial: semanas, vez anterior y récords
+ctx.hs = [
+  { id: 'a', date: '2026-10-21', type: 'entreno', plan: 'fb2', day: 0, items: [{ ex: 'goblet', sets: [{ w: 14, reps: 8 }, { w: 12, reps: 12 }] }, { ex: 'flexiones', sets: [{ reps: 15 }] }] },
+  { id: 'b', date: '2026-10-20', type: 'rehab', items: [] },
+  { id: 'c', date: '2026-10-15', type: 'entreno', plan: 'fb2', day: 1, items: [{ ex: 'goblet', sets: [{ w: 16, reps: 6 }], capped: true }] },
+  { id: 'd', date: '2026-10-13', type: 'entreno', plan: 'fb2', day: 0, items: [{ ex: 'goblet', sets: [{ w: 14, reps: 10 }] }, { ex: 'flexiones', sets: [{ reps: 12 }] }] },
+  { id: 'e', date: '2026-10-07', type: 'entreno', tpl: 'A', items: [] }];
+eq(L('sessionWeeks(hs).map((w) => [w.wk, w.list.length, w.train])'), [['2026-10-19', 2, 1], ['2026-10-12', 2, 2], ['2026-10-05', 1, 1]], 'historial: sesiones por semana con sus entrenos');
+eq(L('[prevSameDay(hs, hs[0])?.id, prevSameDay(hs, hs[2]), prevSameDay(hs, hs[4])]'), ['d', null, null], 'la vez anterior es el mismo día del plan (y no hay en la primera)');
+eq(L('exRecords(hs).map((r) => [r.ex, r.w, r.reps, r.date])'), [['flexiones', 0, 15, '2026-10-21'], ['goblet', 14, 10, '2026-10-13']], 'récords: peso más alto (a igual peso, más reps) y reps; lo bajado por dolor no cuenta');
 
 // Calendario
 const ics = L(`icsText({ am: '08:00', pm: '20:00', train: ['lu', 'ju'], trainAt: '19:00' }, true, '${T}')`);

@@ -2,6 +2,15 @@
 
 Todos los cambios de XZ Fit (antes Tendón Fuerte), del más nuevo al más viejo.
 
+## 1.30.16 — Historial con récords y detalle claro
+
+- Nueva sección "Récords": tu mejor serie en cada ejercicio (por ejemplo "14 kg × 12"), con el día en que la hiciste.
+- Al abrir una sesión, el trofeo dice qué récord fue: "Remo: 19 kg, nuevo máximo estimado", y el ejercicio lleva su 🏆.
+- El detalle de cada ejercicio es una tablita con kg, repeticiones y RIR por serie, sin confundir kilos con repeticiones.
+- Cada entreno muestra los kg levantados y cuánto cambió contra la vez anterior del mismo día, en vez de "7 ejercicios".
+- Las sesiones se agrupan por semana ("Esta semana: 1 de 2 entrenos") con tu racha de semanas cumplidas arriba.
+- El selector de ejercicio del gráfico está agrupado por zona del cuerpo y en orden alfabético.
+
 ## 1.30.15 — El gráfico de peso muestra el progreso
 
 - El eje del peso va del valor más bajo al más alto que levantaste (ya no desde 0) y dice "kg", así pasar de 12 a 14 kg se nota.

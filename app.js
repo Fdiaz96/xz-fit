@@ -2,7 +2,7 @@
 // (IndexedDB). Los identificadores internos siguen siendo "tendon-fuerte" para no perder los datos ya guardados.
 // Protocolo de tendones del video de Jeremy Ethier con Keith Baar y Coach Q; reglas en logic.js, bocetos en figures.js.
 
-const APP_VERSION = '1.30.15';
+const APP_VERSION = '1.30.16';
 const DAY_NAMES = { lu: 'Lu', ma: 'Ma', mi: 'Mi', ju: 'Ju', vi: 'Vi', sa: 'Sá', do: 'Do' };
 const SIDES = { der: 'derecha', izq: 'izquierda', ambos: 'ambos lados' };
 const REST_SECS = 90, ISO_REST = 60;
@@ -1005,7 +1005,7 @@ function finishWorkout(sure) {
       const lift = S.lifts[it.ex.id], prev = it.calibrated || it.first ? 0 : lift.e1rm || 0, w0 = lift.w, manual = weightMode() === 'manual';
       const best = Math.max(...sets.map((s) => epley1RM(Number(s.w), Number(s.reps) + (Number(s.rir) || 0))));
       // Récord en kilos enteros: el máximo estimado (lo que levantaría una vez) tiene que subir al menos 1 kg redondeado.
-      if (prev && Math.round(best) > Math.round(prev)) prs.push({ name: it.ex.name, val: fmtKg(Math.round(best)), est: true });
+      if (prev && Math.round(best) > Math.round(prev)) prs.push({ ex: it.ex.id, name: it.ex.name, val: fmtKg(Math.round(best)), est: true });
       lift.e1rm = Math.round(Math.max(lift.e1rm || 0, best) * 10) / 10;
       // Con tope por dolor o recién calibrado no se progresa: el peso de trabajo ya quedó definido.
       // En manual no se sugieren subidas: queda el último peso que usó.
@@ -1015,7 +1015,7 @@ function finishWorkout(sure) {
     }
     if (it.ex.kind === 'reps') {
       const l = (S.lifts[it.ex.id] ||= { bestReps: 0 }), top = Math.max(...sets.map((s) => Number(s.reps) || 0));
-      if (l.bestReps && top > l.bestReps) prs.push({ name: it.ex.name, val: `${top} repeticiones` });
+      if (l.bestReps && top > l.bestReps) prs.push({ ex: it.ex.id, name: it.ex.name, val: `${top} repeticiones` });
       l.bestReps = Math.max(l.bestReps || 0, top);
     }
     if (it.ex.kind === 'tiempo') { const l = (S.lifts[it.ex.id] ||= { secs: 30 }); if (sets.every((s) => Number(s.secs) >= l.secs)) l.secs = Math.min(90, l.secs + 5); }
@@ -1420,11 +1420,65 @@ function painHistory(zone) {
   return Object.entries(byDay).sort().map(([x, d]) => ({ x, ...d }));
 }
 const painTipNote = (p) => (p.n > 1 ? `el más alto de ${p.n} registros${p.last !== p.y ? `, el último fue ${p.last}` : ''}` : '');
+// Ejercicios del gráfico agrupados por zona del cuerpo y en orden alfabético dentro de cada una.
+function exOptions(ids) {
+  const groups = {};
+  for (const id of ids) (groups[getEx(id)?.cat || ''] ||= []).push(id);
+  const name = (id) => getEx(id)?.name || id;
+  return [...Object.keys(CATS), ''].filter((c) => groups[c]).map((c) => `<optgroup label="${c ? CATS[c] : 'Otros'}">${groups[c].sort((a, b) => name(a).localeCompare(name(b), 'es'))
+    .map((e) => `<option value="${e}" ${e === histEx ? 'selected' : ''}>${esc(name(e))}</option>`).join('')}</optgroup>`).join('');
+}
+// Récords: el mejor de cada ejercicio, los más nuevos primero; se ven 5 y el resto al pedirlo.
+let histRecAll = false;
+const recVal = (r) => (r.kind === 'peso' ? `${fmtKg(r.w)} × ${r.reps}` : `${r.reps} reps`);
+function histRecords(recs) {
+  const shown = histRecAll ? recs : recs.slice(0, 5);
+  return `<h2>Récords</h2><div class="card recs">${shown.map((r) => `<div class="rec"><span><span class="what">${esc(getEx(r.ex)?.name || r.ex)}</span><br><span class="faint small">${r.date === today() ? 'hoy' : fmtDate(r.date)}</span></span><b class="num">${recVal(r)}</b></div>`).join('')}
+    ${recs.length > 5 ? `<button class="link small" data-action="hist-recs" aria-expanded="${histRecAll}">${histRecAll ? 'Ver menos' : `Ver los ${recs.length} récords`}</button>` : ''}
+    <p class="faint small rec-note">Tu mejor serie en cada ejercicio: el peso más alto y cuántas repeticiones hiciste con él.</p></div>`;
+}
+// Un récord del entreno en una frase: "Remo: 14 kg, nuevo máximo estimado".
+const prText = (p) => `${esc(p.name)}: ${esc(p.val)}, ${p.est ? 'nuevo máximo estimado' : 'nuevo récord'}`;
+// Detalle de un ejercicio: una tablita con kg, reps (o segundos) y RIR, solo con las columnas que tienen datos.
+function setsTable(i) {
+  const has = (k) => i.sets.some((x) => (k === 'rir' ? x.rir != null : x[k]));
+  const cols = [['w', 'kg'], ['reps', 'reps'], ['secs', 'seg'], ['rir', 'RIR']].filter(([k]) => has(k));
+  if (!cols.length) return `<p class="faint small">${i.sets.length} ${i.sets.length === 1 ? 'serie hecha' : 'series hechas'}</p>`;
+  return `<table class="sd-sets"><thead><tr><th>Serie</th>${cols.map(([, t]) => `<th>${t}</th>`).join('')}</tr></thead><tbody>${i.sets.map((x, n) => `<tr><td>${n + 1}</td>${cols.map(([k]) => `<td>${x[k] == null || x[k] === '' ? '–' : String(x[k]).replace('.', ',')}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+}
+const fmtVol = (v) => (v >= 1000 ? (v / 1000).toFixed(1).replace('.', ',') + 'k' : String(v));
+// El número de la derecha: en un entreno, los kg levantados y cuánto cambió contra la vez anterior del mismo día.
+function sessNumber(s) {
+  if (s.type === 'dolor' && s.pain) return `<span class="sess-n pain"><b>${Math.max(...Object.values(s.pain))}</b><span>de 10</span></span>`;
+  if (s.type === 'entreno' && s.vol) {
+    const prev = prevSameDay(S.sessions, s), d = prev?.vol ? s.vol - prev.vol : null;
+    const delta = d == null ? '' : `<span class="sess-delta${d > 0 ? ' up' : ''}">${d === 0 ? 'igual que la anterior' : `${d > 0 ? '+' : '−'}${fmtVol(Math.abs(d))} kg vs. la anterior`}</span>`;
+    return `<span class="sess-n"><b>${fmtVol(s.vol)}</b><span>kg levantados</span>${delta}</span>`;
+  }
+  const n = s.items.length;
+  return `<span class="sess-n${s.type === 'entreno' ? '' : ' pain'}">${n ? `<b>${n}</b><span>${n === 1 ? 'ejercicio' : 'ejercicios'}</span>` : '<span>sin hacer</span>'}</span>`;
+}
+function sessDetail(s) {
+  const prs = s.prs || [], isPr = (i) => prs.some((p) => (p.ex ? p.ex === i.ex : p.name === (getEx(i.ex)?.name || i.name)));
+  return `${prs.length ? `<div class="sd-prs">${prs.map((p) => `<p>🏆 ${prText(p)}</p>`).join('')}${prs.some((p) => p.est) ? '<p class="faint small">Máximo estimado: lo que levantarías una sola vez según tus series.</p>' : ''}</div>` : ''}
+    ${s.items.map((i) => `<div class="sd-ex"><p class="sd-name">${esc(getEx(i.ex)?.name || i.name || i.ex)}${isPr(i) ? ' <span aria-label="récord">🏆</span>' : ''}</p>${setsTable(i)}</div>`).join('')}`;
+}
+// Sesiones agrupadas por semana, con los entrenos hechos contra los del plan y la racha arriba.
+function histSessions() {
+  const st = streak(S, today()), goal = S.profile.days, thisWk = weekKey(today());
+  const wkName = (wk) => (wk === thisWk ? 'Esta semana' : wk === addDays(thisWk, -7) ? 'La semana pasada' : `Semana del ${parseDay(wk).toLocaleDateString('es', { day: 'numeric', month: 'short' })}`);
+  return `<h2>Sesiones</h2>${st ? `<p class="hist-streak">🔥 ${st} ${st === 1 ? 'semana cumplida' : 'semanas seguidas cumpliendo'}</p>` : ''}
+    ${sessionWeeks(S.sessions.slice(0, 60)).map((w) => `<div class="card sess-wk"><div class="wk-head"><span>${wkName(w.wk)}</span><span class="${w.train >= goal ? 'wk-ok' : 'faint'}">${w.train} de ${goal} entrenos${w.train >= goal ? ' ✓' : ''}</span></div>
+    ${w.list.map((s) => `<details class="sess-d"><summary class="sess"><span><span class="what">${s.type === 'entreno' ? esc(PLANS[s.plan]?.days[s.day]?.name ?? `Entreno ${s.tpl}`) : s.type === 'dolor' ? 'Dolor anotado' : `Rehabilitación de la ${s.slot}`}</span><br><span class="muted small">${fmtDate(s.date)}${s.min ? `, ${s.min} min y ${s.sets} series` : ''}${s.prs?.length ? `. <span class="nowrap">🏆 ${s.prs.length === 1 ? '1 récord' : `${s.prs.length} récords`}</span>` : ''}${s.pain ? '. Dolor: ' + Object.entries(s.pain).map(([z, v]) => `${zoneName(z).toLowerCase()} ${v}`).join(', ') : ''}</span></span>${sessNumber(s)}</summary>
+      ${sessDetail(s)}
+      <button class="link danger small" data-action="del-session" data-id="${s.id}">Eliminar sesión</button></details>`).join('')}</div>`).join('')}`;
+}
 function renderHistory() {
   const zones = [...new Set([...activeZones(), ...S.sessions.flatMap((s) => Object.keys(s.pain || {}))])];
   if (!zones.includes(histZone)) histZone = zones[0] || '';
   const exIds = [...new Set(S.sessions.filter((s) => s.type === 'entreno').flatMap((s) => s.items.filter((i) => getEx(i.ex)?.kind === 'peso').map((i) => i.ex)))];
   if (!exIds.includes(histEx)) histEx = exIds[0] || '';
+  const recs = exRecords(S.sessions, getEx);
   let h = `<div class="title-row"><h1>Historial</h1>${S.sessions.length ? '<button class="link" data-action="report">Informe para el fisio</button>' : ''}</div>`;
   // Sin entrenos, un solo vacío arriba que invita a empezar el día que toca.
   if (!S.sessions.some((s) => s.type === 'entreno')) {
@@ -1434,11 +1488,10 @@ function renderHistory() {
   }
   // El gráfico de peso está siempre: sin entrenos con pesas muestra cómo se va a ver.
   h += `${helpHead('Peso por ejercicio', 'ex')}<div class="card acc">${histHelp.ex ? `<div class="note acc help-note">Cada punto es el peso más alto que levantaste en ese ejercicio en un día. Si la línea sube, estás ganando fuerza. Tocá un punto para ver el número. Los días con peso bajado por dolor no cuentan.</div>` : ''}
-    ${exIds.length ? `<select data-action="hist-ex" aria-label="Ejercicio">${exIds.map((e) => `<option value="${e}" ${e === histEx ? 'selected' : ''}>${esc(getEx(e)?.name || e)}</option>`).join('')}</select>` : ''}
+    ${exIds.length ? `<select data-action="hist-ex" aria-label="Ejercicio">${exOptions(exIds)}</select>` : ''}
     ${lineChart(weightHistory(histEx), { unit: 'kg', color: 'var(--acc)', empty: 'Cuando termines un entreno con pesas, acá vas a ver cómo sube cada ejercicio.' })}</div>`;
-  if (S.sessions.length) h += `<h2>Sesiones</h2><div class="card">${S.sessions.slice(0, 60).map((s) => `<details class="sess-d"><summary class="sess"><span><span class="what">${s.type === 'entreno' ? esc(PLANS[s.plan]?.days[s.day]?.name ?? `Entreno ${s.tpl}`) : s.type === 'dolor' ? 'Dolor anotado' : `Rehabilitación de la ${s.slot}`}</span><br><span class="muted small">${fmtDate(s.date)}${s.min ? `, ${s.min} min y ${s.sets} series` : ''}${s.prs?.length ? ' 🏆' : ''}${s.pain ? '. Dolor: ' + Object.entries(s.pain).map(([z, v]) => `${zoneName(z).toLowerCase()} ${v}`).join(', ') : ''}</span></span><span class="sess-n${s.type === 'entreno' ? '' : ' pain'}">${s.type === 'dolor' && s.pain ? `<b>${Math.max(...Object.values(s.pain))}</b><span>de 10</span>` : s.items.length ? `<b>${s.items.length}</b><span>${s.items.length === 1 ? 'ejercicio' : 'ejercicios'}</span>` : '<span>sin hacer</span>'}</span></summary>
-      <ul class="small muted">${s.items.map((i) => `<li>${esc(getEx(i.ex)?.name || i.name || i.ex)}: ${i.sets.map((x) => (x.w ? `${x.w}×` : '') + (x.reps || (x.secs ? x.secs + 's' : '✓'))).join(', ')}</li>`).join('')}</ul>
-      <button class="link danger small" data-action="del-session" data-id="${s.id}">Eliminar sesión</button></details>`).join('')}</div>`;
+  if (recs.length) h += histRecords(recs);
+  if (S.sessions.length) h += histSessions();
   // Dolor por zona va al final y solo si hay zonas o registros.
   if (zones.length) h += `${helpHead('Dolor por zona', 'pain')}<div class="card pain">${histHelp.pain ? `<div class="note pain help-note">Cada punto es el dolor más alto que anotaste ese día, de 0 a 10 (si anotaste varias veces, al tocarlo ves cuántas y el último valor). La línea punteada es el ${PAIN_MAX}: hasta ahí el dolor es tolerable y podés seguir entrenando. Tocá un punto para ver el número.</div>` : ''}<select data-action="hist-zone" aria-label="Zona">${zones.map((z) => `<option value="${z}" ${z === histZone ? 'selected' : ''}>${esc(zoneName(z))}</option>`).join('')}</select>
     ${lineChart(painHistory(histZone), { yMax: 10, limit: PAIN_MAX, unit: '/10', color: 'var(--pain)', note: painTipNote })}
@@ -1821,6 +1874,7 @@ document.addEventListener('click', (e) => {
     'install-hide': () => { S.hideInstall = true; persist(); render(); },
     'warm': () => { W.warm[+d.i].done = !W.warm[+d.i].done; renderWorkout(); },
     'hist-help': () => { histHelp[d.k] = !histHelp[d.k]; renderHistory(); },
+    'hist-recs': () => { histRecAll = !histRecAll; renderHistory(); },
     'report': () => shareFile(`informe-xz-fit-${today()}.html`, reportHTML(), 'text/html'),
     'week-day': () => { homePeek = homePeek === d.v ? '' : d.v; renderHome(); },
     'news-seen': () => { S.seenVersion = APP_VERSION; persist(); render(); },

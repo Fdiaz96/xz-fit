@@ -380,6 +380,37 @@ function streak(state, today) {
   for (wk = addDays(wk, -7); (per[wk] || 0) >= state.profile.days; wk = addDays(wk, -7)) n++;
   return n;
 }
+// Las sesiones (de la más nueva a la más vieja) agrupadas por semana, con cuántos entrenos tuvo cada una.
+function sessionWeeks(sessions) {
+  const out = [];
+  for (const s of sessions) {
+    const wk = weekKey(s.date);
+    if (out.at(-1)?.wk !== wk) out.push({ wk, list: [], train: 0 });
+    out.at(-1).list.push(s);
+    if (s.type === 'entreno') out.at(-1).train++;
+  }
+  return out;
+}
+// La vez anterior que se hizo el mismo día del plan (o la misma plantilla en sesiones viejas), para comparar.
+function prevSameDay(sessions, s) {
+  const i = sessions.indexOf(s);
+  return sessions.slice(i + 1).find((p) => p.type === 'entreno' && (s.plan ? p.plan === s.plan && p.day === s.day : !p.plan && p.tpl === s.tpl)) || null;
+}
+// Récord de cada ejercicio: con pesas, el peso más alto (a igual peso, más reps); con reps, la mayor cantidad en una serie.
+// date es el primer día que se logró. Las series con peso bajado por dolor o descarga no cuentan.
+function exRecords(sessions, getEx = libraryEx) {
+  const rec = {};
+  for (const s of [...sessions].reverse()) if (s.type === 'entreno') for (const it of s.items) {
+    const kind = getEx(it.ex)?.kind;
+    if (it.capped || !it.sets.length || (kind !== 'peso' && kind !== 'reps')) continue;
+    for (const x of it.sets) {
+      const w = kind === 'peso' ? x.w || 0 : 0, reps = x.reps || 0, r = rec[it.ex];
+      if (kind === 'peso' ? !w : !reps) continue;
+      if (!r || w > r.w || (w === r.w && reps > r.reps)) rec[it.ex] = { ex: it.ex, kind, w, reps, date: s.date };
+    }
+  }
+  return Object.values(rec).sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+}
 // La semana actual de lunes a domingo, para la tira del inicio. Los días con entreno guardado muestran lo que se hizo;
 // los que faltan (hoy incluido si todavía no entrenó) siguen la rotación desde el día que toca. day: índice del día del plan o null.
 const WEEK_KEYS = ['lu', 'ma', 'mi', 'ju', 'vi', 'sa', 'do'];

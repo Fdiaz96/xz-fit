@@ -1037,6 +1037,27 @@ await page.evaluate(() => { S.sessions = S.sessions.filter((x) => x.id !== 'late
   ok((await page.locator('#view-history .sess').allTextContents()).some((t) => t.startsWith('Torso A')), 'con Torso y pierna el historial dice Torso A');
   await page.evaluate(() => { S.sessions = S.sessions.filter((x) => x.id !== 'tp'); persist(); render(); });
 }
+// Récords y detalle: el trofeo dice qué récord, tablita kg/reps/RIR, kg levantados contra la vez anterior, semanas y selector agrupado.
+{
+  await page.evaluate(() => {
+    const it = (w, reps) => [{ ex: 'remo_inclinado', sets: [{ w, reps, rir: 2, secs: 0 }, { w, reps: reps - 1, rir: 1, secs: 0 }] }];
+    S.sessions.unshift({ id: 'pr1', date: today(), type: 'entreno', plan: 'fb2', day: 1, tpl: 'B', items: it(14, 12), vol: 14 * 23, sets: 2, min: 30, prs: [{ ex: 'remo_inclinado', name: 'Remo inclinado con dos mancuernas', val: '19 kg', est: true }] });
+    S.sessions.push({ id: 'pr0', date: addDays(today(), -30), type: 'entreno', plan: 'fb2', day: 1, tpl: 'B', items: it(12, 12), vol: 12 * 23, sets: 2, min: 30 });
+    render();
+  });
+  const d = page.locator('#view-history details.sess-d', { hasText: 'Remo inclinado' }).first();
+  const sum = await d.locator('summary').textContent();
+  ok(sum.includes('1 récord') && sum.includes(String(14 * 23)) && sum.includes('kg levantados') && sum.includes(`+${2 * 23} kg vs. la anterior`), `la sesión destaca kg levantados, el cambio y cuántos récords (${sum.trim().replace(/\s+/g, ' ')})`);
+  await d.evaluate((e) => (e.open = true));
+  ok((await d.locator('.sd-prs').textContent()).includes('Remo inclinado con dos mancuernas: 19 kg, nuevo máximo estimado'), 'el detalle explica el récord: ejercicio, kilos y qué es');
+  ok(JSON.stringify(await d.locator('.sd-sets th').allTextContents()) === '["Serie","kg","reps","RIR"]' && (await d.locator('.sd-sets tbody tr').first().textContent()) === '114122', 'el detalle es una tablita de kg, reps y RIR');
+  const rec = await page.locator('#view-history .recs').textContent();
+  ok(rec.includes('Remo inclinado con dos mancuernas') && rec.includes('14 kg × 12'), 'la sección Récords muestra el mejor peso del ejercicio');
+  ok(await page.locator('#view-history .sess-wk .wk-head').first().textContent().then((t) => t.startsWith('Esta semana') && /\d de \d entrenos/.test(t)), 'las sesiones se agrupan por semana con los entrenos hechos');
+  const groups = await page.locator('#view-history select[data-action="hist-ex"] optgroup').evaluateAll((g) => g.map((x) => x.label));
+  ok(groups.length >= 2 && groups.indexOf('Tirón') > -1, `el selector de ejercicio se agrupa por zona (${groups.join(', ')})`);
+  await page.evaluate(() => { S.sessions = S.sessions.filter((x) => !x.id.startsWith('pr')); persist(); render(); });
+}
 await shot('13-historial');
 
 // 8a. Solo peso corporal en Ajustes: rearma lo que no eligió el usuario y al destildarlo vuelve todo
