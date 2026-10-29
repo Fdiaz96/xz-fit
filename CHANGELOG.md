@@ -2,6 +2,10 @@
 
 Todos los cambios de XZ Fit, del más nuevo al más viejo.
 
+## 1.31.6 — Excéntrico de muñeca, mano que ayuda
+
+- En el excéntrico de muñeca, la mano que ayuda ya no baja al regazo: sube la mano que trabaja, la suelta y queda apoyada sobre el antebrazo, cerca del codo, mientras la otra baja sola.
+
 ## 1.31.5 — Muñeco sin costuras
 
 - El muñeco ya no tiene líneas que lo cortan en las uniones: desaparecieron las rayas donde la remera se junta con los brazos, el borde del short sobre los muslos y la línea de la entrepierna. El contorno de afuera y las separaciones entre brazos o piernas que se cruzan siguen igual.
