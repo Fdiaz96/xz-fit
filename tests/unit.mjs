@@ -435,5 +435,21 @@ eq(L('lv({ days: 210, plan: { levelOffer: "2026-10-17" } })'), null, 'nivel: "Ah
 eq(L('lv({ days: 210, plan: { levelOffer: "2026-09-17" } })'), 'medio', 'nivel: pasados 30 días vuelve a ofrecerse');
 eq(L('suggestLevelUp({ ...lvState({ days: 210 }), painMode: true, zones: { codo_lat: { phase: 1 } } }, "2026-10-27", (id) => EXERCISES[id])'), null, 'nivel: en fase 1 de dolor no se ofrece');
 
+// Validación de campos (alta y Ajustes)
+ctx.vEq = { db: { min: 2, max: 24, step: 2 } };
+eq(L('checkField("profile.weight", "5")'), { err: 'Entre 30 y 250 kg' }, 'peso 5 kg no vale');
+eq(L('checkField("profile.weight", "2000").err'), 'Entre 30 y 250 kg', 'peso 2000 kg no vale');
+eq(L('checkField("profile.weight", "")'), { err: 'Poné tu peso' }, 'el peso es obligatorio');
+eq(L('checkField("profile.weight", "72,5")'), { v: '72.5' }, 'peso con coma decimal se guarda');
+eq(L('checkField("profile.age", "200").err'), 'Entre 12 y 100 años', 'edad 200 no vale');
+eq(L('checkField("profile.age", "")'), { v: '' }, 'la edad es opcional');
+eq(L('checkField("profile.height", "17").err'), 'Entre 100 y 230 cm', 'altura 17 cm no vale');
+eq(L('checkField("equip.db.min", "30", vEq).err'), 'Pasa la más pesada (24 kg)', 'mancuerna más liviana mayor que la más pesada no vale');
+eq(L('checkField("equip.db.max", "1", vEq).err'), 'Menos que la más liviana (2 kg)', 'mancuerna más pesada menor que la más liviana no vale');
+eq(L('checkField("equip.db.step", "0", vEq).err'), 'Tiene que ser mayor a 0', 'salto 0 no vale');
+eq(L('checkField("equip.db.max", "30", vEq)'), { v: 30 }, 'subir la más pesada se guarda como número');
+eq(L('checkField("equip.kb", "8, 16, abc, 24")'), { v: [8, 16, 24], note: 'No entendimos «abc»: quedó afuera.' }, 'pesas rusas avisa lo que descarta');
+eq(L('checkField("equip.kb", "20 12")'), { v: [12, 20] }, 'pesas rusas válidas, ordenadas y sin aviso');
+
 console.log(failures ? `\n${failures} fallaron` : '\nTodo OK');
 process.exit(failures ? 1 : 0);

@@ -2,6 +2,15 @@
 
 Todos los cambios de XZ Fit (antes Tendón Fuerte), del más nuevo al más viejo.
 
+## 1.30.0 — Datos que tienen sentido
+
+- Peso, edad y altura se revisan al escribirlos: si un valor no tiene sentido (como 5 kg o 200 años), el campo se marca en rojo con el rango válido debajo y no se guarda.
+- En el alta no avanzás con un dato mal: te lleva directo al campo para corregirlo, en vez de mostrar un aviso arriba.
+- En Ajustes, si escribís algo inválido se mantiene el último valor bueno; cuando cambiás algo bien aparece un "Guardado ✓" chiquito debajo del campo.
+- Las mancuernas avisan si la más liviana pasa a la más pesada (o al revés) y el salto tiene que ser mayor a 0.
+- En pesas rusas, si escribís algo que no es un peso, te dice qué quedó afuera.
+- Nombre, altura y edad dicen "(opcional)".
+
 ## 1.29.0 — Entrada en calor a medida
 
 - La entrada en calor se arma según lo que entrenás hoy: un minuto de activación y movilidad solo de las partes que vas a usar (hombros y brazos, cadera y piernas, o las dos).

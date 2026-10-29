@@ -2,7 +2,7 @@
 // (IndexedDB). Los identificadores internos siguen siendo "tendon-fuerte" para no perder los datos ya guardados.
 // Protocolo de tendones del video de Jeremy Ethier con Keith Baar y Coach Q; reglas en logic.js, bocetos en figures.js.
 
-const APP_VERSION = '1.29.0';
+const APP_VERSION = '1.30.0';
 const DAY_NAMES = { lu: 'Lu', ma: 'Ma', mi: 'Mi', ju: 'Ju', vi: 'Vi', sa: 'Sá', do: 'Do' };
 const SIDES = { der: 'derecha', izq: 'izquierda', ambos: 'ambos lados' };
 const REST_SECS = 90, ISO_REST = 60;
@@ -1167,9 +1167,9 @@ function renderSettings() {
   const p = S.profile, e = S.equip;
   let h = `<h1>Ajustes</h1>
   <h2>Perfil</h2><div class="card">
-    <label class="field"><span>Nombre</span><input data-set="profile.name" value="${esc(p.name)}"></label>
+    <label class="field"><span>Nombre <i class="opt">(opcional)</i></span><input data-set="profile.name" value="${esc(p.name)}"></label>
     <span class="small muted">Sexo</span><div class="chips" style="margin:4px 0 8px">${[['h', 'Hombre'], ['m', 'Mujer'], ['x', 'Prefiero no decir']].map(([k, v]) => `<button class="chip${p.sex === k ? ' on' : ''}" data-action="set-sex" data-v="${k}">${v}</button>`).join('')}</div>
-    <div class="grid3">${unitField('Peso', `data-set="profile.weight" inputmode="decimal" value="${esc(p.weight)}"`, 'kg')}${unitField('Altura', `data-set="profile.height" inputmode="numeric" value="${esc(p.height)}"`, 'cm')}${unitField('Edad', `data-set="profile.age" inputmode="numeric" value="${esc(p.age)}"`, 'años')}</div>
+    <div class="grid3">${unitField('Peso', `data-set="profile.weight" inputmode="decimal" value="${esc(p.weight)}"`, 'kg')}${unitField('Altura <i class="opt">(opcional)</i>', `data-set="profile.height" inputmode="numeric" value="${esc(p.height)}"`, 'cm')}${unitField('Edad <i class="opt">(opcional)</i>', `data-set="profile.age" inputmode="numeric" value="${esc(p.age)}"`, 'años')}</div>
     <span class="small muted">Días de entreno: ${esc(activePlan(S).name)}</span>${weekStrip(activePlan(S), S.rem.train)}
     <button class="sec" style="width:100%" data-action="plan-open">Cambiar plan o días</button>
     <span class="small muted" style="display:block;margin-top:12px">Experiencia</span><div class="chips" style="margin-top:4px">${EXPERIENCE.map((x) => `<button class="chip${p.exp === x.id ? ' on' : ''}" data-action="set-exp" data-v="${x.id}">${x.name}</button>`).join('')}</div>
@@ -1248,14 +1248,47 @@ async function installApp() {
   render();
 }
 
+// Guarda un campo solo si es válido (checkField); si no, queda el último valor válido.
 function setPath(path, raw) {
+  const r = checkField(path, raw, S.equip);
+  if (r.err) return r;
   const keys = path.split('.'), last = keys.pop();
   let o = S; for (const k of keys) o = o[k];
-  let v = raw;
-  if (path === 'equip.kb') v = raw.split(/[,;\s]+/).map((x) => Number(x.replace(',', '.'))).filter((x) => x > 0).sort((a, b) => a - b);
-  else if (path.startsWith('equip.db.')) { v = Number(String(raw).replace(',', '.')); if (!(v > 0)) return; }
-  o[last] = v;
+  o[last] = r.v;
   persist();
+  return r;
+}
+// Mensaje debajo del campo: error (borde rojo), aviso, o "Guardado ✓" que se va solo. Sin mensaje, lo limpia.
+function fieldMsg(el, msg = '', kind = 'err') {
+  const box = el.closest('label.field'); if (!box) return;
+  box.querySelector('.fmsg')?.remove();
+  if (kind === 'err' && msg) el.setAttribute('aria-invalid', 'true'); else el.removeAttribute('aria-invalid');
+  if (!msg) return;
+  box.insertAdjacentHTML('beforeend', `<small class="fmsg ${kind}" role="${kind === 'err' ? 'alert' : 'status'}">${esc(msg)}</small>`);
+  if (kind === 'ok') setTimeout(() => box.querySelector('.fmsg.ok')?.remove(), 2600);
+}
+// Cambio en un campo del alta o de Ajustes. Los que habían quedado con error se reintentan
+// (p. ej. la más liviana vale después de subir la más pesada) y conservan lo escrito tras redibujar.
+function onSetField(el) {
+  const path = el.dataset.set, inOnb = $('onb').open, root = inOnb ? $('onb') : $('view-settings');
+  const r = setPath(path, el.value);
+  if (r.err) return fieldMsg(el, r.err);
+  const still = [...root.querySelectorAll('[data-set][aria-invalid]')].filter((x) => x !== el).map((x) => [x.dataset.set, x.value]).filter(([p, v]) => setPath(p, v).err);
+  if (!inOnb && path.startsWith('equip')) render();
+  const field = (p) => root.querySelector(`[data-set="${p}"]`);
+  root.querySelectorAll('[data-set][aria-invalid]').forEach((x) => { if (!still.some(([p]) => p === x.dataset.set)) fieldMsg(x); });
+  for (const [p, v] of still) { const x = field(p); if (x) { x.value = v; fieldMsg(x, checkField(p, v, S.equip).err); } }
+  const now = field(path) || el;
+  if (path === 'equip.kb') now.value = r.v.join(', ');
+  if (r.note) fieldMsg(now, r.note, 'warn');
+  else if (!inOnb) fieldMsg(now, 'Guardado ✓', 'ok');
+  else fieldMsg(now);
+}
+// En el alta no se avanza con campos inválidos: se marcan todos y el primero recibe el foco.
+function onbFieldsOk() {
+  const bad = [...$('onb').querySelectorAll('[data-set]')].filter((x) => { const e = checkField(x.dataset.set, x.value, S.equip).err; if (e) fieldMsg(x, e); return e; });
+  bad[0]?.focus();
+  return !bad.length;
 }
 
 // ——— Primer uso ———
@@ -1277,9 +1310,9 @@ function renderOnb() {
     </ul>
     <p class="muted small">Te toma un minuto. Tus datos quedan solo en este teléfono.</p>`;
   if (onbStep === 1) body = `<h1>Tu perfil</h1><p class="muted small">Con esto estimamos el peso de tu primera serie. Después se ajusta con lo que levantes.</p>
-    <label class="field"><span>Nombre o apodo</span><input data-set="profile.name" value="${esc(p.name)}" autocomplete="nickname"></label>
+    <label class="field"><span>Nombre o apodo <i class="opt">(opcional)</i></span><input data-set="profile.name" value="${esc(p.name)}" autocomplete="nickname"></label>
     <span class="small muted">Sexo</span><div class="chips" style="margin:4px 0 8px">${[['h', 'Hombre'], ['m', 'Mujer'], ['x', 'Prefiero no decir']].map(([k, v]) => `<button class="chip${p.sex === k ? ' on' : ''}" data-action="set-sex" data-v="${k}">${v}</button>`).join('')}</div>
-    <div class="grid3">${unitField('Peso', `id="o-weight" data-set="profile.weight" inputmode="decimal" value="${esc(p.weight)}"`, 'kg')}${unitField('Altura', `data-set="profile.height" inputmode="numeric" value="${esc(p.height)}"`, 'cm')}${unitField('Edad', `data-set="profile.age" inputmode="numeric" value="${esc(p.age)}"`, 'años')}</div>
+    <div class="grid3">${unitField('Peso', `id="o-weight" data-set="profile.weight" inputmode="decimal" value="${esc(p.weight)}"`, 'kg')}${unitField('Altura <i class="opt">(opcional)</i>', `data-set="profile.height" inputmode="numeric" value="${esc(p.height)}"`, 'cm')}${unitField('Edad <i class="opt">(opcional)</i>', `data-set="profile.age" inputmode="numeric" value="${esc(p.age)}"`, 'años')}</div>
     <span class="small muted">¿Cuánto hace que entrenás con pesas?</span><div class="chips" style="margin:4px 0 16px">${EXPERIENCE.map((x) => `<button class="chip${p.exp === x.id ? ' on' : ''}" data-action="set-exp" data-v="${x.id}">${x.name}</button>`).join('')}</div>
     <span class="small muted">¿Cómo querés los pesos?</span>${weightModeFields()}<p class="faint small">Lo cambiás cuando quieras en Ajustes.</p>`;
   if (onbStep === 2) body = `<h1>Tu equipo</h1><p class="muted small">Marcá lo que tenés. La rutina usa solo eso y redondea los pesos a lo que podés cargar.</p>${equipFields()}`;
@@ -1300,7 +1333,7 @@ function renderOnb() {
   calmMotion($('onb'));
 }
 function onbNext() {
-  if (onbStep === 1 && !(Number(S.profile.weight) > 0)) return toast('Poné tu peso para estimar las cargas.');
+  if ((onbStep === 1 || onbStep === 2) && !onbFieldsOk()) return;
   if (onbStep === 3 && choiceMissing(currentChoice())) return toast(choiceMissing(currentChoice()));
   if (onbStep < ONB_STEPS - 1) { onbStep++; renderOnb(); $('onb').querySelector('.dlg').scrollTop = 0; return; }
   // La rutina se arma con el equipo elegido en el alta, y el plan (con su rampa de entrada) empieza hoy.
@@ -1458,7 +1491,7 @@ document.addEventListener('click', (e) => {
 });
 document.addEventListener('change', (e) => {
   const el = e.target;
-  if (el.dataset.set) { setPath(el.dataset.set, el.value); if (!$('onb').open && el.dataset.set.startsWith('equip')) render(); return; }
+  if (el.dataset.set) return onSetField(el);
   if (el.dataset.w) { const [i, j, k] = el.dataset.w.split('.'); W.items[+i].rows[+j][k] = el.value; return; }
   const a = el.dataset.action;
   if (a === 'pain-mode') { S.painMode = el.checked; persist(); render(); toast(el.checked ? 'Modo dolor activado.' : 'Modo dolor apagado: el entreno usa los pesos completos.'); }

@@ -383,3 +383,30 @@ function icsText(rem, painMode, today) {
   lines.push('END:VCALENDAR');
   return lines.join('\r\n') + '\r\n';
 }
+
+// ——— Validación de campos (alta y Ajustes) ———
+// { v } es el valor a guardar; { err } no se guarda y queda el último válido; { v, note } se guarda con un aviso.
+const FIELD_RANGES = { 'profile.weight': [30, 250, 'kg'], 'profile.height': [100, 230, 'cm'], 'profile.age': [12, 100, 'años'] };
+function checkField(path, raw, equip) {
+  const s = String(raw ?? '').trim(), n = Number(s.replace(',', '.'));
+  const r = FIELD_RANGES[path];
+  if (r) {
+    if (!s) return path === 'profile.weight' ? { err: 'Poné tu peso' } : { v: '' };   // altura y edad son opcionales
+    return n >= r[0] && n <= r[1] ? { v: s.replace(',', '.') } : { err: `Entre ${r[0]} y ${r[1]} ${r[2]}` };
+  }
+  if (path.startsWith('equip.db.')) {
+    const k = path.slice(9), db = equip?.db || {};
+    if (!(n > 0)) return { err: 'Tiene que ser mayor a 0' };
+    if (k === 'min' && n > db.max) return { err: `Pasa la más pesada (${db.max} kg)` };
+    if (k === 'max' && n < db.min) return { err: `Menos que la más liviana (${db.min} kg)` };
+    return { v: n };
+  }
+  if (path === 'equip.kb') {
+    const v = [], bad = [];
+    for (const x of s.split(/[,;\s]+/).filter(Boolean)) { const k = Number(x.replace(',', '.')); k > 0 ? v.push(k) : bad.push(x); }
+    v.sort((a, b) => a - b);
+    if (!bad.length) return { v };
+    return { v, note: `No entendimos ${bad.map((b) => `«${b}»`).join(', ')}: ${bad.length > 1 ? 'quedaron' : 'quedó'} afuera.` };
+  }
+  return { v: raw };
+}
