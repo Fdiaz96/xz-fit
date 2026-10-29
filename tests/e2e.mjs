@@ -13,7 +13,8 @@ await ctx.addInitScript(() => { delete Navigator.prototype.canShare; delete Navi
 const page = await ctx.newPage();
 const errors = [];
 page.on('pageerror', (e) => errors.push(e.message));
-page.on('dialog', (d) => d.accept());
+let nativeDialogs = 0;   // la app usa sus propias preguntas (#asksheet): un confirm() nativo es un error
+page.on('dialog', (d) => { nativeDialogs++; d.accept(); });
 const shot = async (name) => SHOTS && page.screenshot({ path: `${SHOTS}/${name}.png` });
 const overlaps = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
 const toastText = () => page.locator('#toast span').textContent();
@@ -21,6 +22,8 @@ const toastText = () => page.locator('#toast span').textContent();
 const fmsg = (sel) => page.evaluate((sel) => document.querySelector(sel)?.closest('label.field')?.querySelector('.fmsg')?.textContent || '', sel);
 const state = () => page.evaluate(() => JSON.parse(JSON.stringify(S)));
 const click = async (sel) => { await page.click(sel); await page.waitForTimeout(80); };
+// Responde la pregunta propia de la app con la acción (el botón de abajo).
+const askYes = () => click('#asksheet [data-action="ask-go"]');
 // Terminar el entreno; con series pendientes confirma "Terminar igual".
 const finish = async () => { await click('#wsheet .dlg-head [data-action="finish-workout"]'); if (await page.locator('#finsheet[open]').count()) await click('#finsheet [data-action="finish-anyway"]'); };
 
@@ -72,6 +75,11 @@ ok(await page.locator('#view-tendons').isVisible(), 'desde Ajustes se llega a la
 await click('#view-tendons [data-action="zone-toggle"][data-zone="hombro"]');
 ok(await painTab.isVisible() && (await painTab.textContent()).trim() === 'Dolor', 'al marcar una zona aparece la pestaña "Dolor"');
 await click('#view-tendons [data-action="zone-toggle"][data-zone="hombro"]');
+ok(await page.locator('#asksheet[open]').count() === 1 && (await page.locator('#asksheet strong').textContent()) === '¿Quitar hombro?' && await page.isChecked('#view-tendons [data-action="zone-toggle"][data-zone="hombro"]'), 'quitar una zona pregunta con un diálogo propio y el tilde queda puesto hasta responder');
+await click('#asksheet .cta');
+ok(!(await page.locator('#asksheet[open]').count()) && 'hombro' in (await state()).zones && await page.isChecked('#view-tendons [data-action="zone-toggle"][data-zone="hombro"]'), '"Mantener la zona" no quita nada');
+await click('#view-tendons [data-action="zone-toggle"][data-zone="hombro"]');
+await askYes();
 ok(await painTab.isHidden() && await page.locator('#view-home').isVisible(), 'al desmarcar la última zona la pestaña se va y volvés a Hoy');
 // Historial sin entrenos: el botón del día que toca y el gráfico de peso de muestra, sin la sección de dolor
 await click('[data-tab="history"]');
@@ -83,6 +91,13 @@ await click('#view-history [data-action="hist-help"][data-k="ex"]');
 await click('#view-history .empty-hist [data-action="start-workout"]');
 ok(await page.locator('#wsheet[open]').count() === 1, 'el botón del historial arranca el entreno');
 await click('#wsheet [data-action="cancel-workout"]');
+ok(await page.locator('#asksheet[open]').count() === 1 && (await page.locator('#asksheet .cta').textContent()) === 'Seguir entrenando' && await page.locator('#asksheet button.sec.danger').textContent() === 'Salir sin guardar', 'salir del entreno pregunta con un diálogo propio: "Seguir entrenando" o "Salir sin guardar"');
+await shot('20-salir-sin-guardar');
+await click('#asksheet .cta');
+ok(await page.locator('#wsheet[open]').count() === 1, '"Seguir entrenando" deja el entreno abierto');
+await click('#wsheet [data-action="cancel-workout"]');
+await askYes();
+ok(!(await page.locator('#wsheet[open]').count()), '"Salir sin guardar" cierra el entreno');
 await click('[data-tab="home"]');
 
 // CK-6: next 'B' → pos 1, se quitan budget/week/next y lifts/sesiones no cambian
@@ -100,6 +115,7 @@ ps = await state();
 ok(JSON.stringify({ routine: ps.routine, plan: ps.plan }) === migrated, 'migración idempotente: recargar dos veces no cambia rutina ni plan');
 await click('[data-tab="settings"]');
 await page.setInputFiles('#import-file', { name: 'v114.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify({ app: 'tendon-fuerte', version: '1.14.1', data: savedB })) });
+await page.waitForTimeout(150); await askYes();
 await page.waitForTimeout(300);
 ps = await state();
 ok(JSON.stringify({ routine: ps.routine, plan: ps.plan }) === migrated, 'importar la misma copia de la v1.14 deja rutina y plan iguales');
@@ -251,7 +267,7 @@ await click('#view-train [data-action="routine-pick"][data-day="1"]:not([data-i]
 await click(`#pickersheet [data-ex="${customId}"]`);
 await click('#view-train [data-action="routine-pick"][data-day="1"]:not([data-i])');
 await click(`#pickersheet [data-action="exform"][data-id="${customId}"]`);
-await click('#exformsheet [data-action="exform-del"]');
+await click('#exformsheet [data-action="exform-del"]'); await askYes();
 ok((await state()).exlib.length === 0 && !(await state()).routine.fb2.flat().some((it) => it.ex === customId), 'eliminar el ejercicio propio lo quita de todos los días de la rutina');
 await click('#pickersheet [data-action="close"]');
 ok(errors.length === errorsBeforeTrain, `vista Entreno y rutina sin errores de JavaScript${errors.length > errorsBeforeTrain ? ': ' + errors.slice(errorsBeforeTrain).join(' | ') : ''}`);
@@ -650,7 +666,7 @@ if (await nextPlanned.count()) { await nextPlanned.click(); ok(/Día [AB], \d+ e
     await click(`#wsheet [data-action="set-done"][data-i="${ix.plank}"][data-j="1"]`);
     ok(await page.locator('#rest').isHidden(), 'con la última serie del entreno no arranca el descanso');
   }
-  await click('#wsheet [data-action="cancel-workout"]');
+  await click('#wsheet [data-action="cancel-workout"]'); await askYes();
   await page.waitForTimeout(150);
 }
 ok((await page.locator('#view-home .today.rest .rest-title').textContent()) === 'Hoy ya entrenaste' && (await page.locator('#view-home .today.rest .rest-sum').textContent()).includes('2 series'), 'después de entrenar, Hoy dice "Hoy ya entrenaste" con un resumen chico');
@@ -751,7 +767,7 @@ await click('[data-tab="train"]');
 ok((await page.locator('#view-train').textContent()).includes('Falta equipo'), 'CK-26: el entreno muestra "Falta equipo" en el ítem sin ejercicio posible');
 await openDay(0, 'train');
 ok(await cards().count() === 5 && !(await page.locator('#wsheet').textContent()).includes('Mi polea'), 'CK-26: el entreno empieza con 5 ítems, sin el faltante');
-await click('#wsheet [data-action="cancel-workout"]');
+await click('#wsheet [data-action="cancel-workout"]'); await askYes();
 // Hoy no puedo: llueve y no hay aros → el remo en aros del Día B cambia solo en esta sesión
 await bootSaved({ equip: { db: { min: 2, max: 24, step: 2 }, rings: true } });
 const routineB = dayIds(await state(), 1);
@@ -945,6 +961,8 @@ await page.evaluate(() => { R.end = Date.now() + 10000; });
 await click('#rsheet [data-action="rehab-skip"]');
 ok(await page.evaluate(() => R.items[0].done === 1 && R.items[0].held[0] === R.items[0].secs - 10), 'cortada pasada la mitad, cuenta con el tiempo sostenido');
 await click('#rsheet [data-action="cancel-rehab"]');
+ok((await page.locator('#asksheet .cta').textContent()) === 'Seguir la sesión', 'salir a mitad de la rehabilitación pregunta con un diálogo propio');
+await askYes();
 ok(!(await page.locator('#rsheet[open]').count()) && (await state()).sessions.filter((x) => x.type === 'rehab').length === 1, 'salir a mitad de la sesión no la guarda');
 
 // 6. Al día siguiente: ¿cómo amaneció?
@@ -1117,7 +1135,7 @@ await click('[data-tab="train"]');
 await click('#view-train [data-action="start-workout"][data-day="0"]');
 ok(await page.locator('#wsheet .plates').count() > 0, 'en la sesión muestra los discos por lado');
 await shot('19-discos');
-await click('#wsheet [data-action="cancel-workout"]');
+await click('#wsheet [data-action="cancel-workout"]'); await askYes();
 
 // 8b3. Tema claro
 await click('[data-tab="settings"]');
@@ -1128,6 +1146,22 @@ await click('[data-tab="home"]'); await shot('21-claro-inicio');
 await click('[data-tab="train"]'); await shot('22-claro-entreno');
 await click('[data-tab="settings"]');
 await click('#view-settings [data-action="theme"][data-v="dark"]');
+ok((await state()).prefs.themeSet === true && (await state()).prefs.theme === 'dark', 'elegir Oscuro queda guardado como elegido');
+// Sin elegir tema, sigue al del teléfono (y los datos viejos con "Oscuro" por defecto pasan a "Según el sistema")
+ok(await page.evaluate(() => withDefaults({ profile: {}, sessions: [], routine: {}, prefs: { theme: 'dark' } }).prefs.theme) === 'system', 'un tema oscuro nunca elegido pasa a "Según el sistema"');
+ok(await page.evaluate(() => withDefaults({ profile: {}, sessions: [], routine: {}, prefs: { theme: 'dark', themeSet: true } }).prefs.theme) === 'dark' && await page.evaluate(() => withDefaults({ profile: {}, sessions: [], routine: {}, prefs: { theme: 'light' } }).prefs.theme) === 'light', 'un tema elegido se respeta');
+await page.evaluate(() => { S.prefs.theme = 'system'; S.prefs.themeSet = false; applyTheme(); });
+await page.emulateMedia({ colorScheme: 'light' }); await page.waitForTimeout(100);
+ok(await page.evaluate(() => document.documentElement.dataset.theme) === 'light', 'según el sistema: con el teléfono en claro, la app pasa a claro');
+await page.emulateMedia({ colorScheme: 'dark' }); await page.waitForTimeout(100);
+ok(await page.evaluate(() => document.documentElement.dataset.theme) === 'dark', 'y vuelve a oscuro con el teléfono en oscuro');
+await page.evaluate(() => { S.prefs.theme = 'dark'; applyTheme(); persist(); render(); });
+// Filas con interruptor: tocar el texto también lo cambia
+const voiceBefore = (await state()).prefs.voice;
+await click('#view-settings label.row.tap:has([data-k="voice"]) h3');
+ok((await state()).prefs.voice === !voiceBefore, 'tocar el texto de la fila "Voz" cambia el interruptor');
+await click('#view-settings label.row.tap:has([data-k="voice"]) p');
+ok((await state()).prefs.voice === voiceBefore, 'y otro toque lo vuelve a dejar como estaba');
 
 // 8c. Preferencias de sesión y novedades
 await click('[data-tab="settings"]');
@@ -1211,6 +1245,7 @@ ok((await toastText()) === 'Copia guardada.' && (await page.locator('#view-setti
 await page.waitForTimeout(150); await shot('14b-ajustes-copia');
 await page.evaluate(() => { S.sessions = []; persist(); });
 await page.setInputFiles('#import-file', { name: 'copia.json', mimeType: 'application/json', buffer: fs.readFileSync(backupPath) });
+await page.waitForTimeout(150); await askYes();
 await page.waitForTimeout(300);
 ok((await state()).sessions.length === 3, 'restaurar la copia recupera las sesiones');
 
@@ -1320,6 +1355,7 @@ await page.waitForTimeout(200); await page.reload(); await page.waitForTimeout(5
 ok(await page.locator('#view-home [data-action="resume-workout"]').count() === 0, 'un entreno de hace más de 24 h ya no se ofrece');
 ok(errors.length === errorsBeforeLive, `seguir entreno sin errores de JavaScript${errors.length > errorsBeforeLive ? ': ' + errors.slice(errorsBeforeLive).join(' | ') : ''}`);
 errors.length = errorsBeforeReset;
+ok(nativeDialogs === 0, `ninguna pregunta nativa del navegador (confirm/alert): ${nativeDialogs}`);
 ok(errors.length === 0, `sin errores de JavaScript${errors.length ? ': ' + errors.join(' | ') : ''}`);
 await browser.close();
 console.log(failures ? `\n${failures} fallaron` : '\nTodo OK');

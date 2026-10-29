@@ -2,6 +2,12 @@
 
 Todos los cambios de XZ Fit, del más nuevo al más viejo.
 
+## 1.30.19 — Tema del teléfono y preguntas de la app
+
+- Si nunca elegiste tema, la app usa el de tu teléfono: claro o oscuro, y cambia cuando él cambia. Si elegiste uno, se respeta.
+- En Ajustes y en Dolor podés tocar toda la fila (el nombre o la explicación) para prender o apagar un interruptor, no solo el botoncito.
+- Las preguntas antes de algo que no se deshace (salir del entreno o de la rehabilitación sin guardar, avanzar de fase antes de tiempo, eliminar un ejercicio o una máquina, quitar una zona, borrar un peso de trabajo, restaurar una copia) ahora son de la app: dicen qué pasa y el botón grande es el que no cambia nada.
+
 ## 1.30.18 — Ajustes más claros y borrar con cuidado
 
 - Al marcar Banco, el aviso trae "Cambiar ahora": pasa el press en el suelo a press en banco en tu rutina, con Deshacer.

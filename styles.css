@@ -206,6 +206,10 @@ h3.grp { font-size: 15px; color: var(--muted); margin: 18px 0 8px; }
 .switch input:checked + i { background: var(--pain); border-color: var(--pain); }
 .switch.acc input:checked + i { background: var(--acc); border-color: var(--acc); }
 .switch input:checked + i::after { transform: translateX(20px); background: #fff; }
+/* La fila entera es la etiqueta del interruptor: tocar el texto también lo prende o apaga. */
+label.row.tap { cursor: pointer; -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none; }
+label.row.tap:active .switch i { filter: brightness(1.2); }
+.switch:has(input:focus-visible) { outline: 2px solid var(--acc-fg); outline-offset: 2px; border-radius: 99px; }
 
 /* Ilustraciones (fondo claro, como una lámina) */
 .fig { width: 100%; height: auto; display: block; background: #F4F5F7; border-radius: 12px; }
@@ -454,8 +458,8 @@ dialog.sheet .dlg-head { background: var(--card); top: -16px; }
 #sumsheet .row { display: flex; justify-content: space-between; gap: 10px; padding: 8px 0; border-top: 1px solid var(--line); }
 #sumsheet .row .small { text-align: right; }
 #sumsheet .sum-note { margin: -2px 0 6px; }
-#finsheet .cta, #resetsheet .cta { margin-top: 18px; }
-#finsheet button.sec, #resetsheet button.sec { width: 100%; margin-top: 8px; }
+#finsheet .cta, #resetsheet .cta, #asksheet .cta { margin-top: 18px; }
+#finsheet button.sec, #resetsheet button.sec, #asksheet button.sec { width: 100%; margin-top: 8px; }
 .wipe-copy { display: flex; flex-wrap: wrap; align-items: center; column-gap: 12px; margin: 14px 0 18px; }
 .wipe-copy p { margin: 6px 0; }
 #wipe-q { text-transform: uppercase; letter-spacing: .08em; }

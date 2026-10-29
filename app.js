@@ -2,7 +2,7 @@
 // (IndexedDB). Los identificadores internos siguen siendo "tendon-fuerte" para no perder los datos ya guardados.
 // Protocolo de tendones del video de Jeremy Ethier con Keith Baar y Coach Q; reglas en logic.js, bocetos en figures.js.
 
-const APP_VERSION = '1.30.18';
+const APP_VERSION = '1.30.19';
 const DAY_NAMES = { lu: 'Lu', ma: 'Ma', mi: 'Mi', ju: 'Ju', vi: 'Vi', sa: 'Sá', do: 'Do' };
 const SIDES = { der: 'derecha', izq: 'izquierda', ambos: 'ambos lados' };
 const REST_SECS = 90, ISO_REST = 60;
@@ -42,7 +42,7 @@ const DEFAULT = () => ({
   backup: { last: '', snooze: '' },   // última copia guardada y hasta cuándo no recordarla
   plan: { id: 'fb2', custom: false, pos: 0, since: '', bw: false, deload: '', deloadOffer: '' },
   rem: { am: '08:00', pm: '20:00', train: ['lu', 'ju'], trainAt: '19:00' },
-  prefs: { sound: true, voice: false, rest: 90, auto: true, theme: 'dark', weights: 'auto' }, seenVersion: '',
+  prefs: { sound: true, voice: false, rest: 90, auto: true, theme: 'system', themeSet: false, weights: 'auto' }, seenVersion: '',
 });
 let S = DEFAULT();
 
@@ -65,6 +65,8 @@ function withDefaults(d) {
   const { budget, week, next, ...plan } = { ...base.plan, ...d.plan };   // el presupuesto semanal y la alternancia A/B ya no existen
   const out = { ...base, ...rest, profile: { ...base.profile, ...d.profile }, equip: { ...base.equip, ...d.equip },
     plan: { ...plan, id: PLANS[plan.id] ? plan.id : 'fb2' }, backup: { ...base.backup, ...d.backup }, routine: { ...d.routine }, rem: { ...base.rem, ...d.rem }, prefs: { ...base.prefs, ...d.prefs }, exlib: d.exlib || [] };
+  // Antes el tema arrancaba en oscuro: si nunca lo eligió, ahora sigue al del teléfono. Uno elegido (incluso Claro) se respeta.
+  if (!out.prefs.themeSet && out.prefs.theme === 'dark') out.prefs.theme = 'system';
   if (out.rem.train.length) out.profile.days = out.rem.train.length;   // los días por semana son los días elegidos
   if ('routine' in d) return out;
   // Datos anteriores a los planes (v1.0 a v1.14): la rutina A/B pasa tal cual y fijada, se conserva el día que tocaba
@@ -127,13 +129,13 @@ document.addEventListener('pointerdown', (e) => { const t = $('toast'); if (!t.h
 
 // ——— Tema ———
 function applyTheme() {
-  const pref = S.prefs.theme || 'dark';
+  const pref = S.prefs.theme || 'system';
   const t = pref === 'system' ? (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark') : pref;
   document.documentElement.dataset.theme = t;
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content', t === 'light' ? '#F2F3F5' : '#0E0F11');
   try { localStorage.setItem('tf-theme', t); } catch {}
 }
-matchMedia('(prefers-color-scheme: light)').addEventListener?.('change', () => S.prefs.theme === 'system' && applyTheme());
+matchMedia('(prefers-color-scheme: light)').addEventListener?.('change', () => (S.prefs.theme || 'system') === 'system' && applyTheme());
 
 // ——— Navegación ———
 let tab = 'home';
@@ -732,8 +734,8 @@ function saveExForm() {
   persist(); if ($('pickersheet').open) openPicker(PK.day, PK.i); render();
   toast('Ejercicio guardado.');
 }
-function deleteExForm() {
-  if (!confirm('¿Eliminar este ejercicio? Se quita también de la rutina.')) return;
+async function deleteExForm() {
+  if (!await ask({ title: '¿Eliminar este ejercicio?', text: 'Se quita también de la rutina, en todos los días donde esté.', keep: 'Mantener el ejercicio', go: 'Eliminar ejercicio', danger: true })) return;
   S.exlib = S.exlib.filter((x) => x.id !== XF.id);
   for (const days of Object.values(S.routine)) days.forEach((items, d) => { days[d] = items.filter((it) => it.ex !== XF.id); });
   $('exformsheet').close(); persist(); if ($('pickersheet').open) openPicker(PK.day, PK.i); render();
@@ -1076,6 +1078,18 @@ function confirmWipe() {
     <button class="sec danger wipe-go" data-action="wipe-go" ${wipeOk() ? '' : 'disabled'}>Borrar todos los datos</button></div>`;
   if (!$('wipesheet').open) $('wipesheet').showModal();
 }
+// Pregunta propia de la app (en vez de confirm()): título, qué pasa y dos botones. El de arriba es el que no
+// cambia nada; el de abajo hace la acción. Devuelve una promesa: true si tocó la acción, false si canceló o cerró.
+let askDone = null;
+function ask({ title, text, note = '', keep = 'Cancelar', go, danger = false }) {
+  askDone?.(false);
+  dlg('asksheet').html = `<div class="dlg"><div class="dlg-head"><button class="link" data-action="close" data-dlg="asksheet">Cancelar</button><strong>${esc(title)}</strong><span></span></div>
+    <p>${esc(text)}</p>${note ? `<p class="muted small">${esc(note)}</p>` : ''}
+    <button class="cta" data-action="close" data-dlg="asksheet">${esc(keep)}</button>
+    <button class="sec${danger ? ' danger' : ''}" data-action="ask-go">${esc(go)}</button></div>`;
+  $('asksheet').showModal();
+  return new Promise((res) => { askDone = (v) => { askDone = null; res(v); }; });
+}
 function wipeAll() {
   if (!wipeOk()) return;
   $('wipesheet').close(); wipeQ = '';
@@ -1391,8 +1405,8 @@ function painNowCard() {
 }
 function renderTendons() {
   let h = `<h1>Dolor</h1>
-    <div class="card pain"><div class="row"><div><h3>Modo dolor</h3><p class="muted small">Isométricos diarios, registro de dolor y entreno adaptado en las zonas que marques.</p></div>
-    <label class="switch"><input type="checkbox" data-action="pain-mode" ${S.painMode ? 'checked' : ''} aria-label="Modo dolor"><i></i></label></div></div>
+    <div class="card pain"><label class="row tap"><div><h3>Modo dolor</h3><p class="muted small">Isométricos diarios, registro de dolor y entreno adaptado en las zonas que marques.</p></div>
+    <span class="switch"><input type="checkbox" data-action="pain-mode" ${S.painMode ? 'checked' : ''} aria-label="Modo dolor"><i></i></span></label></div>
     ${S.painMode && activeZones().length ? painNowCard() : ''}
     <h2>¿Qué te duele?</h2>`;
   // Las zonas, con las mismas casillas que el alta: la marcada despliega debajo lado, fase y ejercicio.
@@ -1663,11 +1677,11 @@ function renderSettings() {
   <h2>Pesos</h2>${weightModeFields()}
   <h2>Equipo</h2>${equipFields()}
   ${hasPainTab() ? '' : `<h2>Dolor</h2><div class="card pain"><h3>¿Te duele algo?</h3><p class="muted small">Marcá la zona y activá el modo dolor: suma ejercicios para el tendón y cuida esa zona en el entreno.</p><button class="sec" style="width:100%;margin-top:10px" data-action="go-pain">Marcar qué me duele</button></div>`}
-  <h2>Tema</h2><div class="card"><div class="chips">${[['dark', 'Oscuro'], ['light', 'Claro'], ['system', 'Según el sistema']].map(([k, n]) => `<button class="chip${(S.prefs.theme || 'dark') === k ? ' on' : ''}" data-action="theme" data-v="${k}">${n}</button>`).join('')}</div><p class="faint small">El claro se lee mejor a pleno sol.</p></div>
+  <h2>Tema</h2><div class="card"><div class="chips">${[['dark', 'Oscuro'], ['light', 'Claro'], ['system', 'Según el sistema']].map(([k, n]) => `<button class="chip${(S.prefs.theme || 'system') === k ? ' on' : ''}" data-action="theme" data-v="${k}">${n}</button>`).join('')}</div><p class="faint small">El claro se lee mejor a pleno sol.</p></div>
   <h2>Durante la sesión</h2><div class="card">
-    <div class="row"><div><h3>Sonidos</h3><p class="muted small">Pitidos al empezar, en los últimos 3 s y al terminar.</p></div><label class="switch acc"><input type="checkbox" data-action="pref-toggle" data-k="sound" ${S.prefs.sound ? 'checked' : ''} aria-label="Sonidos"><i></i></label></div>
-    <div class="row"><div><h3>Voz</h3><p class="muted small">"Sostené", "Descansá", "Siguiente serie".</p></div><label class="switch acc"><input type="checkbox" data-action="pref-toggle" data-k="voice" ${S.prefs.voice ? 'checked' : ''} aria-label="Voz"><i></i></label></div>
-    <div class="row"><div><h3>Isométricos manos libres</h3><p class="muted small">Después del descanso, la serie siguiente arranca sola.</p></div><label class="switch acc"><input type="checkbox" data-action="pref-toggle" data-k="auto" ${S.prefs.auto ? 'checked' : ''} aria-label="Manos libres"><i></i></label></div>
+    <label class="row tap"><div><h3>Sonidos</h3><p class="muted small">Pitidos al empezar, en los últimos 3 s y al terminar.</p></div><span class="switch acc"><input type="checkbox" data-action="pref-toggle" data-k="sound" ${S.prefs.sound ? 'checked' : ''} aria-label="Sonidos"><i></i></span></label>
+    <label class="row tap"><div><h3>Voz</h3><p class="muted small">"Sostené", "Descansá", "Siguiente serie".</p></div><span class="switch acc"><input type="checkbox" data-action="pref-toggle" data-k="voice" ${S.prefs.voice ? 'checked' : ''} aria-label="Voz"><i></i></span></label>
+    <label class="row tap"><div><h3>Isométricos manos libres</h3><p class="muted small">Después del descanso, la serie siguiente arranca sola.</p></div><span class="switch acc"><input type="checkbox" data-action="pref-toggle" data-k="auto" ${S.prefs.auto ? 'checked' : ''} aria-label="Manos libres"><i></i></span></label>
     <span class="small muted">Descanso entre series de entreno</span><div class="chips" style="margin-top:4px">${[60, 90, 120, 180].map((n) => `<button class="chip${S.prefs.rest === n ? ' on' : ''}" data-action="pref" data-k="rest" data-v="${n}">${n < 120 ? n + ' s' : n / 60 + ' min'}</button>`).join('')}</div>
     <p class="faint small">La pantalla queda prendida mientras entrenás.</p></div>
   <h2>Recordatorios</h2><div class="card">
@@ -1696,9 +1710,9 @@ function equipFields(prefix = '') {
   const e = S.equip, bw = noEquip(e);
   return `<div class="tiles one">${tile('data-action="eq-bw"', bw, 'Solo peso corporal', bw ? 'Tu plan usa ejercicios sin material: sentadillas, flexiones, remo con toalla… Si conseguís algo, marcalo abajo.' : 'No tengo equipo: armá el plan con ejercicios sin material.')}</div>
   <h3 class="grp">Pesos libres</h3><div class="card">
-    <div class="row"><div><h3>Mancuernas</h3>${e.db ? '' : '<p class="muted small" style="margin:0">No tengo</p>'}</div><label class="switch acc"><input type="checkbox" data-action="eq-db" ${e.db ? 'checked' : ''} aria-label="Tengo mancuernas"><i></i></label></div>
+    <label class="row tap"><div><h3>Mancuernas</h3>${e.db ? '' : '<p class="muted small" style="margin:0">No tengo</p>'}</div><span class="switch acc"><input type="checkbox" data-action="eq-db" ${e.db ? 'checked' : ''} aria-label="Tengo mancuernas"><i></i></span></label>
     ${e.db && !e.db.plates?.on ? `<div class="grid3">${[['Más liviana', 'min', 0.5], ['Más pesada', 'max', 0.5], ['De a', 'step', 0.25]].map(([n, k, st]) => unitField(n, `inputmode="decimal" step="${st}" data-set="equip.db.${k}" value="${e.db[k]}"`, 'kg')).join('')}</div>` : ''}
-    ${e.db ? `<div class="row sub"><div><b>Son de discos</b><br><span class="small muted">Cargás barra y discos: la app calcula los pesos posibles y qué poner de cada lado.</span></div><label class="switch acc"><input type="checkbox" data-action="eq-plates" ${e.db.plates?.on ? 'checked' : ''} aria-label="Mancuernas de discos"><i></i></label></div>` : ''}
+    ${e.db ? `<label class="row tap sub"><div><b>Son de discos</b><br><span class="small muted">Cargás barra y discos: la app calcula los pesos posibles y qué poner de cada lado.</span></div><span class="switch acc"><input type="checkbox" data-action="eq-plates" ${e.db.plates?.on ? 'checked' : ''} aria-label="Mancuernas de discos"><i></i></span></label>` : ''}
     ${e.db?.plates?.on ? platesFields() : ''}
     <hr><h3>Pesas rusas</h3><label class="field"><span>Los pesos que tenés, separados por coma</span><div class="unit"><input data-set="equip.kb" ${prefix} value="${e.kb.join(', ')}" placeholder="Ej.: 12, 20"><em>kg</em></div></label></div>
   <h3 class="grp">Accesorios</h3><div class="tiles">
@@ -1822,8 +1836,8 @@ function renderOnb() {
       <span class="small muted">¿Cuánto duele hoy al usarla?</span><div class="chips scale" style="margin-top:6px">${Array.from({ length: 11 }, (_, n) => `<button class="chip pain${zz.pain0 === n ? ' on' : ''}" data-action="zone-pain" data-zone="${z.id}" data-n="${n}">${n}</button>`).join('')}</div>
       <div class="scale-ends small faint"><span>Nada</span><span>El peor dolor</span></div>${zz.pain0 == null ? miss('Elegí cuánto duele, de 0 a 10.') : ''}
       <span class="small muted">¿De qué lado?</span><div class="chips" style="margin-top:6px">${Object.entries(SIDES).map(([k, v]) => `<button class="chip pain${zz.side === k ? ' on' : ''}" data-action="zone-side" data-zone="${z.id}" data-side="${k}">${v}</button>`).join('')}</div>${zz.side == null ? miss('Elegí de qué lado.') : ''}</div>`); }).join('')}</div>
-    ${hasZones ? `<div class="card pain care-now"><div class="row"><div><h3>¿Activar el cuidado ahora?</h3><p class="muted small">Desde tu primer entreno baja la carga de lo que exige esa zona y suma isométricos a la mañana y a la noche.</p></div>
-      <label class="switch"><input type="checkbox" data-action="onb-care" ${onbCare ? 'checked' : ''} aria-label="Activar el cuidado ahora"><i></i></label></div></div>` : ''}
+    ${hasZones ? `<div class="card pain care-now"><label class="row tap"><div><h3>¿Activar el cuidado ahora?</h3><p class="muted small">Desde tu primer entreno baja la carga de lo que exige esa zona y suma isométricos a la mañana y a la noche.</p></div>
+      <span class="switch"><input type="checkbox" data-action="onb-care" ${onbCare ? 'checked' : ''} aria-label="Activar el cuidado ahora"><i></i></span></label></div>` : ''}
     <p class="faint small">El modo dolor se prende y se apaga cuando quieras en la pestaña Dolor. Usa el protocolo de isométricos del video de Jeremy Ethier con el investigador Keith Baar y el fisioterapeuta Coach Q. No reemplaza a un profesional.</p>`;
   }
   dlg('onb').html = `<div class="dlg">${steps}${body}<div class="btns" style="margin-top:16px">${onbStep ? '<button class="sec" data-action="onb-back">Atrás</button>' : ''}<button class="cta" data-action="onb-next">${onbStep === 0 ? 'Armar mi rutina' : onbStep === ONB_STEPS - 1 ? 'Ver mi rutina' : 'Siguiente'}</button></div></div>`;
@@ -1885,7 +1899,8 @@ async function importData(file) {
   try {
     const j = JSON.parse(await file.text()), d = j.data || j;
     if (!d.profile || !Array.isArray(d.sessions)) throw new Error('no es una copia de XZ Fit');
-    if (!confirm(`¿Reemplazar tus datos por la copia (${d.sessions.length} sesiones)?`)) return;
+    const n = d.sessions.length;
+    if (!await ask({ title: '¿Restaurar esta copia?', text: `Tus datos de este teléfono se reemplazan por los de la copia (${n === 1 ? '1 sesión' : `${n} sesiones`}). Lo que anotaste después de guardarla se pierde.`, keep: 'Mantener mis datos', go: 'Restaurar copia' })) return;
     clearLive(); S = withDefaults(d); S.onboarded = true; applyTheme(); await persist(); render(); toast('Copia restaurada.');
   } catch (e) { toast('No se pudo leer el archivo: ' + e.message); }
 }
@@ -1902,7 +1917,7 @@ document.addEventListener('click', (e) => {
   const a = el.dataset.action, d = el.dataset;
   const actions = {
     'start-workout': () => startWorkout(Number(d.day)),
-    'cancel-workout': () => { if (confirm('¿Salir sin guardar el entreno?')) endWorkout(); },
+    'cancel-workout': async () => { if (await ask({ title: '¿Salir sin guardar?', text: 'Las series que marcaste en este entreno se pierden.', note: 'Para guardarlas, tocá "Terminar".', keep: 'Seguir entrenando', go: 'Salir sin guardar', danger: true })) endWorkout(); },
     'resume-workout': resumeWorkout,
     'discard-workout': discardLive,
     'finish-workout': () => finishWorkout(),
@@ -1915,7 +1930,11 @@ document.addEventListener('click', (e) => {
     'hold': () => startHold(+d.i, +d.j),
     'hold-stop': () => endHold(),
     'ex-detail': () => openExercise(d.ex),
-    'recalibrate': () => { if (confirm(weightMode() === 'calib' ? '¿Borrar el peso de trabajo y volver a calibrar?' : '¿Borrar el peso de trabajo de este ejercicio?')) { delete S.lifts[d.ex]; persist(); $('exsheet').close(); render(); } },
+    'recalibrate': async () => {
+      const calib = weightMode() === 'calib';
+      if (!await ask({ title: calib ? '¿Volver a calibrar?' : '¿Borrar el peso de trabajo?', text: calib ? 'Se borra el peso de trabajo de este ejercicio y la próxima vez lo calibrás de nuevo.' : 'Se borra el peso de trabajo de este ejercicio y la próxima vez arranca de cero.', note: 'Tu historial no cambia.', keep: 'Mantener el peso', go: calib ? 'Volver a calibrar' : 'Borrar el peso', danger: true })) return;
+      delete S.lifts[d.ex]; persist(); $('exsheet').close(); render();
+    },
     'close': () => $(d.dlg).close(),
     'start-rehab': startRehab,
     'rehab-go': rehabGo,
@@ -1925,10 +1944,10 @@ document.addEventListener('click', (e) => {
     'custom-done': () => { R.custom[+d.i].done = !R.custom[+d.i].done; saveRehab(); renderRehab(); },
     'rehab-pain': rehabPain,
     'rehab-close': () => { closeRehab(); toast('Rehabilitación guardada.'); },
-    'cancel-rehab': () => { if (R.saved) { closeRehab(); toast('Rehabilitación guardada.'); } else if (confirm('¿Salir sin guardar la sesión?')) closeRehab(); },
+    'cancel-rehab': async () => { if (R.saved) { closeRehab(); toast('Rehabilitación guardada.'); } else if (await ask({ title: '¿Salir sin guardar?', text: 'Lo que hiciste en esta sesión de rehabilitación no se anota.', keep: 'Seguir la sesión', go: 'Salir sin guardar', danger: true })) closeRehab(); },
     'pref': () => { S.prefs[d.k] = d.v === undefined ? !S.prefs[d.k] : Number(d.v); persist(); render(); if (d.k === 'sound' || d.k === 'voice') cue('go', 'Así suena'); },
     'news': openNews,
-    'theme': () => { S.prefs.theme = d.v; applyTheme(); persist(); render(); },
+    'theme': () => { S.prefs.theme = d.v; S.prefs.themeSet = true; applyTheme(); persist(); render(); },
     'quick-pain': () => askPain({ id: uid(), date: today(), type: 'dolor', items: [] }, activeZones()),
     'deload': () => { S.plan.deload = weekKey(today()); persist(); render(); toast('Semana de descarga: una serie menos y 90 % del peso. La próxima semana seguís normal.'); },
     'level-up': () => { S.profile.exp = d.v; persist(); render(); toast(`Experiencia cambiada: ${EXPERIENCE.find((x) => x.id === d.v).name.toLowerCase()}.`); },
@@ -1961,11 +1980,11 @@ document.addEventListener('click', (e) => {
     'pain-mode-on': () => { S.painMode = true; persist(); render(); toast('Modo dolor activado.'); },
     'go-pain': () => { hideToast(); showTab('tendons'); },
     'hide-pain-tip': () => { S.hidePainTip = true; persist(); render(); },
-    'phase': () => {
+    'phase': async () => {
       const z = S.zones[d.zone], to = z.phase + Number(d.dir);
       if (to < 1 || to > 3) return;
-      if (Number(d.dir) > 0 && !phaseReady(S, d.zone, today()) && !confirm(`Todavía no cumple el criterio: ${PHASE_DAYS} días en la fase y una semana con dolor en 3 o menos. Avanzar antes de tiempo puede volver a irritar el tendón. ¿Avanzar igual?`)) return;
-      S.zones[d.zone] = { ...z, phase: to, since: today() }; persist(); render();
+      if (Number(d.dir) > 0 && !phaseReady(S, d.zone, today()) && !await ask({ title: `¿Pasar a la fase ${to}?`, text: `Todavía no cumple el criterio: ${PHASE_DAYS} días en la fase y una semana con dolor en 3 o menos.`, note: 'Avanzar antes de tiempo puede volver a irritar el tendón.', keep: `Seguir en la fase ${z.phase}`, go: 'Avanzar igual' })) return;
+      S.zones[d.zone] = { ...S.zones[d.zone], phase: to, since: today() }; persist(); render();
     },
     'three-days': () => openPlans('fb3'),
     'plan-open': () => openPlans(),
@@ -1983,7 +2002,7 @@ document.addEventListener('click', (e) => {
       const i = S.custom.findIndex((x) => x.id === c.id); i >= 0 ? (S.custom[i] = c) : S.custom.push(c);
       persist(); $('customsheet').close(); render();
     },
-    'custom-del': () => { if (confirm('¿Eliminar este ejercicio?')) { S.custom = S.custom.filter((x) => x.id !== d.id); persist(); $('customsheet').close(); render(); } },
+    'custom-del': async () => { if (await ask({ title: '¿Eliminar este ejercicio?', text: 'Se quita de tus ejercicios del fisio. No se puede deshacer.', keep: 'Mantener el ejercicio', go: 'Eliminar ejercicio', danger: true })) { S.custom = S.custom.filter((x) => x.id !== d.id); persist(); $('customsheet').close(); render(); } },
     'del-session': () => {
       const i = S.sessions.findIndex((s) => s.id === d.id); if (i < 0) return;
       const [gone] = S.sessions.splice(i, 1); persist(); render();
@@ -2024,8 +2043,9 @@ document.addEventListener('click', (e) => {
     'mach-edit': () => openMachine(d.id),
     'xf-mach': () => { readExForm(); openMachine('', true); },
     'mach-save': () => saveMachine(d.id),
-    'mach-del': () => {
-      if (!confirm('¿Eliminar la máquina? Los ejercicios que la usan quedan como "falta equipo".')) return;
+    'ask-go': () => { const done = askDone; askDone = null; $('asksheet').close(); done?.(true); },
+    'mach-del': async () => {
+      if (!await ask({ title: '¿Eliminar la máquina?', text: 'Los ejercicios que la usan quedan como "falta equipo" hasta que la vuelvas a cargar o los cambies.', keep: 'Mantener la máquina', go: 'Eliminar máquina', danger: true })) return;
       S.equip.machines = S.equip.machines.filter((m) => m.id !== d.id); persist(); $('machsheet').close(); $('onb').open ? renderOnb() : render();
     },
     'onb-back': () => onbGo(-1),
@@ -2040,9 +2060,14 @@ document.addEventListener('change', (e) => {
   if (a === 'onb-care') onbCare = el.checked;
   if (a === 'pain-mode') { S.painMode = el.checked; persist(); render(); toast(el.checked ? 'Modo dolor activado.' : 'Modo dolor apagado: el entreno usa los pesos completos.'); }
   if (a === 'zone-toggle') {
-    if (el.checked) S.zones[el.dataset.zone] = $('onb').open ? newZone(el.dataset.zone, null, null) : newZone(el.dataset.zone);
-    else if ($('onb').open || confirm(`¿Quitar ${zoneName(el.dataset.zone).toLowerCase()}? Se pierde la fase y la carga actual.`)) delete S.zones[el.dataset.zone];
-    else el.checked = true;
+    const zone = el.dataset.zone, name = zoneName(zone).toLowerCase();
+    if (el.checked) S.zones[zone] = $('onb').open ? newZone(zone, null, null) : newZone(zone);
+    else if ($('onb').open) delete S.zones[zone];
+    else {   // fuera del inicio, quitar una zona pierde su fase: se pregunta y el tilde queda puesto hasta responder
+      el.checked = true;
+      return ask({ title: `¿Quitar ${name}?`, text: `Se pierde la fase y la carga actual de ${name}.`, keep: 'Mantener la zona', go: 'Quitar zona', danger: true })
+        .then((yes) => { if (yes && S.zones[zone]) { delete S.zones[zone]; persist(); render(); } });
+    }
     persist(); $('onb').open ? renderOnb() : render();
   }
   if (a === 'eq-db') { S.equip.db = el.checked ? { min: 2, max: 24, step: 2 } : null; rearmRoutine(); persist(); $('onb').open ? renderOnb() : render(); }
@@ -2090,6 +2115,7 @@ document.addEventListener('toggle', (e) => {
   W[f] = e.target.open;
   if (f === 'warmOpen') renderWorkout();
 }, true);
+$('asksheet').addEventListener('close', () => askDone?.(false));   // Cancelar, Esc o atrás: no hace nada
 document.addEventListener('cancel', (e) => { if (['wsheet', 'rsheet', 'painsheet', 'onb'].includes(e.target.id)) e.preventDefault(); }, true);
 
 let installEvt = null;
