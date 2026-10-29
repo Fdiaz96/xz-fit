@@ -2,7 +2,7 @@
 // (IndexedDB). Los identificadores internos siguen siendo "tendon-fuerte" para no perder los datos ya guardados.
 // Protocolo de tendones del video de Jeremy Ethier con Keith Baar y Coach Q; reglas en logic.js, bocetos en figures.js.
 
-const APP_VERSION = '1.30.19';
+const APP_VERSION = '1.30.20';
 const DAY_NAMES = { lu: 'Lu', ma: 'Ma', mi: 'Mi', ju: 'Ju', vi: 'Vi', sa: 'Sá', do: 'Do' };
 const SIDES = { der: 'derecha', izq: 'izquierda', ambos: 'ambos lados' };
 const REST_SECS = 90, ISO_REST = 60;
@@ -171,9 +171,20 @@ function calmMotion(root) {
 // ——— Plan de entreno ———
 // Ejercicio de la biblioteca o uno propio (ids "c_…"), ya listo para dibujar y planificar.
 function getEx(id) {
-  if (EXERCISES[id]) return EXERCISES[id];
+  if (EXERCISES[id]) return kbAsDb(EXERCISES[id]);
   const c = S.exlib.find((x) => x.id === id);
   return c ? { ...c, custom: true, tag: c.tag || [], cues: c.note ? [c.note] : ['Ejercicio propio: anotá el peso y las repeticiones de cada serie.'], fig: customFig(c.impl) } : null;
+}
+// Sin pesas rusas, los ejercicios de pesa rusa que admiten mancuerna se hacen con mancuerna (implFor): el nombre,
+// las indicaciones y el dibujo lo dicen, así no aparece una pesa rusa que no tenés.
+const kbDb = new Map();
+function kbAsDb(ex) {
+  if (ex.impl !== 'kb' || !ex.alsoDb || S.equip?.kb?.length || !S.equip?.db) return ex;
+  if (!kbDb.has(ex.id)) {
+    const db = (s) => s.replace(/Pesa rusa o mancuerna/g, 'Mancuerna').replace(/pesa rusa/g, 'mancuerna').replace(/Pesa rusa/g, 'Mancuerna');
+    kbDb.set(ex.id, { ...ex, name: db(ex.name), cues: ex.cues.map(db), fig: { ...ex.fig, props: ex.fig.props.map((p) => (p.t === 'kb' ? { ...p, t: 'db' } : p)) } });
+  }
+  return kbDb.get(ex.id);
 }
 // Ilustración genérica para ejercicios propios según el equipo que usan.
 function customFig(impl) {

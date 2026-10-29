@@ -2,6 +2,10 @@
 
 Todos los cambios de XZ Fit, del más nuevo al más viejo.
 
+## 1.30.20 — Sin pesas rusas, con mancuerna
+
+- Si no tenés pesas rusas, la sentadilla goblet, el swing y la sentadilla sumo se hacen con una mancuerna, y ahora la app lo dice: el nombre, las indicaciones y el dibujo muestran la mancuerna en lugar de una pesa rusa que no tenés.
+
 ## 1.30.19 — Tema del teléfono y preguntas de la app
 
 - Si nunca elegiste tema, la app usa el de tu teléfono: claro o oscuro, y cambia cuando él cambia. Si elegiste uno, se respeta.

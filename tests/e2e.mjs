@@ -1355,6 +1355,15 @@ await page.waitForTimeout(200); await page.reload(); await page.waitForTimeout(5
 ok(await page.locator('#view-home [data-action="resume-workout"]').count() === 0, 'un entreno de hace más de 24 h ya no se ofrece');
 ok(errors.length === errorsBeforeLive, `seguir entreno sin errores de JavaScript${errors.length > errorsBeforeLive ? ': ' + errors.slice(errorsBeforeLive).join(' | ') : ''}`);
 errors.length = errorsBeforeReset;
+// Sin pesas rusas, la sentadilla goblet y el swing se hacen con mancuerna y lo dicen (nombre, indicaciones y dibujo).
+const kbView = await page.evaluate(() => {
+  const bak = S.equip; const see = () => { const g = getEx('goblet'), w = getEx('swing'); return { name: w.name, cue: g.cues[0], prop: g.fig.props[0].t, impl: implFor(g, S.equip) }; };
+  S.equip = { ...bak, db: { min: 2, max: 24, step: 2 }, kb: [] }; const sin = see();
+  S.equip = { ...bak, db: { min: 2, max: 24, step: 2 }, kb: [12] }; const con = see();
+  S.equip = bak; return { sin, con };
+});
+ok(kbView.sin.impl === 'db' && kbView.sin.name === 'Swing con mancuerna' && kbView.sin.cue.startsWith('Mancuerna') && kbView.sin.prop === 'db', 'sin pesas rusas, goblet y swing se muestran con mancuerna');
+ok(kbView.con.impl === 'kb' && kbView.con.name === 'Swing con pesa rusa' && kbView.con.prop === 'kb', 'con pesas rusas siguen con pesa rusa');
 ok(nativeDialogs === 0, `ninguna pregunta nativa del navegador (confirm/alert): ${nativeDialogs}`);
 ok(errors.length === 0, `sin errores de JavaScript${errors.length ? ': ' + errors.join(' | ') : ''}`);
 await browser.close();
