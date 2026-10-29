@@ -39,22 +39,22 @@ const EXERCISES = {
   iso_ext_muneca: {
     name: 'Extensión de muñeca isométrica', kind: 'iso', impl: 'db', load0: 2, zone: 'codo_lat',
     cues: ['Sentado, antebrazo apoyado en el muslo, palma hacia abajo y la mano fuera de la rodilla.', 'Sostené la mancuerna con la muñeca recta o apenas levantada, sin moverla.', 'Dolor tolerable: hasta 3–4 sobre 10.'],
-    fig: { a: { ...SEATED, G1: [142, 100] }, props: [{ t: 'db', at: 'W1' }], scene: [CHAIR_SEAT] },
+    fig: { a: { ...SEATED, G1: [142, 100] }, palm: 'down', props: [{ t: 'db', at: 'W1', sm: true }], scene: [CHAIR_SEAT] },
   },
   ext_muneca_lenta: {
     name: 'Extensión de muñeca lenta', kind: 'lento', impl: 'db', load0: 2, zone: 'codo_lat',
     cues: ['Misma posición, palma hacia abajo.', 'Subí la mano en 3 s y bajala en 3 s.', 'Si duele más de 4, bajá el peso.'],
-    fig: { a: { ...SEATED, G1: [139.7, 105.7] }, b: { G1: [139.7, 94.3] }, props: [{ t: 'db', at: 'W1' }], scene: [CHAIR_SEAT], dur: 6 },
+    fig: { a: { ...SEATED, G1: [140.2, 107.4] }, b: { G1: [140.2, 92.6] }, palm: 'down', props: [{ t: 'db', at: 'W1', sm: true }], scene: [CHAIR_SEAT], dur: 6, cam: 18, pitch: 36, focus: ['H', 'E1', 'G1', 'K1'] },
   },
   iso_flex_muneca: {
     name: 'Flexión de muñeca isométrica', kind: 'iso', impl: 'db', load0: 2, zone: 'codo_med',
     cues: ['Sentado, antebrazo en el muslo, palma hacia arriba.', 'Sostené la mancuerna con la muñeca recta, sin moverla.', 'Dolor tolerable: hasta 3–4 sobre 10.'],
-    fig: { a: { ...SEATED, G1: [142, 100] }, props: [{ t: 'db', at: 'W1' }], scene: [CHAIR_SEAT] },
+    fig: { a: { ...SEATED, G1: [142, 100] }, palm: 'up', props: [{ t: 'db', at: 'W1', sm: true }], scene: [CHAIR_SEAT] },
   },
   flex_muneca_lenta: {
     name: 'Flexión de muñeca lenta', kind: 'lento', impl: 'db', load0: 2, zone: 'codo_med',
     cues: ['Palma hacia arriba, antebrazo apoyado.', 'Subí la mano en 3 s y bajala en 3 s.'],
-    fig: { a: { ...SEATED, G1: [139.7, 105.7] }, b: { G1: [139.7, 94.3] }, props: [{ t: 'db', at: 'W1' }], scene: [CHAIR_SEAT], dur: 6 },
+    fig: { a: { ...SEATED, G1: [140.2, 107.4] }, b: { G1: [140.2, 92.6] }, palm: 'up', props: [{ t: 'db', at: 'W1', sm: true }], scene: [CHAIR_SEAT], dur: 6, cam: 18, pitch: 36, focus: ['H', 'E1', 'G1', 'K1'] },
   },
   iso_prono: {
     name: 'Sostén neutro de muñeca', kind: 'iso', impl: 'db', load0: 2, zone: 'muneca',

@@ -421,7 +421,14 @@ function figureSVG(ex, { animate = true, size = '', crop = false, muscles = true
       const c = J['G' + n] ? mix(w, prj(J['G' + n]), 0.35) : [w[0] + d[0] * 1.2, w[1] + d[1] * 1.2];
       return circlePath([c[0] + m[0] * 3.2, c[1] + m[1] * 3.2], 1.8);
     };
-    return group([[fist, shade(n, 'skin')], ...(detail ? [[thumb, shade(n, 'skin')]] : [])]).replace(`stroke-width="${OW}"`, 'stroke-width="2.2"').replace(`stroke-width="${OW}"`, 'stroke-width="2.2"');
+    // Palma indicada (ejercicios de muñeca): palma arriba, la palma clara mirando hacia arriba con el pliegue de los dedos;
+    // palma abajo, el dorso arriba con los nudillos marcados.
+    const side = (J) => { const w = prj(J['W' + n]), g = prj(J['G' + n]), d = unit(g[0] - w[0], g[1] - w[1]), u = unit(...prjV(palmUp(J, n))); return { w, g, d, u }; };
+    const marks = !(f.palm && A['G' + n] && detail) ? '' : f.palm === 'up'
+      ? path((J) => { const { w, g, u } = side(J), c = mix(w, g, 0.5); return ellipse([c[0] + u[0] * 1.6, c[1] + u[1] * 1.6], scl3([...unit(g[0] - w[0], g[1] - w[1]), 0], 3.4).slice(0, 2), [u[0] * 1.9, u[1] * 1.9]); }, `fill="#F9DECB"`)
+        + stroke((J) => { const { w, g, u } = side(J), a = mix(w, g, 0.72); return `M${pt2([a[0] + u[0] * 2.8, a[1] + u[1] * 2.8])}L${pt2([a[0] - u[0] * 0.6, a[1] - u[1] * 0.6])}`; }, 1, PAL.skin2)
+      : stroke((J) => { const { w, g, d, u } = side(J); return [0.62, 0.8, 0.98].map((t) => { const c = mix(w, g, t), r = 3.9 - t; return `M${pt2([c[0] + u[0] * r - d[0], c[1] + u[1] * r - d[1]])}Q${pt2([c[0] + u[0] * (r + 1.1), c[1] + u[1] * (r + 1.1)])} ${pt2([c[0] + u[0] * r + d[0], c[1] + u[1] * r + d[1]])}`; }).join(''); }, 1, PAL.skin2);
+    return group([[fist, shade(n, 'skin')], ...(detail && !f.palm ? [[thumb, shade(n, 'skin')]] : [])]).replace(`stroke-width="${OW}"`, 'stroke-width="2.2"').replace(`stroke-width="${OW}"`, 'stroke-width="2.2"') + marks;
   };
   const torso = limb('to', '1'), pelvis = limb('pv', '1');
   // Detalles del torso: cuello de la remera, cintura del short, pectorales y abdomen (de frente) o columna (de espaldas).
@@ -473,7 +480,7 @@ function figureSVG(ex, { animate = true, size = '', crop = false, muscles = true
     const mirrored = f.a.W2 === undefined && !f.front && !f.z?.W && !f.one;
     if (p.at === 'W1' && mirrored && ['db', 'ring', 'band'].includes(p.t)) props.push({ ...p, at: 'W2' });
   }
-  const ctxP = { path, group, animV, animate, front: !!f.front, dur };
+  const ctxP = { path, group, animV, animate, front: !!f.front, dur, palm: f.palm };
   const propsOf = (n) => props.filter((p) => p.at.slice(-1) === n).map((p) => propSVG(p, FR, ts, ctxP));
   const arm = (n) => {
     const ps = propsOf(n).filter((p) => !p.own);
@@ -512,16 +519,27 @@ function figureSVG(ex, { animate = true, size = '', crop = false, muscles = true
 
   // Guía del recorrido: línea punteada por donde va la mano (o el pie, la cadera…) que más se mueve, con flecha en la
   // postura b y un punto que la recorre al ritmo de la animación. Solo en la vista grande.
-  let guide = '';
+  let guide = '', guidePts = [];
   if (!crop && moving && fr.B) {
     let best = null;
-    for (const k of ['G1', 'W1', 'G2', 'W2', 'F2', 'K2', 'F1', 'K1', 'P', 'H']) {
+    for (const k of ['G1', 'W1', 'G2', 'W2', 'F2', 'K2', 'F1', 'K1', 'P']) {   // la cabeza no: la guía taparía la cara
       if (!FR.every((J) => J[k])) continue;
       const P = FR.map((J) => prj(J[k])), span = Math.max(...P.map((q) => Math.hypot(q[0] - P[0][0], q[1] - P[0][1])));
-      if (span > 6 && (!best || span > best.span * 1.15)) best = { P, span };
+      if (span > 6 && (!best || span > best.span * 1.15)) best = { P, span, k };
     }
     if (best) {
-      const P = best.P, d = blob(P, false), e = P[P.length - 1], [ux, uy] = unit(e[0] - P[P.length - 2][0], e[1] - P[P.length - 2][1]), m = [-uy, ux];
+      // Corrida hacia afuera del cuerpo, paralela al movimiento, para no tapar la mano ni la pesa (más lejos si el
+      // recorrido es corto, como en la muñeca, porque ahí la pesa ocupa casi todo el trayecto).
+      const body = FR.map((J) => mix(prj(J.N), prj(J.P), 0.5)).reduce((s, q) => [s[0] + q[0] / FR.length, s[1] + q[1] / FR.length], [0, 0]);
+      const mid = best.P.reduce((s, q) => [s[0] + q[0] / best.P.length, s[1] + q[1] / best.P.length], [0, 0]);
+      const ch = unit(best.P.at(-1)[0] - best.P[0][0], best.P.at(-1)[1] - best.P[0][1]);   // de costado al recorrido, del lado de afuera del cuerpo
+      let out = [-ch[1], ch[0]]; const side = out[0] * (mid[0] - body[0]) + out[1] * (mid[1] - body[1]);
+      if (side < 0 || (Math.abs(side) < 2 && out[0] < 0)) out = [-out[0], -out[1]];
+      const k = best.span < 20 ? 13 : 10;
+      // La mano que gira en la muñeca: arco alrededor de la muñeca, más afuera que la punta de la mano.
+      const pivot = best.k[0] === 'G' && FR.map((J) => prj(J['W' + best.k[1]]));
+      const P = pivot ? best.P.map((q, i) => { const c = pivot[i], r = Math.hypot(q[0] - c[0], q[1] - c[1]) || 1, s2 = (r + 9) / r; return [c[0] + (q[0] - c[0]) * s2, c[1] + (q[1] - c[1]) * s2]; })
+        : best.P.map((q) => [q[0] + out[0] * k, q[1] + out[1] * k]), d = blob(P, false); guidePts = P; const e = P[P.length - 1], [ux, uy] = unit(e[0] - P[P.length - 2][0], e[1] - P[P.length - 2][1]), m = [-uy, ux];
       const tip = [e[0] + ux * 3, e[1] + uy * 3], arrow = `M${pt2(tip)}L${pt2([e[0] - ux * 2.6 + m[0] * 3.2, e[1] - uy * 2.6 + m[1] * 3.2])}L${pt2([e[0] - ux * 2.6 - m[0] * 3.2, e[1] - uy * 2.6 - m[1] * 3.2])}Z`;
       const dot = animate ? `<circle r="2.7" cx="${r1(P[0][0])}" cy="${r1(P[0][1])}" fill="${PAL.guide}" stroke="#FFF" stroke-width="1.3">${animV('cx', P.map((q) => r1(q[0])))}${animV('cy', P.map((q) => r1(q[1])))}</circle>` : '';
       guide = `<g class="guide"><path d="${d}" fill="none" stroke="#FFF" stroke-width="3.6" stroke-linecap="round" opacity=".6"/><path d="${d}" fill="none" stroke="${PAL.guide}" stroke-width="1.7" stroke-dasharray="2.6 3" stroke-linecap="round"/><circle cx="${r1(P[0][0])}" cy="${r1(P[0][1])}" r="1.8" fill="#FFF" stroke="${PAL.guide}" stroke-width="1.3"/><path d="${arrow}" fill="${PAL.guide}" stroke="#FFF" stroke-width="1" stroke-linejoin="round"/>${dot}</g>`;
@@ -537,8 +555,10 @@ function figureSVG(ex, { animate = true, size = '', crop = false, muscles = true
     const [x0, y0, x1, y1] = bb(p2), side = Math.max(x1 - x0, y1 - y0) + 28, cxx = (x0 + x1) / 2, cyy = (y0 + y1) / 2;
     vb = [cxx - side / 2, cyy - side / 2, side, side];
   } else {
-    const [x0, y0, x1, y1] = bb([...p2, ...fl, ...sceneP.map(prj)]);
-    let w = x1 - x0 + 16, h = y1 - y0 + 16;
+    // focus: primer plano de unas articulaciones (p. ej. antebrazo y mano en los ejercicios de muñeca), con la guía.
+    const near = f.focus && FR.flatMap((J) => f.focus.filter((k) => J[k]).map((k) => prj(J[k])));
+    const [x0, y0, x1, y1] = near ? bb(near) : bb([...p2, ...fl, ...sceneP.map(prj)]), pad = near ? 34 : 16;
+    let w = x1 - x0 + pad, h = y1 - y0 + pad;
     if (w / h > 200 / 170) h = (w * 170) / 200; else w = (h * 200) / 170;
     vb = [(x0 + x1) / 2 - w / 2, (y0 + y1) / 2 - h / 2, w, h];
   }
@@ -609,21 +629,30 @@ function handleDir(grip, J, n, front) {
   const g = ((J.roll || 0) * Math.PI) / 180, side = unit3(cross3(d, neutral));
   return add3(scl3(neutral, Math.cos(g)), scl3(side, Math.sin(g)));
 }
-function propSVG(p, FR, ts, { path, group, animV, animate, front, dur }) {
+// Perpendicular a la mano (de la muñeca a la punta) en el plano vertical, hacia arriba: el lado de la palma si mira arriba.
+const palmUp = (J, n) => { const d = unit3(sub3(J['G' + n], J['W' + n])); let u = [-d[1], d[0], 0]; if (u[1] < 0) u = scl3(u, -1); return u; };
+function propSVG(p, FR, ts, { path, group, animV, animate, front, dur, palm }) {
   const L = PAL.line, n = p.at.slice(-1), A = FR[0];
-  const posOf = (J) => (p.mid ? mix3(J.W1, J.W2, 0.5) : (p.at[0] === 'W' && J['G' + n] && mix3(J['W' + n], J['G' + n], 0.55)) || J[p.at]);   // con mano articulada, la pesa va en la mano
+  // Con mano articulada, la pesa va en la mano; si se indica la palma, el mango queda sobre la palma (arriba) o debajo
+  // de los dedos (palma abajo, la mano encima del mango), así se distingue extensión de flexión de muñeca.
+  const inHand = (J) => { const c = mix3(J['W' + n], J['G' + n], 0.55); return palm ? add3(c, scl3(palmUp(J, n), palm === 'up' ? 3.4 : -3.4)) : c; };
+  const posOf = (J) => (p.mid ? mix3(J.W1, J.W2, 0.5) : (p.at[0] === 'W' && J['G' + n] && inHand(J)) || J[p.at]);
   if (p.t === 'db') {
+    // Mancuerna liviana (sm, la de rehabilitación): discos más chicos y más juntos, así no tapan la mano.
+    const DB = p.sm ? { in: 6, out: 8.5, r: 4.8 } : { in: 8, out: 12, r: 7.2 };
     const one = (grip, extra = '') => {
       // Discos: cilindro (cara interna, costado y cara externa) a cada lado de la mano; mango entre ellos.
       const plate = (sgn) => {
-        const geo = (J) => { const h = handleDir(grip, J, n, front), w = posOf(J), cIn = add3(w, scl3(h, sgn * 8)), cOut = add3(w, scl3(h, sgn * 12)); return [disc(cIn, h, 7.2), disc(cOut, h, 7.2)]; };
+        const geo = (J) => { const h = handleDir(grip, J, n, front), w = posOf(J), cIn = add3(w, scl3(h, sgn * DB.in)), cOut = add3(w, scl3(h, sgn * DB.out)); return [disc(cIn, h, DB.r), disc(cOut, h, DB.r)]; };
         const quad = (J) => { const [[c1, a1], [c2, a2]] = geo(J); return `M${pt2([c1[0] + a1[0], c1[1] + a1[1]])}L${pt2([c2[0] + a2[0], c2[1] + a2[1]])}L${pt2([c2[0] - a2[0], c2[1] - a2[1]])}L${pt2([c1[0] - a1[0], c1[1] - a1[1]])}Z`; };
         return group([[(J) => ellipse(...geo(J)[0]), PAL.db2], [quad, PAL.db2], [(J) => ellipse(...geo(J)[1]), PAL.db]],
           path((J) => { const [c, a, b] = geo(J)[1]; return ellipse(c, scl3([...a, 0], 0.3).slice(0, 2), scl3([...b, 0], 0.3).slice(0, 2)); }, `fill="${PAL.bar}" stroke="${L}" stroke-width="1"`));
       };
-      const bar = path((J) => { const h = handleDir(grip, J, n, front), w = posOf(J); return capsule(prj(add3(w, scl3(h, -9))), prj(add3(w, scl3(h, 9))), 1.9, 1.9); }, `fill="${PAL.bar}" stroke="${L}" stroke-width="1.2"`);
+      const bar = path((J) => { const h = handleDir(grip, J, n, front), w = posOf(J); return capsule(prj(add3(w, scl3(h, -DB.in - 1))), prj(add3(w, scl3(h, DB.in + 1))), 1.9, 1.9); }, `fill="${PAL.bar}" stroke="${L}" stroke-width="1.2"`);
       // Qué disco queda adelante; si cambia durante el giro, se alternan dos versiones (una visible por vez).
       const signs = FR.map((J) => (dot3(handleDir(grip, J, n, front), CAM.v) >= 0 ? 1 : -1));
+      // Palma arriba: el mango descansa en la palma, se dibuja sobre la mano.
+      if (palm === 'up' && (signs.every((x) => x === signs[0]) || !animate)) return { under: `<g${extra}>${plate(-signs[0])}</g>`, over: `<g${extra}>${bar}${plate(signs[0])}</g>` };
       if (signs.every((x) => x === signs[0]) || !animate) return { under: `<g${extra}>${plate(-signs[0])}${bar}</g>`, over: `<g${extra}>${plate(signs[0])}</g>` };
       const { values, keyTimes } = loopOf(signs);
       const show = (sg) => `<animate attributeName="opacity" values="${values.map((x) => (x === sg ? 1 : 0)).join(';')}" ${timing(keyTimes, dur, 'discrete')}/>`;

@@ -2,6 +2,12 @@
 
 Todos los cambios de XZ Fit, del más nuevo al más viejo.
 
+## 1.31.2 — Muñeca: extensión y flexión se distinguen
+
+- **Extensión y flexión de muñeca ya no se ven iguales**: en la extensión la mano va con la palma hacia abajo, por encima del mango y con los nudillos a la vista; en la flexión la palma mira hacia arriba y el mango descansa sobre ella. Los isométricos de muñeca también muestran hacia dónde va la palma.
+- En los ejercicios de muñeca la vista grande se acerca al antebrazo y la mano, se ve más de costado, el recorrido de la muñeca es más amplio y la mancuerna es más chica (como la de 2 kg que se usa), así no tapa la mano.
+- **La guía del recorrido ya no tapa el movimiento**: va al costado de la mano, del lado de afuera del cuerpo; cuando la mano gira en la muñeca es un arco alrededor de ella. Nunca sigue la cabeza, así no pasa por la cara.
+
 ## 1.31.1 — Pájaros bien dibujados
 
 - En la animación de pájaros con mancuernas los brazos ya no se cruzan: cada uno se abre hacia su lado, y el ejercicio se ve de frente y un poco desde arriba para que se entienda la apertura.
