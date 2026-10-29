@@ -116,7 +116,7 @@ const EXERCISES = {
   rdl: {
     name: 'Peso muerto rumano con mancuernas', kind: 'peso', impl: 'db', ratio: 0.25, lower: true, tag: ['codo_lat', 'muneca'], alt: 'puente',
     cues: ['Mancuernas pegadas a las piernas, rodillas apenas flexionadas.', 'Llevá la cadera atrás hasta sentir los isquios, espalda recta.'],
-    fig: { a: { ...STAND, W1: [111, 92] }, b: { N: [124, 68], P: [88, 90], E1: [122, 93], W1: [123, 117], K1: [96, 120], F1: [96, 150] }, props: [{ t: 'db', at: 'W1' }] },
+    fig: { a: { ...STAND, E1: [104, 68], W1: [106, 92] }, b: { N: [108, 62], P: [76, 88], E1: [104, 88], W1: [99, 113], K1: [96, 119], F1: [97, 150] }, props: [{ t: 'db', at: 'W1' }] },
   },
   lateral: {
     name: 'Elevaciones laterales', kind: 'peso', impl: 'db', ratio: 0.06, tag: ['hombro'],
@@ -466,7 +466,7 @@ Object.entries({
 }).forEach(([id, z]) => (EXERCISES[id].fig = { ...EXERCISES[id].fig, z }));
 // Cámara a mano donde el ángulo automático no muestra bien el ejercicio: dominadas (tres cuartos de atrás), sumo (de costado y desde
 // arriba, para ver las rodillas abrirse) y peso muerto rumano (casi de perfil, para ver la bisagra de cadera).
-Object.entries({ dominadas: -65, sumo_kb: 45, rdl: -15, remo_aros_iso: -15 }).forEach(([id, cam]) => (EXERCISES[id].fig = { ...EXERCISES[id].fig, cam }));
+Object.entries({ dominadas: -65, sumo_kb: 45, rdl: -6, remo_aros_iso: -15 }).forEach(([id, cam]) => (EXERCISES[id].fig = { ...EXERCISES[id].fig, cam }));
 EXERCISES.sumo_kb.fig.pitch = 35;   // un poco más desde arriba: se ve cómo las rodillas avanzan sobre los pies
 // Press acostados: un poco más desde arriba para ver el pecho y los dos brazos.
 for (const id of ['press_suelo', 'press_banco']) EXERCISES[id].fig = { ...EXERCISES[id].fig, cam: 40, pitch: 40 };

@@ -2,6 +2,10 @@
 
 Todos los cambios de XZ Fit, del más nuevo al más viejo.
 
+## 1.31.7 — Peso muerto rumano, pesas pegadas a las piernas
+
+- En el peso muerto rumano con mancuernas, las pesas ahora bajan pegadas a los muslos hasta la rodilla, como tiene que ser para no lastimar la espalda. La cadera va más atrás, los brazos cuelgan derechos con los hombros sobre los pies y se ve de perfil, así se nota el recorrido junto a la pierna. Antes las mancuernas quedaban lejos, por delante del cuerpo.
+
 ## 1.31.6 — Excéntrico de muñeca, mano que ayuda
 
 - En el excéntrico de muñeca, la mano que ayuda ya no baja al regazo: sube la mano que trabaja, la suelta y queda apoyada sobre el antebrazo, cerca del codo, mientras la otra baja sola.
