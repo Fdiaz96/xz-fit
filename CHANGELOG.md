@@ -2,6 +2,11 @@
 
 Todos los cambios de XZ Fit (antes Tendón Fuerte), del más nuevo al más viejo.
 
+## 1.30.6 — El entreno no se pierde
+
+- El entreno en curso se guarda solo con cada serie que tildás, cada peso o rep que escribís y cada cambio. Si recargás la página o el teléfono cierra la app, al volver Hoy te muestra "Seguir entreno" con cuántas series llevás y lo retomás tal como quedó.
+- Si no lo querés seguir, "Descartar este entreno" lo saca (con "Deshacer" por si te equivocaste). Un entreno de hace más de un día ya no se ofrece.
+
 ## 1.30.5 — La semana a la vista en Hoy
 
 - Arriba de Hoy hay una tira de lunes a domingo: cada día de entreno con la sigla de lo que toca, lo que ya hiciste tildado en verde y hoy marcado. Tocá un día para ver qué toca ("Viernes: Pierna B, 5 ejercicios") o qué hiciste.

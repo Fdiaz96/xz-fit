@@ -1,17 +1,17 @@
 # Graph Report - TendonApp  (2026-10-29)
 
 ## Corpus Check
-- 63 files · ~110,803 words
+- 63 files · ~111,679 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 14 file(s) not represented in the graph (top: (none) 11, .woff2 1, .webmanifest 1)
 
 ## Summary
-- 791 nodes · 1536 edges · 62 communities (59 shown, 3 thin omitted)
-- Extraction: 93% EXTRACTED · 7% INFERRED · 0% AMBIGUOUS · INFERRED: 111 edges (avg confidence: 0.89)
+- 798 nodes · 1557 edges · 61 communities (58 shown, 3 thin omitted)
+- Extraction: 93% EXTRACTED · 7% INFERRED · 0% AMBIGUOUS · INFERRED: 114 edges (avg confidence: 0.89)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `588d517b`
+- Built from commit: `b8aaff13`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -69,7 +69,6 @@
 - daysBetween
 - UX 5: explicar "al 60 %" y "a calibrar"
 - resolveSlot
-- UX 8: zonas con dolor con el mismo componente que el alta
 - isoAdjust
 - zoneName
 - renderHome
@@ -83,13 +82,13 @@
 1. `esc()` - 31 edges
 2. `Training Plan Engine skill (SKILL.md)` - 30 edges
 3. `figureSVG()` - 28 edges
-4. `render()` - 25 edges
-5. `renderHome()` - 22 edges
-6. `toast()` - 21 edges
-7. `today()` - 18 edges
-8. `renderWorkout()` - 18 edges
-9. `renderOnb()` - 18 edges
-10. `CHANGELOG.md (XZ Fit)` - 18 edges
+4. `render()` - 27 edges
+5. `toast()` - 22 edges
+6. `renderHome()` - 22 edges
+7. `renderWorkout()` - 20 edges
+8. `today()` - 18 edges
+9. `getEx()` - 18 edges
+10. `renderOnb()` - 18 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `Dónde` --references--> `toast()`  [INFERRED]
@@ -120,11 +119,11 @@
 - **Plans of the 'planes de entrenamiento' roadmap built on the plan engine** — _specs_tasks_done_motor_de_planes_feature_plans_fb2, _specs_tasks_draft_plan_full_body_3_dias_feature_fb3, _specs_tasks_draft_plan_torso_pierna_4_dias_feature_tp4, _specs_tasks_draft_plan_empuje_traccion_4_dias_feature_et4, _specs_tasks_draft_plan_grupos_5_dias_feature_gr5, _specs_tasks_draft_plan_isometricos_feature_iso [INFERRED 0.95]
 - **Exportaciones via shareFile (Web Share o descarga)** — _specs_tasks_done_datos_locales_copia_feature_backup_restore, _specs_tasks_done_informe_fisio_feature_physio_report, _specs_tasks_done_recordatorios_calendario_feature_ics_calendar [INFERRED 0.95]
 
-## Communities (62 total, 3 thin omitted)
+## Communities (61 total, 3 thin omitted)
 
 ### Community 0 - "app.js"
-Cohesion: 0.08
-Nodes (41): applyTheme(), calmMotion(), choiceDay(), coveredControls(), cue(), DAY_NAMES, db, DEFAULT() (+33 more)
+Cohesion: 0.07
+Nodes (45): choiceDay(), clearLive(), cue(), DAY_NAMES, db, DEFAULT(), discardLive(), endWorkout() (+37 more)
 
 ### Community 1 - "Specs de features (datos, editor, calor)"
 Cohesion: 0.05
@@ -183,8 +182,8 @@ Cohesion: 0.22
 Nodes (9): resolveSlot(), Codebase Impact Analysis: Motor de planes, Current A/B flow to replace (planFor(tpl), syncBudget, plan.next), implFor (possibility test), New flow PLANS -> routine -> resolveDay -> setsFor -> nextDay, Slot candidate exercises table, Motor de planes section of logic.js, Equipment rules (weightSteps, plateCombos, implFor) (+1 more)
 
 ### Community 15 - "dlg"
-Cohesion: 0.22
-Nodes (9): dayItems(), dlg(), equipName(), missingLabel(), openCustom(), openMachine(), openPicker(), openSwapToday() (+1 more)
+Cohesion: 0.29
+Nodes (7): dlg(), equipName(), mdLite(), openCustom(), openMachine(), openNews(), openSwapToday()
 
 ### Community 16 - "Bucle de entreno y release 1.15"
 Cohesion: 0.22
@@ -307,8 +306,8 @@ Cohesion: 0.19
 Nodes (15): activePlan(), addDays(), dayIndex(), dayKey(), isDayOf(), nextDay(), parseDay(), pendingChecks() (+7 more)
 
 ### Community 49 - "renderOnb"
-Cohesion: 0.14
-Nodes (29): applyChoice(), choicePlan(), currentChoice(), daysText(), equipFields(), esc(), fmtDateLong(), hasPainTab() (+21 more)
+Cohesion: 0.12
+Nodes (32): applyChoice(), choiceMissing(), choicePlan(), currentChoice(), daysText(), equipFields(), esc(), openPlans() (+24 more)
 
 ### Community 50 - "daysBetween"
 Cohesion: 0.20
@@ -322,33 +321,29 @@ Nodes (4): Criterios de aceptación, Problema, Propuesta, UX 5: explicar "al 60 
 Cohesion: 0.38
 Nodes (7): equipUsed(), implFor(), possible(), refreshUnpinned(), resolveDay(), resolvePlan(), resolveSlot()
 
-### Community 53 - "UX 8: zonas con dolor con el mismo componente que el alta"
-Cohesion: 0.40
-Nodes (4): Criterios de aceptación, Problema, Propuesta, UX 8: zonas con dolor con el mismo componente que el alta
-
 ### Community 54 - "isoAdjust"
 Cohesion: 0.67
 Nodes (4): isoAdjust(), progress(), stepDown(), stepUp()
 
 ### Community 55 - "zoneName"
-Cohesion: 0.36
-Nodes (9): activeZones(), fmtDate(), helpHead(), lineChart(), openExercise(), painHistory(), renderHistory(), reportHTML() (+1 more)
+Cohesion: 0.24
+Nodes (13): activeZones(), bodyPart(), fmtDate(), fmtDateLong(), helpHead(), lineChart(), openExercise(), painHistory() (+5 more)
 
 ### Community 56 - "renderHome"
-Cohesion: 0.16
-Nodes (23): bodyPart(), fmtKg(), forZones(), homeWeek(), lentoDoneRecently(), loadTag(), loadText(), maintenanceItems() (+15 more)
+Cohesion: 0.17
+Nodes (20): forZones(), homeWeek(), lentoDoneRecently(), loadTag(), loadText(), maintenanceItems(), nextTrainWhen(), painTag() (+12 more)
 
 ### Community 57 - "UX 9: el botón de fase invita a avanzar solo cuando corresponde"
 Cohesion: 0.40
 Nodes (4): Criterios de aceptación, Dónde, Problema, UX 9: el botón de fase invita a avanzar solo cuando corresponde
 
 ### Community 58 - "render"
-Cohesion: 0.20
-Nodes (24): answerCheck(), askPain(), choiceMissing(), deleteExForm(), finishRehab(), finishWorkout(), hideToast(), importData() (+16 more)
+Cohesion: 0.13
+Nodes (33): answerCheck(), applyTheme(), askPain(), calmMotion(), coveredControls(), dayItems(), deleteExForm(), finishRehab() (+25 more)
 
 ### Community 59 - "getEx"
-Cohesion: 0.15
-Nodes (19): altEx(), customFig(), engineOpts(), freshRoutine(), getEx(), guessFor(), missingNote(), newZone() (+11 more)
+Cohesion: 0.17
+Nodes (15): altEx(), customFig(), engineOpts(), freshRoutine(), getEx(), guessFor(), missingNote(), noticeText() (+7 more)
 
 ### Community 60 - "Feedback de uso (agentes como usuarios)"
 Cohesion: 0.20
@@ -373,10 +368,10 @@ _Questions this graph is uniquely positioned to answer:_
 - **What connects `Sugerencia de pasar a 3 dias (suggestThreeDays)`, `Eliminar sesion con Deshacer`, `Tarjeta de instalacion (beforeinstallprompt / iOS)` to the rest of the system?**
   _61 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `app.js` be split into smaller, more focused modules?**
-  _Cohesion score 0.07665505226480836 - nodes in this community are weakly interconnected._
-- **Why does `getEx()` connect `getEx` to `app.js`, `Pruebas e2e`, `dlg`, `renderOnb`, `zoneName`, `renderHome`?**
+  _Cohesion score 0.07342995169082125 - nodes in this community are weakly interconnected._
+- **Why does `getEx()` connect `getEx` to `app.js`, `Pruebas e2e`, `renderOnb`, `zoneName`, `renderHome`, `render`?**
   _High betweenness centrality (0.138) - this node is a cross-community bridge._
-- **Are the 4 inferred relationships involving `renderHome()` (e.g. with `render()` and `Dónde`) actually correct?**
-  _`renderHome()` has 4 INFERRED edges - model-reasoned connections that need verification._
+- **Are the 2 inferred relationships involving `toast()` (e.g. with `hideToast()` and `Dónde`) actually correct?**
+  _`toast()` has 2 INFERRED edges - model-reasoned connections that need verification._
 - **Should `Specs de features (datos, editor, calor)` be split into smaller, more focused modules?**
   _Cohesion score 0.053313587560162905 - nodes in this community are weakly interconnected._

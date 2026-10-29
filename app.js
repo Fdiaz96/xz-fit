@@ -2,7 +2,7 @@
 // (IndexedDB). Los identificadores internos siguen siendo "tendon-fuerte" para no perder los datos ya guardados.
 // Protocolo de tendones del video de Jeremy Ethier con Keith Baar y Coach Q; reglas en logic.js, bocetos en figures.js.
 
-const APP_VERSION = '1.30.5';
+const APP_VERSION = '1.30.6';
 const DAY_NAMES = { lu: 'Lu', ma: 'Ma', mi: 'Mi', ju: 'Ju', vi: 'Vi', sa: 'Sá', do: 'Do' };
 const SIDES = { der: 'derecha', izq: 'izquierda', ambos: 'ambos lados' };
 const REST_SECS = 90, ISO_REST = 60;
@@ -346,7 +346,18 @@ function renderHome() {
   const title = `<h3><span class="day-name">${esc(plan.days[day].name)}</span><span class="sep"> · </span><span class="day-count">${doable.length} ejercicios${mins ? ` · ~${mins} min` : ''}</span></h3>`;
   const lastLine = last && last.date !== t ? `<span>Último: ${fmtDate(last.date)}</span>` : '';
   const deloadNote = S.plan.deload === weekKey(t) ? ' Semana de descarga.' : '';
-  if (!first && (doneToday || !trainDay)) {
+  if (LIVE) {
+    // Un entreno quedó sin terminar (recarga o pestaña descargada): retomarlo es lo primero, tal como quedó.
+    const total = LIVE.items.reduce((n, it) => n + it.rows.length, 0), sets = LIVE.items.reduce((n, it) => n + it.rows.filter((r) => r.done).length, 0);
+    const at = new Date(LIVE.started), when = dayKey(at) === t ? '' : ` del ${at.toLocaleDateString('es', { weekday: 'long' })}`;
+    h += `<section class="card today on resume">
+    <p class="plan-line"><span>${esc(plan.name)}</span><span>Empezado${when} a las ${at.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })}</span></p>
+    <p class="day-msg">Tenés un entreno sin terminar. Quedó guardado tal como lo dejaste.</p>
+    <h3><span class="day-name">${esc(LIVE.dayName)}</span><span class="sep"> · </span><span class="day-count">${sets} de ${total} series</span></h3>
+    <div class="w-track resume-track" aria-hidden="true">${LIVE.items.map((it) => `<i style="flex:${it.rows.length}"><b style="width:${(100 * it.rows.filter((r) => r.done).length) / it.rows.length}%"></b></i>`).join('')}</div>
+    <button class="cta stick" data-action="resume-workout">Seguir entreno</button>
+    <button class="link danger resume-drop" data-action="discard-workout">Descartar este entreno</button></section>`;
+  } else if (!first && (doneToday || !trainDay)) {
     // Ya entrenó o hoy no es día del plan: el estado va en grande y lo próximo queda en segundo plano, sin empujar a entrenar.
     const when = nextTrainWhen(t), done = S.sessions.filter((s) => s.type === 'entreno' && s.date === t);
     const sets = done.reduce((n, s) => n + (s.sets || 0), 0), min = done.reduce((n, s) => n + (s.min || 0), 0);
@@ -689,6 +700,35 @@ function openExercise(id) {
 
 // Sesión de entreno en curso
 let W = null;   // { plan, day, dayName, items, started, warm, off, out }
+// El entreno en curso se guarda aparte (clave 'live', fuera de la copia de seguridad) tras cada cambio: si se recarga
+// la página o el sistema descarga la pestaña, Hoy ofrece "Seguir entreno". Los ejercicios van por id y se rearman al volver.
+let LIVE = null;   // entreno sin terminar encontrado al arrancar, mientras no se retome ni se descarte
+const LIVE_HOURS = 24;   // pasado ese tiempo ya no se ofrece
+let liveTimer;
+function saveLive(w = W) {
+  clearTimeout(liveTimer);
+  if (!w) return;
+  const snap = JSON.parse(JSON.stringify({ ...w, items: w.items.map((it) => ({ ...it, ex: it.ex.id, orig: it.orig?.id })) }));
+  saving = saving.then(() => db.set('live', snap)).catch(() => {});
+}
+const saveLiveSoon = () => { clearTimeout(liveTimer); liveTimer = setTimeout(saveLive, 400); };   // mientras se escribe en una serie
+function clearLive() { clearTimeout(liveTimer); LIVE = null; saving = saving.then(() => db.set('live', null)).catch(() => {}); }
+// Un entreno guardado vuelve si es reciente y del plan activo; un ejercicio propio borrado desaparece.
+function reviveLive(d) {
+  const plan = activePlan(S);
+  if (!d?.items || !(Date.now() - d.started < LIVE_HOURS * 3600e3) || d.plan !== plan.id || !plan.days[d.day]) return null;
+  const items = d.items.map((it) => ({ ...it, ex: getEx(it.ex), orig: it.orig ? getEx(it.orig) : undefined })).filter((it) => it.ex);
+  return items.length ? { ...d, items } : null;
+}
+function resumeWorkout() {
+  W = LIVE; LIVE = null;
+  renderWorkout(); $('wsheet').showModal(); calmMotion($('wsheet')); keepAwake(true); render();
+}
+function discardLive() {
+  const w = LIVE; clearLive(); render();
+  toast('Entreno descartado.', () => { LIVE = w; saveLive(w); render(); });
+}
+function endWorkout() { stopRest(); W = null; clearLive(); $('wsheet').close(); keepAwake(false); }
 function startWorkout(day) {
   const items = [...planFor(day).filter((p) => !p.missing), ...maintenanceItems()].map((p) => ({
     ...p, rows: Array.from({ length: p.sets }, () => ({ w: p.pick ? '' : p.w || 0, reps: '', rir: '', secs: p.secs || '', done: false })),
@@ -705,6 +745,7 @@ function startWorkout(day) {
     halves.push(half);
     if (sets.length) warm.push({ ramp: true, t: `Aproximación: ${p.ex.name.toLowerCase()}`, d: `${sets.map((x, k) => `${k ? 'después ' : ''}${x.reps} reps con ${fmtKg(x.w)}`).join(', ')}. No cuentan como series.`, min: 1 });
   }
+  LIVE = null;   // empezar otro reemplaza al que quedó sin terminar
   W = { plan: activePlan(S).id, day, dayName: activePlan(S).days[day].name, items, started: Date.now(), warm: warm.map((x) => ({ ...x, done: false })), off: [], out: [] };
   // Qué es el RIR: abierto en el primer ejercicio con peso del primer entreno; después, al tocar la columna.
   W.rirHelp = S.sessions.some((s) => s.type === 'entreno') ? -1 : items.findIndex((p) => p.ex.kind === 'peso');
@@ -761,6 +802,7 @@ function renderWorkout() {
   dlg('wsheet').html = `<div class="dlg"><div class="dlg-head w-head"><button class="link danger" data-action="cancel-workout">Salir</button><div class="w-title"><strong>${esc(W.dayName)}</strong><span class="w-count">${done} de ${total} series</span></div><button class="link" data-action="finish-workout">Terminar</button>
       <div class="w-track" role="progressbar" aria-label="Series hechas" aria-valuemin="0" aria-valuemax="${total}" aria-valuenow="${done}">${track}</div></div>${warm}${calib}${body}
     <button class="cta" data-action="finish-workout">Terminar entreno</button></div>`;
+  saveLive();   // cada tilde, cambio o paso de la entrada en calor redibuja: queda guardado al instante
 }
 function setDone(i, j) {
   const it = W.items[i], r = it.rows[j], k = it.ex.kind;
@@ -877,7 +919,7 @@ function finishWorkout() {
   Object.assign(session, sessionSummary(session, Date.now() - W.started), { prs, ups });
   const zones = [...new Set(W.items.flatMap((it) => (it.r ? it.r.zones : it.maint ? [it.maint] : [])))];
   S.plan.pos = nextDay(activePlan(S), W.day);   // desde el día hecho, no desde la posición guardada
-  stopRest(); W = null; $('wsheet').close(); keepAwake(false);
+  endWorkout();
   if (S.painMode && zones.length) askPain(session, zones);
   else saveSession(session);
 }
@@ -1468,7 +1510,7 @@ async function importData(file) {
     const j = JSON.parse(await file.text()), d = j.data || j;
     if (!d.profile || !Array.isArray(d.sessions)) throw new Error('no es una copia de XZ Fit');
     if (!confirm(`¿Reemplazar tus datos por la copia (${d.sessions.length} sesiones)?`)) return;
-    S = withDefaults(d); S.onboarded = true; applyTheme(); await persist(); render(); toast('Copia restaurada.');
+    clearLive(); S = withDefaults(d); S.onboarded = true; applyTheme(); await persist(); render(); toast('Copia restaurada.');
   } catch (e) { toast('No se pudo leer el archivo: ' + e.message); }
 }
 
@@ -1484,7 +1526,9 @@ document.addEventListener('click', (e) => {
   const a = el.dataset.action, d = el.dataset;
   const actions = {
     'start-workout': () => startWorkout(Number(d.day)),
-    'cancel-workout': () => { if (confirm('¿Salir sin guardar el entreno?')) { stopRest(); W = null; $('wsheet').close(); keepAwake(false); } },
+    'cancel-workout': () => { if (confirm('¿Salir sin guardar el entreno?')) endWorkout(); },
+    'resume-workout': resumeWorkout,
+    'discard-workout': discardLive,
     'finish-workout': finishWorkout,
     'set-done': () => setDone(+d.i, +d.j),
     'rir-help': () => { W.rirHelp = W.rirHelp === +d.i ? -1 : +d.i; renderWorkout(); },
@@ -1567,7 +1611,7 @@ document.addEventListener('click', (e) => {
     'ics': () => shareFile('xz-fit.ics', icsText(S.rem, S.painMode, today()), 'text/calendar'),
     'export': exportData,
     'import': () => $('import-file').click(),
-    'reset': () => { if (confirm('¿Borrar todos los datos? No se puede deshacer.') && confirm('¿Seguro? Se pierde todo el historial.')) { S = DEFAULT(); resetRoutine(); persist(); onbStep = 0; onbPlanSet = false; onbCare = true; onbPainCheck = false; renderOnb(); $('onb').showModal(); } },
+    'reset': () => { if (confirm('¿Borrar todos los datos? No se puede deshacer.') && confirm('¿Seguro? Se pierde todo el historial.')) { clearLive(); S = DEFAULT(); resetRoutine(); persist(); onbStep = 0; onbPlanSet = false; onbCare = true; onbPainCheck = false; renderOnb(); $('onb').showModal(); } },
     'onb-next': onbNext,
     'edit-routine': () => { editRoutine = !editRoutine; if (editRoutine) editDay = dayIndex(activePlan(S), S.plan.pos); render(); },
     'edit-day': () => { editDay = +d.day; render(); },
@@ -1603,7 +1647,7 @@ document.addEventListener('click', (e) => {
 document.addEventListener('change', (e) => {
   const el = e.target;
   if (el.dataset.set) return onSetField(el);
-  if (el.dataset.w) { const [i, j, k] = el.dataset.w.split('.'); W.items[+i].rows[+j][k] = el.value; return; }
+  if (el.dataset.w) { const [i, j, k] = el.dataset.w.split('.'); W.items[+i].rows[+j][k] = el.value; saveLive(); return; }
   const a = el.dataset.action;
   if (a === 'onb-care') onbCare = el.checked;
   if (a === 'pain-mode') { S.painMode = el.checked; persist(); render(); toast(el.checked ? 'Modo dolor activado.' : 'Modo dolor apagado: el entreno usa los pesos completos.'); }
@@ -1644,7 +1688,7 @@ document.addEventListener('change', (e) => {
   if (a === 'hist-ex') { histEx = el.value; renderHistory(); }
   if (el.id === 'import-file' && el.files[0]) { importData(el.files[0]); el.value = ''; }
 });
-document.addEventListener('input', (e) => { if (e.target.dataset.w) { const [i, j, k] = e.target.dataset.w.split('.'); W.items[+i].rows[+j][k] = e.target.value; } });
+document.addEventListener('input', (e) => { if (e.target.dataset.w) { const [i, j, k] = e.target.dataset.w.split('.'); W.items[+i].rows[+j][k] = e.target.value; saveLiveSoon(); } });
 // Escape cierra los diálogos; en entreno y rehab se pregunta antes.
 document.addEventListener('cancel', (e) => { if (['wsheet', 'rsheet', 'painsheet', 'onb'].includes(e.target.id)) e.preventDefault(); }, true);
 
@@ -1655,10 +1699,11 @@ window.addEventListener('appinstalled', () => { installEvt = null; toast('¡App 
 // ——— Arranque ———
 (async () => {
   try { const d = await db.get('data'); if (d) S = withDefaults(d); } catch (e) { toast('No se pudo abrir la base de datos: ' + e.message); }
+  try { if (S.onboarded) LIVE = reviveLive(await db.get('live')); } catch {}
   applyTheme();
   if (!S.onboarded || !S.seenVersion) { S.seenVersion = S.onboarded ? '1.2.0' : APP_VERSION; }   // quien ya usaba la app ve las novedades nuevas
   render();
   if (!S.onboarded) { renderOnb(); $('onb').showModal(); }
-  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && (W || R)) keepAwake(true); });
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && (W || R)) keepAwake(true); else if (W) saveLive(); });
   if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('sw.js');
 })();
