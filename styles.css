@@ -410,6 +410,10 @@ dialog.full .dlg-head { background: var(--bg); }
 .stats .big { font-size: 36px; color: var(--acc-fg); }
 .streak { font-family: 'Oswald'; font-size: 18px; text-align: center; margin: 4px 0 8px; }
 #sumsheet .row { display: flex; justify-content: space-between; gap: 10px; padding: 8px 0; border-top: 1px solid var(--line); }
+#sumsheet .row .small { text-align: right; }
+#sumsheet .sum-note { margin: -2px 0 6px; }
+#finsheet .cta { margin-top: 18px; }
+#finsheet button.sec { width: 100%; margin-top: 8px; }
 
 /* Novedades */
 .news h2 { color: var(--acc-fg); margin-top: 18px; }

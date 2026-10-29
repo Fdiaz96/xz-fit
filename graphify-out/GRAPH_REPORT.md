@@ -1,17 +1,17 @@
 # Graph Report - TendonApp  (2026-10-29)
 
 ## Corpus Check
-- 63 files · ~113,387 words
+- 63 files · ~114,239 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 14 file(s) not represented in the graph (top: (none) 11, .woff2 1, .webmanifest 1)
 
 ## Summary
-- 803 nodes · 1573 edges · 62 communities (59 shown, 3 thin omitted)
-- Extraction: 93% EXTRACTED · 7% INFERRED · 0% AMBIGUOUS · INFERRED: 114 edges (avg confidence: 0.89)
+- 806 nodes · 1583 edges · 58 communities (55 shown, 3 thin omitted)
+- Extraction: 93% EXTRACTED · 7% INFERRED · 0% AMBIGUOUS · INFERRED: 113 edges (avg confidence: 0.89)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `676a4440`
+- Built from commit: `5d9d6147`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -55,9 +55,7 @@
 - UX 1: la calibración se explica una sola vez en la sesión
 - UX 4: el primer día no recibe al usuario con "día de descanso"
 - UX 3: "Hoy no puedo" como acción secundaria
-- UX 10: pesos con unidad y coherentes entre inicio y Entreno
 - UX 7: Historial ordenado por entreno y con vacíos útiles
-- UX 11: editar rutina con controles claros
 - Barrido de UX (2026-10-27): índice y reglas comunes
 - UX 2: el campo de reps no parece cargado
 - UX 6: la pestaña Tendones solo cuando importa
@@ -67,20 +65,18 @@
 - addDays
 - renderOnb
 - daysBetween
-- UX 5: explicar "al 60 %" y "a calibrar"
 - resolveSlot
 - tile
 - isoAdjust
 - zoneName
 - renderHome
-- UX 9: el botón de fase invita a avanzar solo cuando corresponde
 - render
 - getEx
 - Feedback de uso (agentes como usuarios)
 - v1.0.0 First version (PWA, IndexedDB, A/B full body, pain mode)
 
 ## God Nodes (most connected - your core abstractions)
-1. `esc()` - 31 edges
+1. `esc()` - 32 edges
 2. `Training Plan Engine skill (SKILL.md)` - 30 edges
 3. `figureSVG()` - 28 edges
 4. `render()` - 27 edges
@@ -120,11 +116,11 @@
 - **Plans of the 'planes de entrenamiento' roadmap built on the plan engine** — _specs_tasks_done_motor_de_planes_feature_plans_fb2, _specs_tasks_draft_plan_full_body_3_dias_feature_fb3, _specs_tasks_draft_plan_torso_pierna_4_dias_feature_tp4, _specs_tasks_draft_plan_empuje_traccion_4_dias_feature_et4, _specs_tasks_draft_plan_grupos_5_dias_feature_gr5, _specs_tasks_draft_plan_isometricos_feature_iso [INFERRED 0.95]
 - **Exportaciones via shareFile (Web Share o descarga)** — _specs_tasks_done_datos_locales_copia_feature_backup_restore, _specs_tasks_done_informe_fisio_feature_physio_report, _specs_tasks_done_recordatorios_calendario_feature_ics_calendar [INFERRED 0.95]
 
-## Communities (62 total, 3 thin omitted)
+## Communities (58 total, 3 thin omitted)
 
 ### Community 0 - "app.js"
 Cohesion: 0.10
-Nodes (27): choiceDay(), DAY_NAMES, db, DEFAULT(), EQUIP_NAMES, exportData(), fieldMsg(), histHelp (+19 more)
+Nodes (30): choiceDay(), clearLive(), DAY_NAMES, db, DEFAULT(), discardLive(), endWorkout(), EQUIP_NAMES (+22 more)
 
 ### Community 1 - "Specs de features (datos, editor, calor)"
 Cohesion: 0.05
@@ -183,8 +179,8 @@ Cohesion: 0.22
 Nodes (9): resolveSlot(), Codebase Impact Analysis: Motor de planes, Current A/B flow to replace (planFor(tpl), syncBudget, plan.next), implFor (possibility test), New flow PLANS -> routine -> resolveDay -> setsFor -> nextDay, Slot candidate exercises table, Motor de planes section of logic.js, Equipment rules (weightSteps, plateCombos, implFor) (+1 more)
 
 ### Community 15 - "setDone"
-Cohesion: 0.24
-Nodes (14): barCount(), cue(), endHold(), overlayHost(), rehabGo(), rehabSkip(), rehabTick(), renderRehab() (+6 more)
+Cohesion: 0.26
+Nodes (13): barCount(), cue(), endHold(), overlayHost(), rehabGo(), rehabSkip(), rehabTick(), setDone() (+5 more)
 
 ### Community 16 - "Bucle de entreno y release 1.15"
 Cohesion: 0.22
@@ -248,7 +244,7 @@ Nodes (4): Encuesta de elección de plan (task 7/7), Onboarding step 5 survey pl
 
 ### Community 34 - "finishLaterales"
 Cohesion: 0.29
-Nodes (10): card(), cards(), click(), closeSummary(), finishLaterales(), finishQuick(), onbDay(), openDay() (+2 more)
+Nodes (11): card(), cards(), click(), closeSummary(), finish(), finishLaterales(), finishQuick(), onbDay() (+3 more)
 
 ### Community 35 - "UX 12: los avisos no tapan el encabezado"
 Cohesion: 0.25
@@ -259,24 +255,16 @@ Cohesion: 0.33
 Nodes (5): Criterios de aceptación, Dónde, Problema, Propuesta, UX 1: la calibración se explica una sola vez en la sesión
 
 ### Community 37 - "UX 4: el primer día no recibe al usuario con "día de descanso""
-Cohesion: 0.33
-Nodes (5): Criterios de aceptación, Dónde, Problema, Propuesta, UX 4: el primer día no recibe al usuario con "día de descanso"
+Cohesion: 0.08
+Nodes (18): Criterios de aceptación, Dónde, Problema, Propuesta, UX 4: el primer día no recibe al usuario con "día de descanso", Criterios de aceptación, Problema, Propuesta (+10 more)
 
 ### Community 38 - "UX 3: "Hoy no puedo" como acción secundaria"
 Cohesion: 0.33
 Nodes (5): Criterios de aceptación, Dónde, Problema, Propuesta, UX 3: "Hoy no puedo" como acción secundaria
 
-### Community 39 - "UX 10: pesos con unidad y coherentes entre inicio y Entreno"
-Cohesion: 0.40
-Nodes (4): Criterios de aceptación, Problema, Propuesta, UX 10: pesos con unidad y coherentes entre inicio y Entreno
-
 ### Community 40 - "UX 7: Historial ordenado por entreno y con vacíos útiles"
 Cohesion: 0.33
 Nodes (5): Criterios de aceptación, Dónde, Problema, Propuesta, UX 7: Historial ordenado por entreno y con vacíos útiles
-
-### Community 41 - "UX 11: editar rutina con controles claros"
-Cohesion: 0.33
-Nodes (5): Criterios de aceptación, Dónde, Problema, Propuesta, UX 11: editar rutina con controles claros
 
 ### Community 42 - "Barrido de UX (2026-10-27): índice y reglas comunes"
 Cohesion: 0.40
@@ -287,8 +275,8 @@ Cohesion: 0.33
 Nodes (5): Criterios de aceptación, Dónde, Problema, Propuesta, UX 2: el campo de reps no parece cargado
 
 ### Community 44 - "UX 6: la pestaña Tendones solo cuando importa"
-Cohesion: 0.40
-Nodes (4): Criterios de aceptación, Problema, Propuesta, UX 6: la pestaña Tendones solo cuando importa
+Cohesion: 0.33
+Nodes (5): Criterios de aceptación, Dónde, Problema, Propuesta, UX 6: la pestaña Tendones solo cuando importa
 
 ### Community 45 - "guessWeight"
 Cohesion: 0.26
@@ -307,16 +295,12 @@ Cohesion: 0.19
 Nodes (15): activePlan(), addDays(), dayIndex(), dayKey(), isDayOf(), nextDay(), parseDay(), pendingChecks() (+7 more)
 
 ### Community 49 - "renderOnb"
-Cohesion: 0.12
-Nodes (32): activeZones(), applyChoice(), choiceMissing(), choicePlan(), currentChoice(), daysText(), dlg(), equipFields() (+24 more)
+Cohesion: 0.13
+Nodes (30): choiceMissing(), choicePlan(), confirmFinish(), currentChoice(), daysText(), dlg(), equipFields(), equipName() (+22 more)
 
 ### Community 50 - "daysBetween"
-Cohesion: 0.20
-Nodes (12): daysBetween(), painLog(), phaseProgress(), phaseReady(), restriction(), stalled(), strengthScale(), suggestLevelUp() (+4 more)
-
-### Community 51 - "UX 5: explicar "al 60 %" y "a calibrar""
-Cohesion: 0.40
-Nodes (4): Criterios de aceptación, Problema, Propuesta, UX 5: explicar "al 60 %" y "a calibrar"
+Cohesion: 0.13
+Nodes (16): daysBetween(), painLog(), phaseProgress(), phaseReady(), restriction(), stalled(), strengthScale(), suggestLevelUp() (+8 more)
 
 ### Community 52 - "resolveSlot"
 Cohesion: 0.38
@@ -331,24 +315,20 @@ Cohesion: 0.67
 Nodes (4): isoAdjust(), progress(), stepDown(), stepUp()
 
 ### Community 55 - "zoneName"
-Cohesion: 0.17
-Nodes (20): fmtDate(), fmtDateLong(), fmtKg(), helpHead(), lineChart(), loadText(), maintenanceItems(), openExercise() (+12 more)
+Cohesion: 0.13
+Nodes (30): activeZones(), answerCheck(), bodyPart(), calmMotion(), fmtDate(), fmtDateLong(), fmtKg(), forZones() (+22 more)
 
 ### Community 56 - "renderHome"
-Cohesion: 0.16
-Nodes (19): bodyPart(), forZones(), homeWeek(), lentoDoneRecently(), loadTag(), nextTrainWhen(), painTag(), planFor() (+11 more)
-
-### Community 57 - "UX 9: el botón de fase invita a avanzar solo cuando corresponde"
-Cohesion: 0.40
-Nodes (4): Criterios de aceptación, Dónde, Problema, UX 9: el botón de fase invita a avanzar solo cuando corresponde
+Cohesion: 0.18
+Nodes (17): applyChoice(), homeWeek(), lentoDoneRecently(), loadTag(), loadText(), newZone(), nextTrainWhen(), painTag() (+9 more)
 
 ### Community 58 - "render"
-Cohesion: 0.12
-Nodes (35): answerCheck(), applyTheme(), askPain(), calmMotion(), clearLive(), coveredControls(), dayItems(), deleteExForm() (+27 more)
+Cohesion: 0.18
+Nodes (24): applyTheme(), askPain(), coveredControls(), deleteExForm(), finishRehab(), finishWorkout(), hideToast(), importData() (+16 more)
 
 ### Community 59 - "getEx"
-Cohesion: 0.17
-Nodes (16): altEx(), customFig(), engineOpts(), freshRoutine(), getEx(), guessFor(), missingNote(), noticeText() (+8 more)
+Cohesion: 0.14
+Nodes (19): altEx(), customFig(), dayItems(), engineOpts(), freshRoutine(), getEx(), guessFor(), missingLabel() (+11 more)
 
 ### Community 60 - "Feedback de uso (agentes como usuarios)"
 Cohesion: 0.20
@@ -360,7 +340,7 @@ Nodes (4): Pain mode (6 zones, 3 phases, 60% cap, gentle variants), v1.0.0 First
 
 ## Knowledge Gaps
 - **61 isolated node(s):** `Sugerencia de pasar a 3 dias (suggestThreeDays)`, `Eliminar sesion con Deshacer`, `Tarjeta de instalacion (beforeinstallprompt / iOS)`, `Service worker sw.js (red primero, cache tendon-v<version>)`, `Tema claro/oscuro (applyTheme, tf-theme)` (+56 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 268 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 269 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
 - **3 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
@@ -373,9 +353,9 @@ _Questions this graph is uniquely positioned to answer:_
 - **What connects `Sugerencia de pasar a 3 dias (suggestThreeDays)`, `Eliminar sesion con Deshacer`, `Tarjeta de instalacion (beforeinstallprompt / iOS)` to the rest of the system?**
   _61 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `app.js` be split into smaller, more focused modules?**
-  _Cohesion score 0.10317460317460317 - nodes in this community are weakly interconnected._
-- **Why does `getEx()` connect `getEx` to `app.js`, `Pruebas e2e`, `zoneName`, `renderHome`, `render`?**
-  _High betweenness centrality (0.138) - this node is a cross-community bridge._
+  _Cohesion score 0.0967741935483871 - nodes in this community are weakly interconnected._
+- **Why does `getEx()` connect `getEx` to `app.js`, `Pruebas e2e`, `renderOnb`, `zoneName`, `renderHome`?**
+  _High betweenness centrality (0.139) - this node is a cross-community bridge._
 - **Are the 2 inferred relationships involving `toast()` (e.g. with `hideToast()` and `Dónde`) actually correct?**
   _`toast()` has 2 INFERRED edges - model-reasoned connections that need verification._
 - **Should `Specs de features (datos, editor, calor)` be split into smaller, more focused modules?**

@@ -203,7 +203,8 @@ const guessWeight = (profile, ex, steps, range, scale) => (scale
 const hasRepRange = (ex) => ex.kind === 'peso' || ex.kind === 'reps';
 // Ejercicios con peso de la sesión cuyo peso no cambió (y que tienen rango): a esos se les dice en qué repeticiones suben.
 // Los topados por dolor o en descarga (capped) no progresan, así que no se les promete subida. Se cruza por id de ejercicio.
-const unchangedWeightItems = (session, isWeighted) => session.items.filter((x) => x.reps && !x.capped && isWeighted(x.ex) && !session.ups?.some((u) => u.ex === x.ex));
+// Los cambiados solo por hoy (from) tampoco: la próxima vez vuelve el ejercicio de la rutina.
+const unchangedWeightItems = (session, isWeighted) => session.items.filter((x) => x.reps && !x.capped && !x.from && isWeighted(x.ex) && !session.ups?.some((u) => u.ex === x.ex));
 // Doble progresión: el máximo del rango en todas las series → sube un salto; alguna por debajo del mínimo → baja un salto.
 function progress(w, sets, steps, [lo, hi] = [REPS_MIN, REPS_MAX]) {
   const done = sets.filter((s) => s.reps > 0);
@@ -411,6 +412,12 @@ function sessionSummary(session, ms) {
   const sets = session.items.reduce((n, i) => n + i.sets.length, 0);
   const vol = session.items.reduce((v, i) => v + i.sets.reduce((a, x) => a + (x.w || 0) * (x.reps || 0), 0), 0);
   return { sets, vol: Math.round(vol), min: Math.max(1, Math.round(ms / 60000)) };
+}
+
+// Lo que falta de un entreno en curso: por ejercicio, cuántas series quedan sin tildar (n) de cuántas (of).
+function workoutLeft(items) {
+  const left = items.map((it) => ({ name: it.ex.name, n: it.rows.filter((r) => !r.done).length, of: it.rows.length })).filter((x) => x.n);
+  return { sets: left.reduce((a, x) => a + x.n, 0), items: left };
 }
 
 // ——— Calendario (.ics) ———

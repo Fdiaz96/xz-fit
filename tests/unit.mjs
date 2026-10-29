@@ -417,6 +417,11 @@ eq(L('unchangedWeightItems(sumS, (id) => id !== "d").map((x) => x.ex)'), ['a'], 
 eq(L('unchangedWeightItems({ items: sumS.items }, (id) => id !== "d").map((x) => x.ex)'), ['a', 'b'], 'resumen: sin ups todos los de peso con rango quedan igual');
 ctx.sumCap = { items: [{ ex: 'a', reps: [8, 12], capped: true }, { ex: 'b', reps: [8, 12], capped: false }, { ex: 'c', reps: [8, 12] }] };
 eq(L('unchangedWeightItems(sumCap, () => true).map((x) => x.ex)'), ['b', 'c'], 'resumen: los topados por dolor o en descarga (capped) no prometen subida');
+eq(L('unchangedWeightItems({ items: [{ ex: "a", reps: [8, 12], from: "z" }, { ex: "b", reps: [8, 12] }] }, () => true).map((x) => x.ex)'), ['b'], 'resumen: lo cambiado solo por hoy no promete "mismo peso"');
+// Lo que falta al terminar: series sin tildar por ejercicio
+ctx.leftW = [{ ex: { name: 'A' }, rows: [{ done: true }, { done: false }] }, { ex: { name: 'B' }, rows: [{ done: false }, { done: false }] }, { ex: { name: 'C' }, rows: [{ done: true }] }];
+eq(L('workoutLeft(leftW)'), { sets: 3, items: [{ name: 'A', n: 1, of: 2 }, { name: 'B', n: 2, of: 2 }] }, 'workoutLeft: 3 series sin hacer, A a medias y B entero');
+eq(L('workoutLeft([leftW[2]]).sets'), 0, 'workoutLeft: todo hecho → 0');
 // Qué ejercicios llevan rango de repeticiones
 eq(L('["peso", "reps", "tiempo", "iso", "lento"].map((kind) => hasRepRange({ kind }))'), [true, true, false, false, false], 'hasRepRange: solo peso y reps llevan rango');
 

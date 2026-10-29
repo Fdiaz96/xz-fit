@@ -21,6 +21,8 @@ const toastText = () => page.locator('#toast span').textContent();
 const fmsg = (sel) => page.evaluate((sel) => document.querySelector(sel)?.closest('label.field')?.querySelector('.fmsg')?.textContent || '', sel);
 const state = () => page.evaluate(() => JSON.parse(JSON.stringify(S)));
 const click = async (sel) => { await page.click(sel); await page.waitForTimeout(80); };
+// Terminar el entreno; con series pendientes confirma "Terminar igual".
+const finish = async () => { await click('#wsheet .dlg-head [data-action="finish-workout"]'); if (await page.locator('#finsheet[open]').count()) await click('#finsheet [data-action="finish-anyway"]'); };
 
 let dl;
 // 0a. Motor de planes: migración, sincronización e inicio
@@ -531,6 +533,12 @@ await row.locator('input[data-w="2.0.reps"]').fill('12');
 await row.locator('select[data-w="2.0.rir"]').selectOption('3');
 await click('#wsheet [data-action="set-done"][data-i="2"][data-j="0"]');
 await click('#wsheet .dlg-head [data-action="finish-workout"]');
+await page.waitForSelector('#finsheet[open]');
+ok(/Te quedan \d+ series sin hacer/.test(await page.locator('#finsheet').textContent()), 'terminar con series pendientes pide confirmar y dice cuántas faltan');
+await shot('17b-confirmar-terminar');
+await click('#finsheet .cta');
+ok(await page.locator('#finsheet[open]').count() === 0 && await page.locator('#wsheet[open]').count() === 1, '"Seguir entrenando" vuelve al entreno');
+await finish();
 await page.waitForSelector('#painsheet[open]');
 ok(true, 'al terminar pregunta el dolor de las zonas cuidadas');
 await shot('10-dolor-entreno');
@@ -617,7 +625,7 @@ const finishQuick = async () => {
   await cards().first().locator('input[data-w="0.0.reps"]').fill('10');
   if (await cards().first().locator('select[data-w="0.0.rir"]').count()) await cards().first().locator('select[data-w="0.0.rir"]').selectOption('2');
   await click('#wsheet [data-action="set-done"][data-i="0"][data-j="0"]');
-  await click('#wsheet .dlg-head [data-action="finish-workout"]');
+  await finish();
   await page.waitForSelector('#sumsheet[open]');
 };
 const closeSummary = () => click('#sumsheet [data-action="close"]');
@@ -651,11 +659,11 @@ await click(`#wsheet [data-action="set-done"][data-i="${latI}"][data-j="0"]`);
 ok((await state()).lifts.lateral.w === 4, 'la calibración usa el rango: 6 kg × 15 con RIR 2 deja lateral en 4 kg');
 const plI = await cards().evaluateAll((els) => els.findIndex((e) => e.textContent.includes('Plancha')));
 await click(`#wsheet [data-action="set-done"][data-i="${plI}"][data-j="0"]`);
-await click('#wsheet .dlg-head [data-action="finish-workout"]');
+await finish();
 await page.waitForSelector('#sumsheet[open]');
 const sumText = await page.locator('#sumsheet').textContent();
 ok(sumText.includes('¡Día A hecho!') && sumText.includes('cuando hagas 20 en todas, sube') && sumText.includes('Próximo: Día B'), 'CK-21: el resumen dice "cuando hagas 20 en todas, sube" y "Próximo: Día B"');
-const holdsText = sumText.split('Mismo peso la próxima')[1] || '';
+const holdsText = (sumText.split('Mismo peso la próxima')[1] || '').split(/Solo por hoy|Quedó sin hacer/)[0];
 ok(holdsText.includes('Elevaciones laterales') && !holdsText.includes('Plancha'), 'el aviso de subida sale en laterales y no en la plancha (por tiempo)');
 s = await state();
 const sess = s.sessions[0], latItem = sess.items.find((i) => i.ex === 'lateral');
@@ -710,9 +718,20 @@ await click(`#wsheet [data-action="swap-today"][data-i="0"]`);
 await click('#swapsheet [data-action="swap-why"][data-off="skip"]');
 const firstFrom = await page.evaluate(() => W.items[0].from ?? null);
 ok(await page.evaluate(() => W.items.some((it) => it.from === 'remo_aros')), 'saltear otro ejercicio no deshace el cambio de los aros');
+const skippedName = await page.evaluate(() => W.skipped?.at(-1));
+const remoI = await page.evaluate(() => W.items.findIndex((it) => it.from === 'remo_aros'));
+const remoJ = remoI === 0 ? 1 : 0;   // la 0.0 la tilda finishQuick
+await page.fill(`#wsheet [data-w="${remoI}.${remoJ}.reps"]`, '10');
+await click(`#wsheet [data-action="set-done"][data-i="${remoI}"][data-j="${remoJ}"]`);
 await finishQuick();
 s = await state();
 ok((s.sessions[0].items[0].from ?? null) === firstFrom, 'la sesión guarda de qué ejercicio se cambió');
+{
+  const t = await page.locator('#sumsheet').textContent(), hold = t.split('Mismo peso la próxima')[1]?.split('Solo por hoy')[0] || '';
+  ok(skippedName && s.sessions[0].skipped?.includes(skippedName) && t.includes('Quedó sin hacer') && t.includes('salteado') && /sin hacer/.test(t.split('Quedó sin hacer')[1]), `el resumen muestra lo salteado (${skippedName}) y las series sin hacer`);
+  ok((t.includes('Solo por hoy') && t.includes('que vuelve la próxima') && t.includes('en vez de remo invertido en aros') && !hold.includes(s.sessions[0].items.find((x) => x.from === 'remo_aros').name)), 'lo cambiado por hoy aclara que vuelve el original y no sugiere "mismo peso"');
+  await shot('18b-resumen-salteado');
+}
 ok(JSON.stringify(dayIds(s, 1)) === JSON.stringify(routineB) && s.equip.rings === true, 'la rutina y el equipo guardados no cambian');
 await closeSummary();
 
@@ -733,7 +752,7 @@ const guess1 = await guessW(), guessIds = Object.keys(guess1);
 ok(!('goblet' in guess1) && guessIds.length >= 2 && guessIds.every((id) => guess1[id] >= guess0[id]) && guessIds.some((id) => guess1[id] > guess0[id]), `con una goblet más pesada que lo estimado, los demás suben (${JSON.stringify(guess0)} → ${JSON.stringify(guess1)})`);
 ok((await state()).lifts.goblet.w === 20, 'el peso anotado queda como peso de trabajo, sin serie de calibración');
 ok(await card('Sentadilla goblet').locator(`input[data-w="${gobI}.1.w"]`).inputValue() === '20', 'las series siguientes toman el peso anotado');
-await click('#wsheet .dlg-head [data-action="finish-workout"]');
+await finish();
 await page.waitForSelector('#sumsheet[open]');
 ok(!(await page.locator('#sumsheet').textContent()).includes('Récords'), 'la primera vez de un ejercicio no cuenta como récord');
 await closeSummary();
@@ -749,7 +768,7 @@ await click(`#wsheet [data-action="set-done"][data-i="${latM}"][data-j="0"]`);
 ok((await toastText()).includes('Anotá el peso'), 'manual: pide el peso antes de marcar la serie');
 await card('Elevaciones laterales').locator(`input[data-w="${latM}.0.w"]`).fill('6');
 await click(`#wsheet [data-action="set-done"][data-i="${latM}"][data-j="0"]`);
-await click('#wsheet .dlg-head [data-action="finish-workout"]');
+await finish();
 await page.waitForSelector('#sumsheet[open]');
 s = await state();
 ok(s.lifts.lateral.w === 6 && !s.sessions[0].ups.length && !(await page.locator('#sumsheet').textContent()).includes('Mismo peso'), 'manual: guarda 6 kg aunque haya hecho el tope del rango, sin sugerir subidas');
@@ -765,7 +784,7 @@ const finishLaterales = async (reps) => {
     await card('Elevaciones laterales').locator(`select[data-w="${i}.${j}.rir"]`).selectOption('2');
     await click(`#wsheet [data-action="set-done"][data-i="${i}"][data-j="${j}"]`);
   }
-  await click('#wsheet .dlg-head [data-action="finish-workout"]');
+  await finish();
   await page.waitForSelector('#sumsheet[open]');
   const lift = (await state()).lifts.lateral.w;
   await closeSummary();
@@ -1080,6 +1099,7 @@ await click('#toast [data-action="undo"]');
 ok(await page.locator('#view-home [data-action="resume-workout"]').count() === 1, '"Deshacer" devuelve el entreno sin terminar');
 await click('#view-home [data-action="resume-workout"]');
 await click('#wsheet [data-action="finish-workout"]');
+if (await page.locator('#finsheet[open]').count()) await click('#finsheet [data-action="finish-anyway"]');
 await page.waitForTimeout(200);
 await page.evaluate(() => { document.querySelectorAll('dialog[open]').forEach((d) => d.close()); });
 await page.reload(); await page.waitForTimeout(500);

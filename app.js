@@ -2,7 +2,7 @@
 // (IndexedDB). Los identificadores internos siguen siendo "tendon-fuerte" para no perder los datos ya guardados.
 // Protocolo de tendones del video de Jeremy Ethier con Keith Baar y Coach Q; reglas en logic.js, bocetos en figures.js.
 
-const APP_VERSION = '1.30.8';
+const APP_VERSION = '1.30.9';
 const DAY_NAMES = { lu: 'Lu', ma: 'Ma', mi: 'Mi', ju: 'Ju', vi: 'Vi', sa: 'Sá', do: 'Do' };
 const SIDES = { der: 'derecha', izq: 'izquierda', ambos: 'ambos lados' };
 const REST_SECS = 90, ISO_REST = 60;
@@ -699,7 +699,7 @@ function openExercise(id) {
 }
 
 // Sesión de entreno en curso
-let W = null;   // { plan, day, dayName, items, started, warm, off, out }
+let W = null;   // { plan, day, dayName, items, started, warm, off, out, skipped }
 // El entreno en curso se guarda aparte (clave 'live', fuera de la copia de seguridad) tras cada cambio: si se recarga
 // la página o el sistema descarga la pestaña, Hoy ofrece "Seguir entreno". Los ejercicios van por id y se rearman al volver.
 let LIVE = null;   // entreno sin terminar encontrado al arrancar, mientras no se retome ni se descarte
@@ -892,7 +892,7 @@ function openSwapToday(i) {
 function swapToday(i, off) {
   $('swapsheet').close();
   const target = W.items[i], name = target.ex.name;
-  if (off === 'skip') { W.items.splice(i, 1); renderWorkout(); return toast(`Hoy sin ${name.toLowerCase()}.`); }
+  if (off === 'skip') { W.items.splice(i, 1); (W.skipped ||= []).push(name); renderWorkout(); return toast(`Hoy sin ${name.toLowerCase()}.`); }
   if (off) W.off.push(off); else W.out.push(target.ex.id, target.orig?.id);
   const equip = withoutEquip(S.equip, W.off), opts = engineOpts();
   const changed = [], skipped = [];
@@ -907,11 +907,15 @@ function swapToday(i, off) {
     changed.push(next.ex.name);
     return [{ ...next, from: it.from || it.orig?.id || it.ex.id, rows: Array.from({ length: next.sets }, () => ({ w: next.w || 0, reps: '', rir: '', secs: next.secs || '', done: false })) }];
   });
+  if (skipped.length) (W.skipped ||= []).push(...skipped);
   renderWorkout();
   const lower = (xs) => xs.map((x) => x.toLowerCase()).join(', ');
   toast([changed.length ? `Hoy va ${lower(changed)}${changed.length === 1 ? ` en vez de ${name.toLowerCase()}` : ''}.` : '', skipped.length ? `Sin opción con lo que tenés hoy: se saltea ${lower(skipped)}.` : ''].filter(Boolean).join(' '));
 }
-function finishWorkout() {
+// Terminar con series sin hacer pide confirmación (salvo que ya se haya confirmado con "Terminar igual").
+function finishWorkout(sure) {
+  const left = workoutLeft(W.items);
+  if (left.sets && W.items.some((it) => it.rows.some((r) => r.done)) && sure !== true) return confirmFinish(left);
   const items = W.items.map((it) => ({ ex: it.ex.id, name: it.ex.name, from: it.from, reps: hasRepRange(it.ex) ? it.range : undefined, maint: it.maint || undefined, capped: !!it.r || !!it.deload, sets: it.rows.filter((r) => r.done).map((r) => ({ w: Number(r.w) || 0, reps: Number(r.reps) || 0, rir: r.rir === '' ? null : Number(r.rir), secs: Number(r.secs) || 0 })) }))
     .filter((x) => x.sets.length);
   if (!items.length) return toast('Marcá al menos una serie como hecha.');
@@ -922,7 +926,8 @@ function finishWorkout() {
     if (it.ex.kind === 'peso' && S.lifts[it.ex.id]) {
       const lift = S.lifts[it.ex.id], prev = it.calibrated || it.first ? 0 : lift.e1rm || 0, w0 = lift.w, manual = weightMode() === 'manual';
       const best = Math.max(...sets.map((s) => epley1RM(Number(s.w), Number(s.reps) + (Number(s.rir) || 0))));
-      if (prev && best > prev + 0.05) prs.push({ name: it.ex.name, val: `${Math.round(best * 10) / 10} kg (1RM estimado)` });
+      // Récord en kilos enteros: el máximo estimado (lo que levantaría una vez) tiene que subir al menos 1 kg redondeado.
+      if (prev && Math.round(best) > Math.round(prev)) prs.push({ name: it.ex.name, val: fmtKg(Math.round(best)), est: true });
       lift.e1rm = Math.round(Math.max(lift.e1rm || 0, best) * 10) / 10;
       // Con tope por dolor o recién calibrado no se progresa: el peso de trabajo ya quedó definido.
       // En manual no se sugieren subidas: queda el último peso que usó.
@@ -938,12 +943,24 @@ function finishWorkout() {
     if (it.ex.kind === 'tiempo') { const l = (S.lifts[it.ex.id] ||= { secs: 30 }); if (sets.every((s) => Number(s.secs) >= l.secs)) l.secs = Math.min(90, l.secs + 5); }
   }
   const session = { id: uid(), date: today(), type: 'entreno', plan: W.plan, day: W.day, tpl: String.fromCharCode(65 + W.day), items };
+  if (W.skipped?.length) session.skipped = [...W.skipped];
+  if (left.sets) session.left = left.items;
   Object.assign(session, sessionSummary(session, Date.now() - W.started), { prs, ups });
   const zones = [...new Set(W.items.flatMap((it) => (it.r ? it.r.zones : it.maint ? [it.maint] : [])))];
   S.plan.pos = nextDay(activePlan(S), W.day);   // desde el día hecho, no desde la posición guardada
   endWorkout();
   if (S.painMode && zones.length) askPain(session, zones);
   else saveSession(session);
+}
+function confirmFinish(left) {
+  const list = left.items.map((x) => `${x.name.toLowerCase()}${x.n < x.of ? ` (${x.n})` : ''}`);
+  const and = (xs) => (xs.length > 1 ? `${xs.slice(0, -1).join(', ')} y ${xs.at(-1)}` : xs[0]);
+  dlg('finsheet').html = `<div class="dlg"><div class="dlg-head"><button class="link" data-action="close" data-dlg="finsheet">Cancelar</button><strong>¿Terminar el entreno?</strong><span></span></div>
+    <p>Te ${left.sets === 1 ? 'queda 1 serie' : `quedan ${left.sets} series`} sin hacer: ${esc(and(list))}.</p>
+    <p class="muted small">Se guarda lo que hiciste y lo que falta queda anotado como sin hacer. El peso de lo que no hiciste no cambia.</p>
+    <button class="cta" data-action="close" data-dlg="finsheet">Seguir entrenando</button>
+    <button class="sec" data-action="finish-anyway">Terminar igual</button></div>`;
+  $('finsheet').showModal();
 }
 function saveSession(session) {
   S.sessions.unshift(session); persist(); render();
@@ -955,12 +972,17 @@ function showSummary(s) {
   const st = streak(S, today()), plan = activePlan(S);
   // Con peso sin cambios: le decimos en qué repeticiones sube (el tope del rango guardado en la sesión).
   const holds = weightMode() === 'manual' ? [] : unchangedWeightItems(s, (id) => getEx(id)?.kind === 'peso');
+  // Lo cambiado solo por hoy no entra en "La próxima vez": la próxima vuelve el ejercicio de la rutina.
+  const swapped = s.items.filter((x) => x.from), ups = (s.ups || []).filter((u) => !swapped.some((x) => x.ex === u.ex));
+  const left = [...(s.skipped || []).map((name) => ({ name, txt: 'salteado' })), ...(s.left || []).map((x) => ({ name: x.name, txt: x.n === x.of ? 'sin hacer' : `${x.n} de ${x.of} series sin hacer` }))];
   dlg('sumsheet').html = `<div class="dlg"><div class="dlg-head"><strong>¡${esc(plan.days[s.day]?.name ?? `Entreno ${s.tpl}`)} hecho! 💪</strong><button class="link" data-action="close" data-dlg="sumsheet">Listo</button></div>
     <div class="stats"><div><span class="big num">${s.min}</span><span class="muted small">${s.min === 1 ? 'minuto' : 'minutos'}</span></div><div><span class="big num">${s.sets}</span><span class="muted small">${s.sets === 1 ? 'serie' : 'series'}</span></div><div><span class="big num">${s.vol >= 1000 ? (s.vol / 1000).toFixed(1).replace('.', ',') + 'k' : s.vol}</span><span class="muted small">kg levantados</span></div></div>
     ${st ? `<p class="streak">🔥 ${st} ${st === 1 ? 'semana cumplida' : 'semanas seguidas cumpliendo'}</p>` : ''}
-    ${s.prs?.length ? `<h2>Récords</h2>${s.prs.map((p) => `<div class="row"><span>🏆 ${esc(p.name)}</span><b class="num">${esc(p.val)}</b></div>`).join('')}` : ''}
-    ${s.ups?.length ? `<h2>La próxima vez</h2>${s.ups.map((u) => `<div class="row"><span>${esc(u.name)}</span><b class="num" style="color:${u.to > u.from ? 'var(--acc-fg)' : 'var(--pain-fg)'}">${fmtKg(u.from)} → ${fmtKg(u.to)}</b></div>`).join('')}` : ''}
+    ${s.prs?.length ? `<h2>Récords</h2>${s.prs.some((p) => p.est) ? '<p class="muted small sum-note">En kilos: tu máximo estimado, lo que levantarías una sola vez según tus series.</p>' : ''}${s.prs.map((p) => `<div class="row"><span>🏆 ${esc(p.name)}</span><b class="num">${esc(p.val)}</b></div>`).join('')}` : ''}
+    ${ups.length ? `<h2>La próxima vez</h2>${ups.map((u) => `<div class="row"><span>${esc(u.name)}</span><b class="num" style="color:${u.to > u.from ? 'var(--acc-fg)' : 'var(--pain-fg)'}">${fmtKg(u.from)} → ${fmtKg(u.to)}</b></div>`).join('')}` : ''}
     ${holds.length ? `<h2>Mismo peso la próxima</h2>${holds.map((x) => `<div class="row"><span>${esc(x.name)}</span><span class="muted small">cuando hagas ${x.reps[1]} en todas, sube</span></div>`).join('')}` : ''}
+    ${swapped.length ? `<h2>Solo por hoy</h2>${swapped.map((x) => `<div class="row"><span>${esc(x.name)}</span><span class="muted small">en vez de ${esc((getEx(x.from)?.name || 'otro').toLowerCase())}, que vuelve la próxima con su peso</span></div>`).join('')}` : ''}
+    ${left.length ? `<h2>Quedó sin hacer</h2>${left.map((x) => `<div class="row"><span>${esc(x.name)}</span><span class="muted small">${x.txt}</span></div>`).join('')}` : ''}
     <p class="muted small" style="margin-top:14px">Próximo: ${esc(plan.days[S.plan.pos].name)}.</p></div>`;
   $('sumsheet').showModal();
 }
@@ -1581,7 +1603,8 @@ document.addEventListener('click', (e) => {
     'cancel-workout': () => { if (confirm('¿Salir sin guardar el entreno?')) endWorkout(); },
     'resume-workout': resumeWorkout,
     'discard-workout': discardLive,
-    'finish-workout': finishWorkout,
+    'finish-workout': () => finishWorkout(),
+    'finish-anyway': () => { $('finsheet').close(); finishWorkout(true); },
     'set-done': () => setDone(+d.i, +d.j),
     'rir-help': () => { W.rirHelp = W.rirHelp === +d.i ? -1 : +d.i; renderWorkout(); },
     'swap-today': () => openSwapToday(+d.i),

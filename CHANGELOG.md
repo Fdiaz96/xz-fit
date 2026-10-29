@@ -2,6 +2,13 @@
 
 Todos los cambios de XZ Fit (antes Tendón Fuerte), del más nuevo al más viejo.
 
+## 1.30.9 — Un resumen que cuenta todo
+
+- Si tocás "Terminar" con series sin hacer, te preguntamos antes: te decimos cuántas faltan y de qué ejercicios, y elegís "Seguir entrenando" o "Terminar igual".
+- El resumen muestra lo que quedó sin hacer: los ejercicios que salteaste y las series que no tildaste.
+- Lo que cambiaste solo por hoy aparece aparte, con el ejercicio de tu rutina que vuelve la próxima vez con su peso; ya no te sugiere "mismo peso" como si fuera el de siempre.
+- Los récords con peso se ven en kilos enteros (por ejemplo "18 kg") con una línea que explica que es tu máximo estimado: lo que levantarías una sola vez.
+
 ## 1.30.8 — El entreno arranca en la primera serie
 
 - Al empezar un entreno ves la serie 1 sin bajar: la entrada en calor, la explicación de los pesos (estimados o de calibración) y la del RIR vienen plegadas. Tocalas para abrirlas; con la entrada en calor abierta, el foco queda en ella.
