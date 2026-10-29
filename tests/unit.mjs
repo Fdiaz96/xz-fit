@@ -478,5 +478,19 @@ eq(L('checkField("equip.db.max", "30", vEq)'), { v: 30 }, 'subir la más pesada 
 eq(L('checkField("equip.kb", "8, 16, abc, 24")'), { v: [8, 16, 24], note: 'No entendimos «abc»: quedó afuera.' }, 'pesas rusas avisa lo que descarta');
 eq(L('checkField("equip.kb", "20 12")'), { v: [12, 20] }, 'pesas rusas válidas, ordenadas y sin aviso');
 
+// ——— Cambiar plan y días ———
+L('var wk = ["lu","ma","mi","ju","vi","sa","do"]');
+eq(L('nearestDay(["lu","ju"], "ma", wk)'), 'lu', 'tocar el martes con lunes y jueves mueve el lunes');
+eq(L('nearestDay(["lu","ju"], "sa", wk)'), 'ju', 'el sábado está más cerca del jueves');
+eq(L('nearestDay(["lu","vi"], "mi", wk)'), 'lu', 'ante un empate se mueve el de antes');
+eq(L('nearestDay(["lu","mi"], "do", wk)'), 'lu', 'la semana vuelve a empezar: el domingo está al lado del lunes');
+L('var fr = [[{slot:"a",ex:"x1"},{slot:"b",ex:"x2"},{slot:"c",ex:"x3"}],[{slot:"a",ex:"y1"}]]');
+eq(L('routineChanges(JSON.parse(JSON.stringify(fr)), fr)'), [], 'una rutina igual a la armada no tiene cambios');
+eq(L('routineChanges([fr[0].map((it) => ({...it, pinned: true})), fr[1]], fr)'), [], 'fijada pero con los mismos ejercicios (migrada) no cuenta como cambio');
+eq(L('routineChanges([[{slot:"a",ex:"z",pinned:true},fr[0][1],fr[0][2]], fr[1]], fr)'), [{ day: 0, kind: 'swap', from: 'x1', to: 'z' }], 'cambiar un ejercicio');
+eq(L('routineChanges([[{slot:"a",ex:"z"},fr[0][1],fr[0][2]], fr[1]], fr)'), [], 'lo que rearmó la app por el equipo no cuenta');
+eq(L('routineChanges([[fr[0][0],fr[0][2],{slot:null,ex:"c_1",pinned:true}], fr[1]], fr)'), [{ day: 0, kind: 'add', to: 'c_1' }, { day: 0, kind: 'del', from: 'x2' }], 'sumar uno propio y sacar otro');
+eq(L('routineChanges([[fr[0][1],fr[0][0],fr[0][2]], fr[1]], fr)'), [{ day: 0, kind: 'order' }], 'solo cambiar el orden');
+
 console.log(failures ? `\n${failures} fallaron` : '\nTodo OK');
 process.exit(failures ? 1 : 0);

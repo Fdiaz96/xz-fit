@@ -2,6 +2,12 @@
 
 Todos los cambios de XZ Fit (antes Tendón Fuerte), del más nuevo al más viejo.
 
+## 1.30.12 — Mové tus días con un toque
+
+- En la tarjeta "Tu plan" (Editar rutina y Ajustes) los días se tocan: con el plan completo, tocar un día libre pasa ahí el entreno más cercano y se guarda al toque, con Deshacer.
+- En "Elegí tu plan" y en el primer uso pasa lo mismo: ya no hace falta sacar un día para elegir otro.
+- "Vuelve con tus cambios" aparece solo en los planes que de verdad cambiaste, y dice qué cambiaste (por ejemplo "Press en banco en vez de flexiones (Día A)").
+
 ## 1.30.11 — Editar rutina más claro
 
 - Editar rutina aclara que las series y las reps las ajusta la app: cuando llegás al tope del rango sube el peso, y en la semana de descarga baja una serie. "Nuevo ejercicio" lo dice también.

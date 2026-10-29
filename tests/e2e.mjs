@@ -325,6 +325,9 @@ ok(ps.plan.id === 'fb3' && ps.plan.pos === 0 && ps.routine.fb3.length === 3 && J
 ok(ps.routine.fb2[0][1].ex === 'press_banco' && ps.routine.fb2[0][1].pinned, 'la rutina editada de Full body 2 días queda guardada');
 ok(JSON.stringify(await page.locator('#view-train .chips .chip').allTextContents()) === JSON.stringify(['Día A', 'Día B', 'Día C']), 'el editor muestra los 3 días del plan nuevo');
 await click('#view-train [data-action="plan-open"]');
+const kept = (id) => page.locator(`#plansheet .plan-opt:has([value="${id}"]) .kept`);
+ok(/^Vuelve con tus cambios: sumaste mi remo en polea \(Día B\); .+ y \d cambios? más\.$/.test(await kept('fb2').textContent()), '"Vuelve con tus cambios" dice qué se cambió en Full body 2 días');
+ok(await kept('gr5').count() === 0 && await kept('tp4').count() === 0, 'los planes nunca tocados no prometen cambios');
 await page.locator('#plansheet [data-action="plan-sel"][value="gr5"]').check({ force: true }); await page.waitForTimeout(80);
 await click('#plansheet [data-action="plan-use"]');
 ok(JSON.stringify(await page.locator('#view-train .chips .chip').allTextContents()) === JSON.stringify(['Pecho', 'Hombros', 'Espalda', 'Piernas', 'Brazos']) && (await state()).profile.days === 5, 'por grupos 5 días: un día por grupo muscular, de lunes a viernes');
@@ -340,6 +343,15 @@ ok(await page.locator('#plansheet .plan-foot .cta').textContent() === 'Guardar l
 await click('#plansheet [data-action="plan-use"]');
 ps = await state();
 ok(ps.rem.train.join() === 'lu,vi' && ps.plan.id === 'fb2' && ps.plan.pos === 1, 'guarda lunes y viernes sin reiniciar el día que toca');
+// Los días se tocan en la tarjeta "Tu plan": con el plan lleno, un día libre recibe el entreno más cercano
+await click('#view-train .plan-card [data-action="card-day"][data-v="ma"]');
+ps = await state();
+ok(ps.rem.train.join() === 'ma,vi' && ps.plan.pos === 1 && (await toastText()).includes('Pasamos el entreno del Lu al Ma'), 'tocar el martes en la tarjeta pasa ahí el lunes, sin reiniciar el día que toca');
+await shot('13-tarjeta-dias');
+await click('#toast [data-action="undo"]');
+ok((await state()).rem.train.join() === 'lu,vi', 'Deshacer vuelve a lunes y viernes');
+await click('#view-train .plan-card [data-action="card-day"][data-v="lu"]');
+ok((await state()).rem.train.join() === 'lu,vi' && (await toastText()).includes('tocá el día libre'), 'tocar un día marcado explica cómo moverlo');
 await click('[data-tab="settings"]');
 const setW = '#view-settings [data-set="profile.weight"]', wBefore = (await state()).profile.weight;
 await page.fill(setW, '-5'); await page.dispatchEvent(setW, 'change');
@@ -440,7 +452,9 @@ ok((await state()).plan.id === 'fb2' && (await state()).rem.train.join() === 'lu
 // Los días del plan elegido se tocan: la cantidad la pone el plan, cuáles los decide la persona
 const onbDay = (k) => click(`#onb [data-action="onb-day"][data-v="${k}"]`);
 await onbDay('ma');
-ok((await state()).rem.train.join() === 'lu,ju' && (await toastText()).includes('usa 2 días'), 'con los 2 días marcados no suma un tercero y explica cómo cambiarlo');
+ok((await state()).rem.train.join() === 'ma,ju' && (await toastText()).includes('Pasamos el entreno del Lu al Ma'), 'con los 2 días marcados, tocar el martes pasa ahí el lunes');
+await onbDay('lu');
+ok((await state()).rem.train.join() === 'lu,ju', 'y tocar el lunes lo devuelve');
 await onbDay('ju');
 ok((await page.locator('#onb .day-hint').textContent()).includes('Elegí 1 día más'), 'al sacar un día pide elegir otro');
 await click('[data-action="onb-next"]');

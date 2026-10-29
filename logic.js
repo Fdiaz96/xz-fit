@@ -462,3 +462,32 @@ function checkField(path, raw, equip) {
   }
   return { v: raw };
 }
+
+// ——— Cambiar plan y días ———
+// El día marcado más cercano a k (la semana vuelve a empezar): es el que se mueve cuando el plan ya tiene todos sus días.
+// Ante un empate, el de antes (el entreno se corre para adelante). keys es la semana en orden (lu…do).
+function nearestDay(days, k, keys) {
+  const n = keys.length, at = keys.indexOf(k);
+  const dist = (d) => { const x = Math.abs(keys.indexOf(d) - at); return Math.min(x, n - x); };
+  const before = (d) => (at - keys.indexOf(d) + n) % n;
+  return [...days].sort((a, b) => dist(a) - dist(b) || before(a) - before(b))[0] ?? null;
+}
+// Qué cambió la persona en la rutina guardada de un plan frente a la que se armaría hoy (fresh, con el mismo equipo).
+// [{ day, kind: 'swap'|'add'|'del'|'order', from?, to? }]. Lo que rearmó la app sola (sin fijar, por el equipo) no cuenta.
+function routineChanges(saved, fresh) {
+  const out = [];
+  saved.forEach((items, day) => {
+    const base = fresh[day] || [], ids = base.map((b) => b.ex), mine = items.map((it) => it.ex);
+    const missing = base.filter((b) => !mine.includes(b.ex)), n = out.length;
+    for (const it of items) {
+      if (ids.includes(it.ex)) continue;
+      // Un ejercicio distinto en un hueco del plan reemplaza al que faltaba en ese hueco.
+      const k = it.slot ? missing.findIndex((b) => b.slot === it.slot) : -1, was = k >= 0 ? missing.splice(k, 1)[0] : null;
+      if (!it.pinned && it.slot) continue;
+      out.push(was ? { day, kind: 'swap', from: was.ex, to: it.ex } : { day, kind: 'add', to: it.ex });
+    }
+    for (const b of missing) out.push({ day, kind: 'del', from: b.ex });
+    if (out.length === n && mine.filter((x) => ids.includes(x)).join() !== ids.filter((x) => mine.includes(x)).join()) out.push({ day, kind: 'order' });
+  });
+  return out;
+}

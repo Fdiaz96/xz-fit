@@ -2,7 +2,7 @@
 // (IndexedDB). Los identificadores internos siguen siendo "tendon-fuerte" para no perder los datos ya guardados.
 // Protocolo de tendones del video de Jeremy Ethier con Keith Baar y Coach Q; reglas en logic.js, bocetos en figures.js.
 
-const APP_VERSION = '1.30.11';
+const APP_VERSION = '1.30.12';
 const DAY_NAMES = { lu: 'Lu', ma: 'Ma', mi: 'Mi', ju: 'Ju', vi: 'Vi', sa: 'Sá', do: 'Do' };
 const SIDES = { der: 'derecha', izq: 'izquierda', ambos: 'ambos lados' };
 const REST_SECS = 90, ISO_REST = 60;
@@ -475,13 +475,17 @@ const currentChoice = () => ({ id: S.plan.custom ? 'custom' : activePlan(S).id, 
 // Cambiar de plan en la lista propone sus días; pasar a "a tu medida" conserva los días marcados.
 const pickChoice = (c, id) => ({ id, days: id === 'custom' ? c.days.slice(0, MAX_DAYS) : [...PLANS[id].week] });
 // Tocar un día: lo saca o lo suma. Un plan de la lista tiene una cantidad fija de días; a tu medida, de 1 a 6.
+// Con el plan de la lista lleno, tocar un día libre mueve ahí el día marcado más cercano (moved: [de, a]).
 // Devuelve la elección nueva o un texto con lo que falta.
 function toggleChoiceDay(c, k) {
   if (c.days.includes(k)) return c.id === 'custom' && c.days.length === 1 ? 'Elegí al menos un día.' : { ...c, days: c.days.filter((d) => d !== k) };
-  const max = c.id === 'custom' ? MAX_DAYS : PLANS[c.id].days.length;
-  if (c.days.length >= max) return c.id === 'custom' ? 'Dejá al menos un día de descanso por semana.' : `${PLANS[c.id].name} usa ${max} días. Tocá uno marcado para sacarlo y después elegí el nuevo.`;
-  return { ...c, days: Object.keys(DAY_NAMES).filter((d) => c.days.includes(d) || d === k) };
+  const max = c.id === 'custom' ? MAX_DAYS : PLANS[c.id].days.length, keys = Object.keys(DAY_NAMES);
+  if (c.days.length >= max && c.id === 'custom') return 'Dejá al menos un día de descanso por semana.';
+  const from = c.days.length >= max ? nearestDay(c.days, k, keys) : null;
+  return { id: c.id, days: keys.filter((d) => (c.days.includes(d) && d !== from) || d === k), ...(from ? { moved: [from, k] } : {}) };
 }
+// "Pasamos el entreno del Lu al Ma."
+const movedText = ([from, to]) => `Pasamos el entreno del ${DAY_NAMES[from]} al ${DAY_NAMES[to]}.`;
 // Qué falta para confirmar ('' si está completa).
 function choiceMissing(c) {
   if (c.id === 'custom') return c.days.length ? '' : 'Elegí al menos un día.';
@@ -495,11 +499,13 @@ function applyChoice(c, restart = false) {
   S.plan = { ...S.plan, id: plan.id, custom: c.id === 'custom' };
   S.rem.train = [...c.days]; S.profile.days = c.days.length;
 }
+// Cómo se tocan los días: en un plan de la lista la cantidad es fija, así que tocar un día libre mueve ahí el más cercano.
+const dayHint = (id) => (id === 'custom' ? 'Tocá un día para sumarlo o sacarlo.' : 'Tocá un día libre para pasar ahí el entreno más cercano.');
 function planCard() {
   const plan = activePlan(S);
   return `<div class="plan-card"><div class="row"><div><span class="small muted">Tu plan${S.plan.custom ? ', a tu medida' : ''}</span><h3>${esc(plan.name)}</h3></div><button class="sec" data-action="plan-open">Cambiar plan</button></div>
-    ${weekStrip(plan, S.rem.train)}${stripLegend(plan)}
-    <p class="small muted">Rota ${esc(plan.days.map((d) => d.name).join(', '))}. Si faltás un día, seguís con el que toca. Los días los cambiás en Cambiar plan.</p></div>`;
+    ${weekStrip(plan, S.rem.train, 'card-day')}${stripLegend(plan)}
+    <p class="small muted">Rota ${esc(plan.days.map((d) => d.name).join(', '))}. Si faltás un día, seguís con el que toca. ${dayHint(S.plan.custom ? 'custom' : plan.id)}</p></div>`;
 }
 // Los ejercicios de cada día del plan: la versión guardada (con los cambios del usuario) si existe; si no, la que se armaría hoy.
 function planExercises(p) {
@@ -512,13 +518,24 @@ const missingNote = (saved) => {
   const n = saved.flat().filter((it) => !possible(it.ex, S.equip, getEx)).length;
   return n ? `<small class="warn">Con tu equipo, ${n === 1 ? '1 ejercicio queda' : `${n} ejercicios quedan`} como "falta equipo".</small>` : '';
 };
+// En un plan que no es el actual: qué cambios suyos recupera al volver (solo si los hay). Muestra dos y cuenta el resto.
+function keptChanges(p, saved) {
+  if (S.routine[p.id]?.length !== p.days.length) return '';
+  const name = (id) => getEx(id)?.name, low = (id) => name(id).toLowerCase();
+  const ch = routineChanges(saved, freshRoutine(p)).filter((x) => (!x.from || name(x.from)) && (!x.to || name(x.to)));
+  if (!ch.length) return '';
+  const where = (x) => (p.days.length > 1 ? ` (${p.days[x.day].name})` : '');
+  const text = (x) => ({ swap: () => `${name(x.to)} en vez de ${low(x.from)}`, add: () => `sumaste ${low(x.to)}`, del: () => `sacaste ${low(x.from)}`, order: () => 'otro orden' })[x.kind]() + where(x);
+  const more = ch.length - 2;
+  return `<small class="kept">Vuelve con tus cambios: ${esc(ch.slice(0, 2).map(text).join('; '))}${more > 0 ? ` y ${more} ${more === 1 ? 'cambio más' : 'cambios más'}` : ''}.</small>`;
+}
 // Planes agrupados por tipo y al final el plan a tu medida. Lo usan la hoja "Elegí tu plan" y el primer uso.
 // El elegido muestra su semana con los días para tocar. action/dayAction son los data-action del radio y de los días,
 // cur el plan actual (null en el alta) y tag la marca junto al nombre.
 function planOptions(c, { action, dayAction, cur = null, tag = {} }) {
   const days = (p) => {
     const miss = choiceMissing(c);
-    return `${weekStrip(p, c.days, dayAction)}${stripLegend(p)}<p class="small ${miss ? 'warn' : 'muted'} day-hint">${esc(miss) || 'Tocá los días para elegir cuáles entrenás.'}</p>`;
+    return `${weekStrip(p, c.days, dayAction)}${stripLegend(p)}<p class="small ${miss ? 'warn' : 'muted'} day-hint">${esc(miss) || (c.id === 'custom' ? 'Tocá los días para elegir cuáles entrenás.' : dayHint(c.id))}</p>`;
   };
   const opt = (p) => {
     const on = c.id === p.id, ex = planExercises(p);
@@ -526,7 +543,7 @@ function planOptions(c, { action, dayAction, cur = null, tag = {} }) {
         <b>${esc(p.name)}${tag[p.id] ? ` <em class="tag-now">${tag[p.id]}</em>` : ''}</b>
         <small>${p.days.length} días por semana, ${p.mins} min por sesión. ${esc(p.for)}</small>
         ${on ? '' : weekStrip(p, p.week)}${missingNote(ex.saved)}
-        ${cur && p.id !== cur && S.routine[p.id] ? '<small>Vuelve con los cambios que le hiciste.</small>' : ''}
+        ${cur && p.id !== cur ? keptChanges(p, ex.saved) : ''}
       </span></label>${on ? days(p) : ''}${ex.html}</div>`;
   };
   let h = Object.entries(PLAN_KINDS).map(([kind, title]) => `<h2>${esc(title)}</h2>${Object.values(PLANS).filter((p) => p.kind === kind).map(opt).join('')}`).join('');
@@ -552,7 +569,22 @@ function renderPlans() {
   dlg('plansheet').html = h;
 }
 // Tocar un día en la hoja o en el alta: actualiza la elección o explica por qué no.
-function choiceDay(c, k, then) { const r = toggleChoiceDay(c, k); if (typeof r === 'string') return toast(r); then(r); }
+function choiceDay(c, k, then) {
+  const r = toggleChoiceDay(c, k); if (typeof r === 'string') return toast(r);
+  then({ id: r.id, days: r.days });
+  if (r.moved) toast(movedText(r.moved));
+}
+// Tocar un día en la tarjeta "Tu plan" (Editar rutina y Ajustes): guarda al toque, con Deshacer. Si el cambio arma
+// otro plan (a tu medida con más o menos días) abre la hoja para confirmarlo; un día marcado se mueve tocando el libre.
+function cardDay(k) {
+  const before = currentChoice(), r = toggleChoiceDay(before, k);
+  if (typeof r === 'string') return toast(r);
+  const c = { id: r.id, days: r.days };
+  if (choiceMissing(c)) return toast(`Para mover el ${DAY_NAMES[k]}, tocá el día libre adonde lo querés pasar.`);
+  if (choicePlan(c).id !== activePlan(S).id) { PC = c; renderPlans(); return $('plansheet').showModal(); }
+  applyChoice(c); persist(); render();
+  toast(`${r.moved ? movedText(r.moved) + ' ' : ''}Entrenás ${daysText(S.rem.train)}.`, () => { applyChoice(before); persist(); render(); });
+}
 function usePlan() {
   if (choiceMissing(PC)) return toast(choiceMissing(PC));
   const before = activePlan(S).id;
@@ -1416,7 +1448,8 @@ function renderSettings() {
     <label class="field"><span>Nombre <i class="opt">(opcional)</i></span><input data-set="profile.name" value="${esc(p.name)}"></label>
     <span class="small muted">Sexo</span><div class="chips" style="margin:4px 0 8px">${[['h', 'Hombre'], ['m', 'Mujer'], ['x', 'Prefiero no decir']].map(([k, v]) => `<button class="chip${p.sex === k ? ' on' : ''}" data-action="set-sex" data-v="${k}">${v}</button>`).join('')}</div>
     <div class="grid3">${unitField('Peso', `data-set="profile.weight" inputmode="decimal" value="${esc(p.weight)}"`, 'kg')}${unitField('Altura <i class="opt">(opcional)</i>', `data-set="profile.height" inputmode="numeric" value="${esc(p.height)}"`, 'cm')}${unitField('Edad <i class="opt">(opcional)</i>', `data-set="profile.age" inputmode="numeric" value="${esc(p.age)}"`, 'años')}</div>
-    <span class="small muted">Días de entreno: ${esc(activePlan(S).name)}</span>${weekStrip(activePlan(S), S.rem.train)}${stripLegend(activePlan(S))}
+    <span class="small muted">Días de entreno: ${esc(activePlan(S).name)}</span>${weekStrip(activePlan(S), S.rem.train, 'card-day')}${stripLegend(activePlan(S))}
+    <p class="faint small">${dayHint(S.plan.custom ? 'custom' : activePlan(S).id)}</p>
     <button class="sec" style="width:100%" data-action="plan-open">Cambiar plan o días</button>
     <span class="small muted" style="display:block;margin-top:12px">Experiencia</span><div class="chips" style="margin-top:4px">${EXPERIENCE.map((x) => `<button class="chip${p.exp === x.id ? ' on' : ''}" data-action="set-exp" data-v="${x.id}">${x.name}</button>`).join('')}</div>
     <p class="faint small">Con sexo, peso, edad y experiencia estimamos tu peso inicial. La altura casi no cambia el cálculo.</p></div>
@@ -1706,6 +1739,7 @@ document.addEventListener('click', (e) => {
     'three-days': () => openPlans('fb3'),
     'plan-open': () => openPlans(),
     'plan-use': usePlan,
+    'card-day': () => cardDay(d.v),
     'plan-day': () => choiceDay(PC, d.v, (c) => { PC = c; renderPlans(); }),
     'onb-day': () => choiceDay(currentChoice(), d.v, (c) => { applyChoice(c); persist(); renderOnb(); }),
     'zone-side': () => { S.zones[d.zone].side = d.side; persist(); $('onb').open ? renderOnb() : render(); },
