@@ -274,6 +274,11 @@ button.pick { display: flex; align-items: center; gap: 12px; width: 100%; text-a
 button.pick.on { outline: 2px solid var(--acc); }
 .pick-row { display: flex; align-items: center; gap: 6px; }
 .pick-row button.pick { flex: 1; }
+.pick-head { flex-wrap: wrap; row-gap: 10px; padding-bottom: 10px; }
+.pick-head input { flex: 1 0 100%; }
+button.pick.here { opacity: .55; }
+.pick-none { text-align: center; margin: 18px 0; }
+#pickersheet { height: 92dvh; }   /* alto fijo: al filtrar la hoja no salta */
 
 /* Entrada en calor */
 /* Plegables del entreno (entrada en calor, explicación de arriba): arrancan cerrados y la flecha avisa que se abren. */
@@ -399,6 +404,7 @@ dialog.sheet { margin: auto auto 0; border-radius: 20px 20px 0 0; max-height: 92
 .sheet .dlg { padding-top: 16px; }
 .dlg-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; position: sticky; top: calc(-12px - var(--safe-t)); background: inherit; padding: 6px 0; z-index: 2; }
 dialog.full .dlg-head { background: var(--bg); }
+dialog.sheet .dlg-head { background: var(--card); top: -16px; }
 .dlg-head strong { font-family: 'Oswald'; font-size: 20px; text-transform: uppercase; }
 .steps { display: flex; gap: 6px; margin: 4px 0 14px; }
 .steps i { flex: 1; height: 4px; border-radius: 4px; background: var(--card2); }

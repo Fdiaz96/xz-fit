@@ -265,6 +265,26 @@ await click('#view-train [data-action="routine-pick"][data-day="1"]:not([data-i]
 await page.waitForSelector('#pickersheet[open]');
 ok(await hasSameSlot() === 0, '"+ Agregar" no muestra la sección "mismo hueco"');
 await click('#pickersheet [data-action="close"]');
+// Selector: lo que ya está en el día sale marcado y no se puede agregar de nuevo; el buscador filtra por nombre
+await click('#view-train [data-action="routine-pick"][data-day="1"]:not([data-i])');
+await page.waitForSelector('#pickersheet[open]');
+const dupB = page.locator('#pickersheet [data-ex="zancada"]');
+ok(await dupB.isDisabled() && (await dupB.textContent()).includes('Ya está en este día'), 'el selector marca "Ya está en este día" y no deja agregar un duplicado');
+await page.fill('#pick-q', 'ZANCADA');
+const visIds = await page.evaluate(() => [...document.querySelectorAll('#pickersheet button.pick')].filter((b) => b.offsetParent).map((b) => getEx(b.dataset.ex).name.toLowerCase()));
+ok(visIds.length > 0 && visIds.every((n) => n.includes('zancada')), 'el buscador deja solo los ejercicios que coinciden (sin importar mayúsculas)');
+ok(await page.evaluate(() => { const hs = [...document.querySelectorAll('#pickersheet .dlg > h2')], vis = (h) => { for (let n = h.nextElementSibling; n && n.tagName !== 'H2'; n = n.nextElementSibling) if (n.offsetParent && n.querySelector?.('button.pick, .thumb') || n.matches('button.pick') && n.offsetParent) return true; return false; };
+  return hs.some((h) => !h.offsetParent) && hs.filter((h) => h.offsetParent).every((h) => h.textContent === 'Mis ejercicios' || vis(h)); }), 'el buscador oculta los grupos sin resultados');
+await page.fill('#pick-q', 'xyzw');
+ok(await page.locator('#pickersheet .pick-none').isVisible(), 'sin resultados avisa que no hay ejercicios con ese nombre');
+await page.fill('#pick-q', '');
+await page.locator('#pickersheet .dlg').evaluate((d) => { d.scrollTop = 99999; });
+const head = await page.locator('#pickersheet .dlg-head').evaluate((h) => ({ top: h.getBoundingClientRect().top - h.closest('dialog').getBoundingClientRect().top, bg: getComputedStyle(h).backgroundColor }));
+ok(head.top <= 1 && head.bg !== 'rgba(0, 0, 0, 0)', `el encabezado y el buscador quedan fijos arriba y con fondo sólido al scrollear (${JSON.stringify(head)})`);
+await click('#pickersheet [data-action="close"]');
+await click('#view-train [data-action="routine-pick"][data-day="1"]:not([data-i])');
+ok(await page.inputValue('#pick-q') === '', 'al volver a abrir el selector la búsqueda arranca vacía');
+await click('#pickersheet [data-action="close"]');
 await click('[data-action="edit-routine"]');
 ok(JSON.stringify(await page.locator('#view-train h2').allTextContents()) === JSON.stringify(['Día A · toca hoy', 'Día B']), 'al salir de editar vuelven los dos días apilados');
 

@@ -2,6 +2,12 @@
 
 Todos los cambios de XZ Fit (antes Tendón Fuerte), del más nuevo al más viejo.
 
+## 1.30.10 — Encontrá el ejercicio al toque
+
+- El selector de ejercicios tiene un buscador arriba: escribí parte del nombre (sin preocuparte por tildes ni mayúsculas) y quedan solo los que coinciden.
+- Los ejercicios que ya están en ese día salen marcados "✓ Ya está en este día" y no se pueden agregar de nuevo, así no te queda repetido.
+- El encabezado del selector y el buscador quedan fijos arriba con fondo propio: ya no se mezclan con la lista al scrollear.
+
 ## 1.30.9 — Un resumen que cuenta todo
 
 - Si tocás "Terminar" con series sin hacer, te preguntamos antes: te decimos cuántas faltan y de qué ejercicios, y elegís "Seguir entrenando" o "Terminar igual".

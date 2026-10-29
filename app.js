@@ -2,7 +2,7 @@
 // (IndexedDB). Los identificadores internos siguen siendo "tendon-fuerte" para no perder los datos ya guardados.
 // Protocolo de tendones del video de Jeremy Ethier con Keith Baar y Coach Q; reglas en logic.js, bocetos en figures.js.
 
-const APP_VERSION = '1.30.9';
+const APP_VERSION = '1.30.10';
 const DAY_NAMES = { lu: 'Lu', ma: 'Ma', mi: 'Mi', ju: 'Ju', vi: 'Vi', sa: 'Sá', do: 'Do' };
 const SIDES = { der: 'derecha', izq: 'izquierda', ambos: 'ambos lados' };
 const REST_SECS = 90, ISO_REST = 60;
@@ -568,17 +568,22 @@ const recommendedPlan = (exp) => (exp === 'novato' ? 'fb3' : 'tp4');
 // Selector de ejercicios (agregar o cambiar uno de la rutina)
 let PK = null;   // { day, i }
 function openPicker(day, i) {
+  if (!$('pickersheet').open) pickQ = '';   // la búsqueda se mantiene solo mientras el selector sigue abierto
   PK = { day: Number(day), i: i === undefined || i === null ? null : Number(i) };
   const item = PK.i != null ? dayItems(PK.day)[PK.i] : null, current = item ? getEx(item.ex) : null;
   const lib = Object.values(EXERCISES).filter((e) => e.cat);
+  // Lo que ya está en el día no se ofrece de nuevo: evita tener el mismo ejercicio dos veces.
+  const inDay = new Set(dayItems(PK.day).map((it) => it.ex));
   const row = (e) => {
-    const ok = !!implFor(e, S.equip);
-    return `<button class="pick${current?.id === e.id ? ' on' : ''}" data-action="pick-ex" data-ex="${e.id}" ${ok ? '' : 'disabled'}><div class="thumb">${figureSVG(e, { animate: false, crop: true })}</div><span><b>${esc(e.name)}</b><br><span class="small muted">${ok ? (e.tag?.length ? 'Exige ' + e.tag.map((z) => zoneName(z).toLowerCase()).join(', ') : 'No carga tendones sensibles') : 'Falta: ' + missingLabel(e)}</span></span></button>`;
+    const ok = !!implFor(e, S.equip), here = inDay.has(e.id) && current?.id !== e.id;
+    const sub = here ? '✓ Ya está en este día' : ok ? (e.tag?.length ? 'Exige ' + e.tag.map((z) => zoneName(z).toLowerCase()).join(', ') : 'No carga tendones sensibles') : 'Falta: ' + missingLabel(e);
+    return `<button class="pick${current?.id === e.id ? ' on' : ''}${here ? ' here' : ''}" data-action="pick-ex" data-ex="${e.id}" data-q="${esc(fold(e.name))}" ${ok && !here ? '' : 'disabled'}><div class="thumb">${figureSVG(e, { animate: false, crop: true })}</div><span><b>${esc(e.name)}</b><br><span class="small muted">${sub}</span></span></button>`;
   };
   // Al cambiar, primero los ejercicios del mismo hueco; esos ids no se repiten en las categorías.
   const slot = item?.slot ? SLOTS[item.slot] : null;
   const slotIds = new Set(slot ? slot.ex : []);
-  let h = `<div class="dlg"><div class="dlg-head"><button class="link" data-action="close" data-dlg="pickersheet">Cancelar</button><strong>${PK.i != null ? 'Cambiar ejercicio' : `Agregar a ${esc(activePlan(S).days[PK.day].name)}`}</strong><span></span></div>`;
+  let h = `<div class="dlg"><div class="dlg-head pick-head"><button class="link" data-action="close" data-dlg="pickersheet">Cancelar</button><strong>${PK.i != null ? 'Cambiar ejercicio' : `Agregar a ${esc(activePlan(S).days[PK.day].name)}`}</strong><span></span>
+    <input type="search" id="pick-q" placeholder="Buscar ejercicio" aria-label="Buscar ejercicio" autocomplete="off" enterkeyhint="search" value="${esc(pickQ)}"></div>`;
   if (slot) h += `<h2>Mismo movimiento: ${esc(slot.name.toLowerCase())}</h2>${slot.ex.map((id) => row(getEx(id))).join('')}`;
   h += `<h2>Mis ejercicios</h2>${S.exlib.map((c) => `<div class="pick-row">${row(getEx(c.id))}<button class="link" data-action="exform" data-id="${c.id}">Editar</button></div>`).join('')}
     <button class="sec" style="width:100%" data-action="exform">+ Crear ejercicio propio</button>`;
@@ -586,8 +591,27 @@ function openPicker(day, i) {
     const inCat = lib.filter((e) => e.cat === c && !slotIds.has(e.id));
     if (inCat.length) h += `<h2>${esc(name)}</h2>${inCat.map(row).join('')}`;
   }
+  h += `<p class="pick-none small muted" hidden>Ningún ejercicio se llama así. Probá con otra palabra o creá uno propio.</p>`;
   dlg('pickersheet').html = h + '</div>';
+  filterPicker();
   if (!$('pickersheet').open) $('pickersheet').showModal();
+}
+// Búsqueda del selector: filtra por nombre sin tildes ni mayúsculas y oculta los grupos que quedan vacíos.
+let pickQ = '';
+const fold = (t) => String(t).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+function filterPicker() {
+  const d = $('pickersheet'), q = fold(pickQ.trim());
+  let any = false;
+  d.querySelectorAll('button.pick').forEach((b) => {
+    const hit = !q || b.dataset.q.includes(q);
+    (b.closest('.pick-row') || b).hidden = !hit; any ||= hit;
+  });
+  d.querySelectorAll('.dlg > h2').forEach((t) => {
+    let n = t.nextElementSibling, vis = false;
+    for (; n && n.tagName !== 'H2'; n = n.nextElementSibling) if (n.matches('button.pick, .pick-row') && !n.hidden) vis = true;
+    t.hidden = !vis && t.textContent !== 'Mis ejercicios';   // Mis ejercicios queda: tiene "+ Crear ejercicio propio"
+  });
+  const none = d.querySelector('.pick-none'); if (none) none.hidden = any;
 }
 function missingLabel(e) {
   const miss = (e.needs || []).filter((n) => !S.equip[n]).map((n) => EQUIP_NAMES[n]);
@@ -1765,7 +1789,7 @@ document.addEventListener('change', (e) => {
   if (a === 'hist-ex') { histEx = el.value; renderHistory(); }
   if (el.id === 'import-file' && el.files[0]) { importData(el.files[0]); el.value = ''; }
 });
-document.addEventListener('input', (e) => { if (e.target.dataset.w) { const [i, j, k] = e.target.dataset.w.split('.'); W.items[+i].rows[+j][k] = e.target.value; saveLiveSoon(); } });
+document.addEventListener('input', (e) => { if (e.target.id === 'pick-q') { pickQ = e.target.value; filterPicker(); return; } if (e.target.dataset.w) { const [i, j, k] = e.target.dataset.w.split('.'); W.items[+i].rows[+j][k] = e.target.value; saveLiveSoon(); } });
 // Escape cierra los diálogos; en entreno y rehab se pregunta antes.
 // Lo plegable del entreno recuerda si quedó abierto entre redibujos; la entrada en calor abierta pasa a ser el foco.
 document.addEventListener('toggle', (e) => {
