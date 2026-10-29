@@ -436,6 +436,10 @@ function sceneBoxes(s, front, A) {
     add([s.x, s.x + 30], [150, 20], [-16, 16], tones('#E1E4E8', '#D1D5DB', '#BFC4CB'));
     for (let i = 0; i < 6; i++) add([s.x + 4, s.x + 26], [144 - i * 6, 139 - i * 6], [-11, 11], tones('#5B6573', '#4B5563', '#3D4652'));
   }
+  if (s.t === 'table') {   // mesa firme: tapa en s.y, de s.x a s.x + s.w, con las patas en las puntas
+    for (const lx of [s.x + 1, s.x + s.w - 5]) for (const d of [-30, 26]) add([lx, lx + 4], [150, s.y + 4], [d, d + 4], W);
+    add([s.x, s.x + s.w], [s.y + 4, s.y], [-32, 32], W);
+  }
   if (s.t === 'post') { const d = front && A.W1 ? A.W1[0] : 0; add([s.x - 3, s.x + 3], [150, 0], [d - 3, d + 3], MET); }   // de frente, a la altura de la mano
   // Las escenas se dibujan de atrás hacia adelante dentro de sí mismas (orden de armado).
   return { svg: parts.join(''), pts };

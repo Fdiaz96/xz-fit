@@ -285,6 +285,90 @@ Object.assign(EXERCISES, {
     fig: { a: { N: [60, 143], P: [103, 143], E1: [62, 121], W1: [59, 98], K1: [104, 112], F1: [128, 112] }, b: { E1: [46, 126], W1: [26, 124], K1: [128, 134], F1: [156, 140] }, dur: 3.4 },
   },
 });
+// Peso corporal (v1.30.1): sin ningún equipo, cada hueco tiene al menos un ejercicio (dos donde un día repite el patrón).
+// Van últimos en cada hueco, así quien tiene equipo sigue viendo lo mismo. Solo piden una silla, una mesa firme o una toalla y una puerta.
+const TABLE = { t: 'table', x: 22, y: 98, w: 62 };
+const UNDER_TABLE = { N: [68, 140], P: [108, 144], E1: [76, 120], W1: [80, 100], K1: [138, 146], F1: [168, 149], T1: [170, 141] };
+const PRONE = { N: [138, 145], P: [96, 146], K1: [65, 147], F1: [35, 148], T1: [31, 150] };
+Object.assign(EXERCISES, {
+  sentadilla_bw: {
+    name: 'Sentadilla sin peso', kind: 'reps', impl: 'bw', lower: true, cat: 'piernas', tag: ['rodilla'],
+    cues: ['Pies al ancho de los hombros, brazos adelante para equilibrarte.', 'Bajá con la espalda recta hasta donde puedas sin que se levanten los talones.', 'Más difícil: bajá en 3 s y hacé una pausa abajo.'],
+    fig: { a: { ...EXERCISES.goblet.fig.a, E1: [119.5, 50], W1: [142.5, 50] }, b: { ...EXERCISES.goblet.fig.b, E1: [117, 83], W1: [140, 83] } },
+  },
+  zancada_bw: {
+    name: 'Zancada inversa sin peso', kind: 'reps', impl: 'bw', lower: true, cat: 'piernas', tag: ['rodilla'],
+    cues: ['Paso largo hacia atrás, bajá la rodilla de atrás cerca del piso.', 'El peso sobre el talón de adelante; manos en la cintura.', 'Más difícil: bajá en 3 s o pasá a la búlgara con el pie de atrás en una silla.'],
+    fig: { a: STAND, b: EXERCISES.zancada.fig.b },
+  },
+  puente_bw: {
+    name: 'Puente de glúteos', kind: 'reps', impl: 'bw', lower: true, cat: 'bisagra', tag: [],
+    cues: ['Acostado boca arriba, rodillas flexionadas, brazos en el piso.', 'Subí la cadera apretando glúteos hasta alinear rodillas, cadera y hombros.', 'Sostené 1 s arriba y bajá despacio.'],
+    fig: { a: { N: [60, 143], P: [103, 145], E1: [84, 147], W1: [107, 148], K1: [128, 118], F1: [138, 150] }, b: { P: [103, 124], K1: [130, 114] } },
+  },
+  puente_1pierna: {
+    name: 'Puente de glúteos a una pierna', kind: 'reps', impl: 'bw', lower: true, cat: 'bisagra', tag: [],
+    cues: ['Como el puente, pero con una pierna estirada en línea con el muslo.', 'Empujá con el talón que está apoyado, sin girar la cadera.', 'Hacé todas las repeticiones de un lado y después cambiá.'],
+    fig: {
+      a: { N: [60, 143], P: [103, 145], E1: [84, 147], W1: [107, 148], K1: [128, 118], F1: [138, 150], K2: [128, 118], F2: [151, 93], T2: [155.7, 87.8] },
+      b: { P: [103, 124], K1: [130, 114], K2: [132, 113], F2: [163, 101], T2: [169.6, 98.6] },
+    },
+  },
+  pica: {
+    name: 'Flexiones en pica', kind: 'reps', impl: 'bw', cat: 'empuje', tag: ['hombro', 'muneca'],
+    cues: ['Manos y pies en el piso, cadera bien alta: el cuerpo forma una V invertida.', 'Doblá los codos llevando la cabeza hacia el piso, entre las manos.', 'Más difícil: con los pies en una silla.'],
+    fig: { a: { N: [120, 111], P: [92, 82], E1: [124, 128], W1: [132, 148], K1: [82, 113], F1: [72, 144], T1: [67, 150] }, b: { N: [122, 125], P: [100, 92], E1: [111.1, 138.6], K1: [86, 118] }, dur: 2.4 },
+  },
+  flex_declinadas: {
+    name: 'Flexiones con los pies en una silla', kind: 'reps', impl: 'bw', cat: 'empuje', tag: ['hombro', 'muneca'],
+    cues: ['Pies en el asiento de una silla, manos en el piso debajo de los hombros.', 'Cuerpo en línea recta; bajá el pecho con los codos a 45°.', 'Trabaja más la parte de arriba del pecho que la flexión común.'],
+    fig: {
+      a: { N: [136, 106], P: [94, 107], E1: [133, 127], W1: [134, 148], K1: [64, 107], F1: [36, 106], T1: [33, 111] },
+      b: { N: [136, 128], P: [95, 117], E1: [116, 137], K1: [65, 112] }, scene: [{ t: 'chair', x: 18, y: 112, w: 34, back: 'left' }], dur: 2.4,
+    },
+  },
+  flex_cerradas: {
+    name: 'Flexiones cerradas', kind: 'reps', impl: 'bw', cat: 'brazos', tag: ['hombro', 'muneca', 'codo_med'],
+    cues: ['Manos juntas debajo del pecho, codos pegados al cuerpo.', 'Bajá despacio sin abrir los codos: trabaja sobre todo el tríceps.', 'Más fácil: con las rodillas apoyadas.'],
+    fig: { ...EXERCISES.flexiones.fig, z: { E: 10, W: 5 } },
+  },
+  fondos_silla: {
+    name: 'Fondos de tríceps en una silla', kind: 'reps', impl: 'bw', cat: 'brazos', tag: ['hombro', 'codo_med', 'muneca'],
+    cues: ['Manos en el borde de una silla firme, dedos hacia adelante, cadera cerca del asiento.', 'Bajá doblando los codos hacia atrás hasta unos 90° y volvé a subir.', 'Más fácil: rodillas dobladas. Más difícil: piernas estiradas.'],
+    fig: {
+      a: { N: [94, 66], P: [94, 109], E1: [89, 91], W1: [84, 111], K1: [121.7, 120.6], F1: [134, 150] },
+      b: { N: [96, 84], P: [96, 127], E1: [76.5, 89.3], K1: [125, 119.3] }, scene: [{ t: 'chair', x: 48, y: 112, w: 36, back: 'left' }],
+    },
+  },
+  remo_toalla: {
+    name: 'Remo con toalla en una puerta', kind: 'reps', impl: 'bw', cat: 'tiron', tag: ['codo_lat', 'muneca'],
+    cues: ['Pasá una toalla por el picaporte de los dos lados de una puerta cerrada y bien trabada.', 'Agarrá las puntas, pies cerca de la puerta, y dejate caer hacia atrás con el cuerpo recto.', 'Tirá los codos hacia atrás hasta acercar el pecho. Más difícil: pies más cerca de la puerta.'],
+    fig: {
+      a: { N: [84, 55], P: [102, 94], E1: [107, 62], W1: [128, 64], K1: [116, 121], F1: [128, 150] },
+      b: { N: [110, 47], P: [117, 89], E1: [106, 70], K1: [124, 120] }, scene: [{ t: 'post', x: 136 }],
+    },
+  },
+  remo_mesa: {
+    name: 'Remo invertido bajo una mesa', kind: 'reps', impl: 'bw', cat: 'tiron', tag: ['codo_lat', 'codo_med', 'muneca'],
+    cues: ['Acostado debajo de una mesa firme, agarrá el borde con las manos al ancho de los hombros.', 'Con el cuerpo recto y los talones en el piso, subí el pecho hacia la mesa.', 'Bajá en 2–3 s. Más fácil: rodillas dobladas.'],
+    fig: { a: UNDER_TABLE, b: { N: [70, 112], P: [108, 130], E1: [93.6, 118.6], K1: [138, 140] }, scene: [TABLE] },
+  },
+  curl_mesa: {
+    name: 'Curl de bíceps bajo una mesa', kind: 'reps', impl: 'bw', cat: 'brazos', tag: ['codo_lat', 'codo_med'],
+    cues: ['Como el remo bajo la mesa, pero con las palmas hacia vos.', 'Subí doblando solo los codos, con las manos que terminan cerca de la frente.', 'Más fácil: rodillas dobladas y pies más cerca.'],
+    fig: { a: UNDER_TABLE, b: { N: [70, 118], P: [108, 132], E1: [94.1, 118.3], K1: [138, 141] }, scene: [TABLE] },
+  },
+  elev_y_piso: {
+    name: 'Elevaciones en Y boca abajo', kind: 'reps', impl: 'bw', cat: 'hombro', tag: ['hombro'],
+    cues: ['Acostado boca abajo, brazos estirados hacia adelante formando una Y, pulgares arriba.', 'Despegá los brazos del piso apretando entre los omóplatos, sin levantar el pecho.', 'Pausa 1 s arriba y bajá despacio.'],
+    fig: { a: { ...PRONE, E1: [150, 146], W1: [170, 147] }, b: { E1: [150, 140], W1: [169, 134] }, z: { E: 22, W: 30 } },
+  },
+  elev_t_piso: {
+    name: 'Aperturas en T boca abajo', kind: 'reps', impl: 'bw', cat: 'hombro', tag: ['hombro'],
+    cues: ['Acostado boca abajo, brazos abiertos hacia los costados formando una T.', 'Despegá los brazos del piso llevando los omóplatos hacia atrás.', 'Pausa 1 s arriba y bajá despacio.'],
+    fig: { a: { ...PRONE, E1: [134, 147], W1: [134, 148] }, b: { E1: [134, 139], W1: [134, 132] }, z: { E: 32, W: 55 } },
+  },
+});
 // Rehabilitación: alternativas por zona y fase (el usuario elige; la primera es la del video).
 Object.assign(EXERCISES, {
   iso_rot_ext_pared: {
@@ -342,22 +426,26 @@ const MUSCLE_NAMES = {
 Object.entries({
   forearm: ['iso_ext_muneca', 'ext_muneca_lenta', 'iso_flex_muneca', 'flex_muneca_lenta', 'iso_prono', 'prono_lenta', 'excentrico_muneca', 'tyler_toalla'],
   'chest delt': ['iso_pared'], delt: ['lateral_lenta', 'lateral', 'elev_frontal', 'rot_ext_banda', 'iso_rot_ext_pared'],
-  'quads glutes': ['sentadilla_pared', 'goblet_lenta', 'goblet', 'zancada', 'bulgara', 'sumo_kb'], quads: ['iso_rodilla_sentado'],
+  'quads glutes': ['sentadilla_pared', 'goblet_lenta', 'goblet', 'zancada', 'bulgara', 'sumo_kb', 'sentadilla_bw', 'zancada_bw'], quads: ['iso_rodilla_sentado'],
   calves: ['iso_talones', 'talones_lenta', 'gemelos_1pierna', 'iso_gemelo_sentado'],
-  'chest triceps': ['press_suelo', 'press_banco', 'flexiones'], 'back biceps': ['remo_silla', 'remo_inclinado', 'remo_aros', 'remo_aros_iso', 'dominadas'],
-  'hams glutes lumbar': ['rdl', 'pm_una_pierna'], 'glutes hams': ['swing', 'puente', 'hip_thrust'], abs: ['plancha', 'dead_bug'],
-  'delt triceps': ['press_hombros'], 'biceps forearm': ['curl_martillo'], biceps: ['curl_iso', 'curl_concentrado'],
-  triceps: ['triceps', 'patada_triceps', 'press_frances'], 'delt back': ['face_pull', 'pajaros'], 'back chest': ['pullover'],
+  'chest triceps': ['press_suelo', 'press_banco', 'flexiones', 'flex_declinadas'], 'triceps chest': ['flex_cerradas'],
+  'back biceps': ['remo_silla', 'remo_inclinado', 'remo_aros', 'remo_aros_iso', 'dominadas', 'remo_toalla', 'remo_mesa'],
+  'hams glutes lumbar': ['rdl', 'pm_una_pierna'], 'glutes hams': ['swing', 'puente', 'hip_thrust', 'puente_bw', 'puente_1pierna'], abs: ['plancha', 'dead_bug'],
+  'delt triceps': ['press_hombros', 'pica'], 'biceps forearm': ['curl_martillo'], biceps: ['curl_iso', 'curl_concentrado', 'curl_mesa'],
+  triceps: ['triceps', 'patada_triceps', 'press_frances', 'fondos_silla'], 'delt back': ['face_pull', 'pajaros', 'elev_y_piso', 'elev_t_piso'], 'back chest': ['pullover'],
 }).forEach(([m, ids]) => ids.forEach((id) => (EXERCISES[id].mus = m.split(' '))));
 
 // Rango de repeticiones de la doble progresión según el tipo de ejercicio (Mono Culturista). Sin dato, logic.js usa [8, 12].
 // Quedan sin rango los ejercicios por tiempo o isométricos (plancha, *_iso, sentadilla_pared, iso_pared) y dead_bug, que hoy no tiene tipo de rango.
-const REP_RANGE = { compuesto: [6, 12], aislamiento: [10, 15], deltoides: [12, 20], abdominal: [10, 15] };
+const REP_RANGE = { compuesto: [6, 12], aislamiento: [10, 15], deltoides: [12, 20], abdominal: [10, 15], piernas_sin_peso: [12, 20] };
 Object.entries({
   compuesto: ['goblet', 'sumo_kb', 'press_suelo', 'press_banco', 'flexiones', 'press_hombros', 'remo_silla', 'remo_aros', 'remo_inclinado',
-    'dominadas', 'rdl', 'swing', 'pm_una_pierna', 'zancada', 'bulgara', 'hip_thrust', 'puente'],
-  aislamiento: ['curl_martillo', 'curl_concentrado', 'triceps', 'patada_triceps', 'press_frances', 'pullover', 'elev_frontal', 'gemelos_1pierna'],
-  deltoides: ['lateral', 'face_pull', 'pajaros', 'rot_ext_banda'],
+    'dominadas', 'rdl', 'swing', 'pm_una_pierna', 'zancada', 'bulgara', 'hip_thrust', 'puente',
+    'pica', 'flex_declinadas', 'flex_cerradas', 'fondos_silla', 'remo_toalla', 'remo_mesa'],
+  aislamiento: ['curl_martillo', 'curl_concentrado', 'triceps', 'patada_triceps', 'press_frances', 'pullover', 'elev_frontal', 'gemelos_1pierna', 'curl_mesa'],
+  deltoides: ['lateral', 'face_pull', 'pajaros', 'rot_ext_banda', 'elev_y_piso', 'elev_t_piso'],
+  // Sin peso, las piernas necesitan más repeticiones para llegar cerca del fallo.
+  piernas_sin_peso: ['sentadilla_bw', 'zancada_bw', 'puente_bw', 'puente_1pierna'],
 }).forEach(([type, ids]) => ids.forEach((id) => (EXERCISES[id].reps = [...REP_RANGE[type]])));
 
 // Cómo se ve la mancuerna (ver dumbbell() en figures.js). Sin dato: de frente 'end', de costado 'neutral'.
@@ -391,19 +479,19 @@ const TEMPLATES = {
 // El orden de declaración importa: slotOf(id) devuelve el primer hueco que lista el ejercicio.
 const SLOTS = {
   empuje_h: { name: 'Empuje horizontal', ex: ['press_banco', 'press_suelo', 'flexiones'] },
-  empuje_inc: { name: 'Empuje inclinado', ex: ['press_banco', 'flexiones'] },
-  empuje_v: { name: 'Empuje vertical', ex: ['press_hombros'] },
-  traccion_v: { name: 'Tracción vertical', ex: ['dominadas', 'pullover', 'remo_inclinado', 'remo_silla'] },   // sin barra ni banco, un remo
-  traccion_h: { name: 'Tracción horizontal', ex: ['remo_aros', 'remo_silla', 'remo_inclinado'] },
-  rodilla: { name: 'Rodilla dominante', ex: ['goblet', 'sumo_kb'] },
-  unilateral: { name: 'Unilateral', ex: ['zancada', 'bulgara'] },
-  bisagra: { name: 'Bisagra', ex: ['rdl', 'swing', 'pm_una_pierna'] },
-  gluteo: { name: 'Glúteo', ex: ['hip_thrust', 'puente'] },
+  empuje_inc: { name: 'Empuje inclinado', ex: ['press_banco', 'flexiones', 'flex_declinadas'] },
+  empuje_v: { name: 'Empuje vertical', ex: ['press_hombros', 'pica'] },
+  traccion_v: { name: 'Tracción vertical', ex: ['dominadas', 'pullover', 'remo_inclinado', 'remo_silla', 'remo_mesa', 'remo_toalla'] },   // sin barra ni banco, un remo
+  traccion_h: { name: 'Tracción horizontal', ex: ['remo_aros', 'remo_silla', 'remo_inclinado', 'remo_toalla', 'remo_mesa'] },
+  rodilla: { name: 'Rodilla dominante', ex: ['goblet', 'sumo_kb', 'sentadilla_bw'] },
+  unilateral: { name: 'Unilateral', ex: ['zancada', 'bulgara', 'zancada_bw'] },
+  bisagra: { name: 'Bisagra', ex: ['rdl', 'swing', 'pm_una_pierna', 'puente_1pierna'] },
+  gluteo: { name: 'Glúteo', ex: ['hip_thrust', 'puente', 'puente_bw'] },
   gemelos: { name: 'Gemelos', ex: ['gemelos_1pierna'] },
-  lateral: { name: 'Lateral', ex: ['lateral', 'elev_frontal'] },
-  deltoides_post: { name: 'Deltoides posterior', ex: ['face_pull', 'pajaros', 'rot_ext_banda'] },
-  biceps: { name: 'Bíceps', ex: ['curl_martillo', 'curl_concentrado'] },
-  triceps: { name: 'Tríceps', ex: ['triceps', 'patada_triceps', 'press_frances'] },
+  lateral: { name: 'Lateral', ex: ['lateral', 'elev_frontal', 'elev_y_piso', 'elev_t_piso'] },
+  deltoides_post: { name: 'Deltoides posterior', ex: ['face_pull', 'pajaros', 'rot_ext_banda', 'elev_t_piso', 'elev_y_piso', 'remo_toalla'] },
+  biceps: { name: 'Bíceps', ex: ['curl_martillo', 'curl_concentrado', 'curl_mesa', 'remo_toalla'] },
+  triceps: { name: 'Tríceps', ex: ['triceps', 'patada_triceps', 'press_frances', 'fondos_silla', 'flex_cerradas'] },
   abdominal: { name: 'Abdominal', ex: ['plancha', 'dead_bug'] },
   isometrico: { name: 'Isométrico', ex: ['remo_aros_iso', 'curl_iso', 'sentadilla_pared', 'iso_pared'] },
 };

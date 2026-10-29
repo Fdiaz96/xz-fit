@@ -2,7 +2,7 @@
 // (IndexedDB). Los identificadores internos siguen siendo "tendon-fuerte" para no perder los datos ya guardados.
 // Protocolo de tendones del video de Jeremy Ethier con Keith Baar y Coach Q; reglas en logic.js, bocetos en figures.js.
 
-const APP_VERSION = '1.30.0';
+const APP_VERSION = '1.30.1';
 const DAY_NAMES = { lu: 'Lu', ma: 'Ma', mi: 'Mi', ju: 'Ju', vi: 'Vi', sa: 'Sá', do: 'Do' };
 const SIDES = { der: 'derecha', izq: 'izquierda', ambos: 'ambos lados' };
 const REST_SECS = 90, ISO_REST = 60;
@@ -27,6 +27,7 @@ const DEFAULT = () => ({
   v: 1, onboarded: false, painMode: false, hidePainTip: false,
   profile: { name: '', sex: 'h', weight: '', height: '', age: '', exp: 'novato', days: 2 },
   equip: { db: { min: 2, max: 24, step: 2 }, kb: [], rings: false, bench: false, bar: false, band: false, machines: [] },
+  equipBak: null,   // el equipo que había antes de elegir "Solo peso corporal", para devolverlo al destildarlo
   routine: {}, exlib: [],
   zones: {}, lifts: {}, sessions: [], checks: [], custom: [],
   plan: { id: 'fb2', custom: false, pos: 0, since: '', bw: false, deload: '', deloadOffer: '' },
@@ -154,6 +155,14 @@ const freshRoutine = (plan) => resolvePlan(plan, S.equip, engineOpts());
 // Ítems del día que existen (un ejercicio propio borrado desaparece de la rutina); planFor y el editor comparten esta lista.
 const dayItems = (day) => S.routine[activePlan(S).id][day].filter((it) => getEx(it.ex));
 const resetRoutine = () => { const plan = activePlan(S); S.routine[plan.id] = freshRoutine(plan); };
+// Al prender o apagar "Solo peso corporal" lo que no eligió el usuario se rearma con el equipo nuevo (si no, al volver
+// a tener mancuernas quedarían los ejercicios sin material). Lo fijado y lo propio quedan.
+function rearmRoutine() {
+  const plan = activePlan(S), stored = S.routine[plan.id];
+  if (stored?.length === plan.days.length) S.routine[plan.id] = refreshUnpinned(plan, stored, S.equip, engineOpts());
+}
+// En el alta los accesorios no redibujan la pantalla: la casilla "Solo peso corporal" se acomoda sola.
+const syncBwTile = () => document.querySelectorAll('[data-action="eq-bw"]').forEach((x) => (x.checked = noEquip(S.equip)));
 // Rutina del plan activo al día con el equipo: se arma si falta y solo se re-resuelve lo que dejó de ser posible.
 // Corre al principio de cada render, así ningún cambio de equipo (Ajustes, primer uso, importación) se olvida de sincronizar.
 // Es una consulta: no toca S. Devuelve la rutina y el inicio del plan al día, si cambió algo (para guardar) y los avisos (para mostrar).
@@ -1206,8 +1215,9 @@ function renderSettings() {
 // Casilla grande que se marca entera (accesorios, zonas con dolor).
 const tile = (attrs, on, name, hint = '', type = 'checkbox') => `<label class="tile"><input type="${type}" ${attrs} ${on ? 'checked' : ''}><span><b>${name}</b>${hint ? `<small>${hint}</small>` : ''}</span></label>`;
 function equipFields(prefix = '') {
-  const e = S.equip;
-  return `<h3 class="grp">Pesos libres</h3><div class="card">
+  const e = S.equip, bw = noEquip(e);
+  return `<div class="tiles one">${tile('data-action="eq-bw"', bw, 'Solo peso corporal', bw ? 'Tu plan usa ejercicios sin material: sentadillas, flexiones, remo con toalla… Si conseguís algo, marcalo abajo.' : 'No tengo equipo: armá el plan con ejercicios sin material.')}</div>
+  <h3 class="grp">Pesos libres</h3><div class="card">
     <div class="row"><div><h3>Mancuernas</h3>${e.db ? '' : '<p class="muted small" style="margin:0">No tengo</p>'}</div><label class="switch acc"><input type="checkbox" data-action="eq-db" ${e.db ? 'checked' : ''} aria-label="Tengo mancuernas"><i></i></label></div>
     ${e.db && !e.db.plates?.on ? `<div class="grid3">${[['Más liviana', 'min', 0.5], ['Más pesada', 'max', 0.5], ['De a', 'step', 0.25]].map(([n, k, st]) => unitField(n, `inputmode="decimal" step="${st}" data-set="equip.db.${k}" value="${e.db[k]}"`, 'kg')).join('')}</div>` : ''}
     ${e.db ? `<div class="row sub"><div><b>Son de discos</b><br><span class="small muted">Cargás barra y discos: la app calcula los pesos posibles y qué poner de cada lado.</span></div><label class="switch acc"><input type="checkbox" data-action="eq-plates" ${e.db.plates?.on ? 'checked' : ''} aria-label="Mancuernas de discos"><i></i></label></div>` : ''}
@@ -1279,7 +1289,7 @@ function onSetField(el) {
   root.querySelectorAll('[data-set][aria-invalid]').forEach((x) => { if (!still.some(([p]) => p === x.dataset.set)) fieldMsg(x); });
   for (const [p, v] of still) { const x = field(p); if (x) { x.value = v; fieldMsg(x, checkField(p, v, S.equip).err); } }
   const now = field(path) || el;
-  if (path === 'equip.kb') now.value = r.v.join(', ');
+  if (path === 'equip.kb') { now.value = r.v.join(', '); syncBwTile(); }
   if (r.note) fieldMsg(now, r.note, 'warn');
   else if (!inOnb) fieldMsg(now, 'Guardado ✓', 'ok');
   else fieldMsg(now);
@@ -1315,7 +1325,7 @@ function renderOnb() {
     <div class="grid3">${unitField('Peso', `id="o-weight" data-set="profile.weight" inputmode="decimal" value="${esc(p.weight)}"`, 'kg')}${unitField('Altura <i class="opt">(opcional)</i>', `data-set="profile.height" inputmode="numeric" value="${esc(p.height)}"`, 'cm')}${unitField('Edad <i class="opt">(opcional)</i>', `data-set="profile.age" inputmode="numeric" value="${esc(p.age)}"`, 'años')}</div>
     <span class="small muted">¿Cuánto hace que entrenás con pesas?</span><div class="chips" style="margin:4px 0 16px">${EXPERIENCE.map((x) => `<button class="chip${p.exp === x.id ? ' on' : ''}" data-action="set-exp" data-v="${x.id}">${x.name}</button>`).join('')}</div>
     <span class="small muted">¿Cómo querés los pesos?</span>${weightModeFields()}<p class="faint small">Lo cambiás cuando quieras en Ajustes.</p>`;
-  if (onbStep === 2) body = `<h1>Tu equipo</h1><p class="muted small">Marcá lo que tenés. La rutina usa solo eso y redondea los pesos a lo que podés cargar.</p>${equipFields()}`;
+  if (onbStep === 2) body = `<h1>Tu equipo</h1><p class="muted small">Marcá lo que tenés. La rutina usa solo eso y redondea los pesos a lo que podés cargar. Sin nada, también se puede.</p>${equipFields()}`;
   if (onbStep === 3) {
     const rec = recommendedPlan(p.exp);
     if (!onbPlanSet) { applyChoice(pickChoice(currentChoice(), rec)); onbPlanSet = true; }
@@ -1501,10 +1511,17 @@ document.addEventListener('change', (e) => {
     else el.checked = true;
     persist(); $('onb').open ? renderOnb() : render();
   }
-  if (a === 'eq-db') { S.equip.db = el.checked ? { min: 2, max: 24, step: 2 } : null; persist(); $('onb').open ? renderOnb() : render(); }
-  if (a === 'eq-rings') { S.equip.rings = el.checked; persist(); if (!$('onb').open) render(); }
+  if (a === 'eq-db') { S.equip.db = el.checked ? { min: 2, max: 24, step: 2 } : null; rearmRoutine(); persist(); $('onb').open ? renderOnb() : render(); }
+  if (a === 'eq-bw') {
+    // Prenderlo guarda el equipo y lo vacía; apagarlo lo devuelve (o vuelve a las mancuernas de fábrica).
+    if (el.checked) { if (!noEquip(S.equip)) S.equipBak = S.equip; S.equip = bareEquip(S.equip); }
+    else { S.equip = S.equipBak || { ...S.equip, db: { min: 2, max: 24, step: 2 } }; S.equipBak = null; }
+    rearmRoutine(); persist(); $('onb').open ? renderOnb() : render();
+    if (!$('onb').open) toast(el.checked ? 'Listo: tu plan usa ejercicios sin material.' : 'Volvió tu equipo: rearmamos los ejercicios que no habías elegido vos.');
+  }
+  if (a === 'eq-rings') { S.equip.rings = el.checked; persist(); if (!$('onb').open) render(); else syncBwTile(); }
   if (a === 'eq-flag') {
-    S.equip[el.dataset.k] = el.checked; persist(); if (!$('onb').open) render();
+    S.equip[el.dataset.k] = el.checked; persist(); if (!$('onb').open) render(); else syncBwTile();
     if (el.checked && el.dataset.k === 'bench' && !$('onb').open && S.routine[activePlan(S).id]?.flat().some((it) => it.ex === 'press_suelo')) toast('Con banco podés cambiar el press en el suelo por press en banco: Entreno → Editar rutina.');
     if (el.checked && el.dataset.k === 'bar') toast('Las dominadas quedan disponibles en Entreno → Editar rutina (cuidado con el codo).');
   }

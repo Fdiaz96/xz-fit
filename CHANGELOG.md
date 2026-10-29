@@ -2,6 +2,13 @@
 
 Todos los cambios de XZ Fit (antes Tendón Fuerte), del más nuevo al más viejo.
 
+## 1.30.1 — Entrenar sin equipo
+
+- Nueva opción "Solo peso corporal" en Equipo (en el alta y en Ajustes): si no tenés nada, el plan se arma entero con ejercicios sin material y ya no quedan ejercicios como "falta equipo".
+- 13 ejercicios nuevos sin material, con su dibujo: sentadilla y zancada sin peso, puente de glúteos (y a una pierna), flexiones en pica, con los pies en una silla y cerradas, fondos en una silla, remo con toalla en una puerta, remo y curl bajo una mesa, y elevaciones en Y y en T boca abajo.
+- Si te falta el equipo de un ejercicio, ahora la app lo cambia por uno sin material del mismo movimiento.
+- Al destildar "Solo peso corporal" vuelve el equipo que tenías y los ejercicios que no elegiste vos se rearman con él.
+
 ## 1.30.0 — Datos que tienen sentido
 
 - Peso, edad y altura se revisan al escribirlos: si un valor no tiene sentido (como 5 kg o 200 años), el campo se marca en rojo con el rango válido debajo y no se guarda.

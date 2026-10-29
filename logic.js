@@ -123,6 +123,24 @@ function withoutEquip(equip, keys) {
 }
 // Sin aros, el ejercicio de aros se reemplaza por su alternativa (NO_RINGS); el resto queda igual.
 const ringsSwap = (id, equip) => (!equip.rings && NO_RINGS[id] ? NO_RINGS[id] : id);
+// "Solo peso corporal": no hay ningún equipo marcado (ni mancuernas, ni pesas rusas, ni accesorios, ni máquinas).
+const noEquip = (equip) => !equip.db && !equip.kb?.length && !equip.rings && !equip.bench && !equip.bar && !equip.band && !equip.machines?.length;
+const bareEquip = (equip) => ({ ...equip, db: null, kb: [], rings: false, bench: false, bar: false, band: false, machines: [] });
+// Rutina rearmada con otro equipo sin tocar lo que eligió el usuario: cada ítem sin fijar toma el ejercicio que hoy pondría
+// el plan en ese hueco (con su preferencia); los fijados, los propios y los que repetirían un ejercicio del día quedan igual.
+function refreshUnpinned(plan, routine, equip, opts = {}) {
+  const fresh = resolvePlan(plan, equip, opts);
+  return routine.map((items, d) => {
+    const pool = [...(fresh[d] || [])];
+    return items.map((it) => {
+      if (it.pinned || !SLOTS[it.slot]) return it;
+      const k = pool.findIndex((f) => f.slot === it.slot);
+      if (k < 0) return it;
+      const [f] = pool.splice(k, 1);
+      return f.ex === it.ex || items.some((o) => o !== it && o.ex === f.ex) ? it : { ...it, ex: f.ex };
+    });
+  });
+}
 // Migración: las plantillas A/B del usuario pasan tal cual y fijadas; sin aros se guarda el reemplazo que ya veía.
 const routineFromTemplates = (tpls, equip) => [tpls.A, tpls.B].map((ids) => ids.map((id) => {
   const ex = ringsSwap(id, equip);

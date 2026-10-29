@@ -119,7 +119,13 @@ ok(!homeText.includes('Entreno A') && !homeText.includes('Cuerpo completo') && h
 ok(await page.locator('#view-home .week .dots i').count() === 2, 'con 3 días en el perfil y fb2, la tarjeta semanal tiene 2 entrenos de objetivo');
 ok(await page.locator('#view-home [data-action="start-workout"][data-day="0"]').count() === 1, 'el botón de empezar lleva el día del plan');
 await bootSaved({ equip: { db: null, kb: [12, 20], rings: true } });
-ok((await homeTitle()).trim() === 'Día A · 5 ejercicios', 'sin mancuernas el hueco lateral no tiene ejercicio posible: N baja a 5');
+ok((await homeTitle()).trim() === 'Día A · 6 ejercicios', 'sin mancuernas el hueco lateral pasa a peso corporal: siguen 6');
+ok(dayIds(await state(), 0).includes('elev_y_piso'), 'sin mancuernas, las elevaciones laterales pasan a elevaciones en Y boca abajo');
+// Un ejercicio propio con una máquina que ya no está no tiene hueco: ese sí queda sin ejercicio posible.
+const lostMach = { id: 'c_polea', name: 'Mi polea', kind: 'peso', impl: 'm:zz', cat: 'hombro', tag: [], start: 0, note: '' };
+const lostA = ['goblet', 'press_suelo', 'remo_silla', 'rdl', 'c_polea', 'plancha'];   // TEMPLATES.A con la polea en lugar de las laterales
+await bootSaved({ equip: { db: null, kb: [12, 20], rings: true }, exlib: [lostMach], templates: { A: lostA } });
+ok((await homeTitle()).trim() === 'Día A · 5 ejercicios', 'un propio con una máquina que no está no tiene ejercicio posible: N baja a 5');
 ok(await page.evaluate(() => !implFor(EXERCISES.lateral, S.equip) && !implFor(EXERCISES.elev_frontal, S.equip)), 'implFor trata db: null como sin mancuernas');
 
 // CK-27: un plan inexistente vuelve a fb2 sin errores
@@ -355,6 +361,22 @@ await shot('02b-alta-equipo-avisos');
 st0 = await state();
 ok(st0.equip.db.min === 2 && st0.equip.db.max === 24, 'el rango de mancuernas vuelve a 2–24');
 await page.fill('#onb [data-set="equip.kb"]', '12, 20'); await page.dispatchEvent('#onb [data-set="equip.kb"]', 'change');
+// Solo peso corporal: vacía el equipo, el plan se arma entero sin material y al destildarlo vuelve lo que había
+const bwTile = '#onb [data-action="eq-bw"]';
+ok(!(await page.isChecked(bwTile)), 'con mancuernas, "Solo peso corporal" está sin marcar');
+await page.locator(bwTile).check({ force: true }); await page.waitForTimeout(80);
+st0 = await state();
+ok(st0.equip.db === null && !st0.equip.kb.length && await page.isChecked(bwTile) && await page.locator('#onb [data-action="eq-db"]').isChecked() === false, 'Solo peso corporal apaga mancuernas y pesas rusas');
+await shot('03a-equipo-peso-corporal');
+await click('[data-action="onb-next"]');
+ok(!(await page.locator('#onb').textContent()).includes('falta equipo'), 'sin equipo, el plan no deja ejercicios como "falta equipo"');
+await page.locator('#onb details.cues').first().evaluate((d) => (d.open = true));
+ok((await page.locator('#onb').textContent()).includes('Sentadilla sin peso'), 'sin equipo, el plan muestra ejercicios con peso corporal');
+await shot('03b-plan-peso-corporal');
+await click('[data-action="onb-back"]');
+await page.locator(bwTile).uncheck({ force: true }); await page.waitForTimeout(80);
+st0 = await state();
+ok(st0.equip.db?.max === 24 && st0.equip.kb.join() === '12,20' && !st0.equipBak, 'al destildarlo vuelve el equipo que había');
 await page.check('#onb [data-action="eq-rings"]');
 await shot('03-equipo');
 await click('[data-action="onb-next"]');
@@ -558,11 +580,11 @@ await click('[data-tab="history"]');
 ok(await page.locator('#view-history .sess', { hasText: 'Entreno C' }).count() === 1, 'CK-25: el historial muestra la sesión vieja con solo tpl (sin plan ni day)');
 
 // CK-26: sin el equipo de un hueco el ítem dice "Falta equipo" y el entreno empieza con los demás
-await bootSaved({ equip: { db: null, kb: [12, 20], rings: true } });
+await bootSaved({ equip: { db: null, kb: [12, 20], rings: true }, exlib: [lostMach], templates: { A: lostA } });
 await click('[data-tab="train"]');
 ok((await page.locator('#view-train').textContent()).includes('Falta equipo'), 'CK-26: el entreno muestra "Falta equipo" en el ítem sin ejercicio posible');
 await openDay(0, 'train');
-ok(await cards().count() === 5 && !(await page.locator('#wsheet').textContent()).includes('Elevaciones laterales'), 'CK-26: el entreno empieza con 5 ítems, sin el faltante');
+ok(await cards().count() === 5 && !(await page.locator('#wsheet').textContent()).includes('Mi polea'), 'CK-26: el entreno empieza con 5 ítems, sin el faltante');
 await click('#wsheet [data-action="cancel-workout"]');
 // Hoy no puedo: llueve y no hay aros → el remo en aros del Día B cambia solo en esta sesión
 await bootSaved({ equip: { db: { min: 2, max: 24, step: 2 }, rings: true } });
@@ -757,8 +779,22 @@ ok(!(await page.locator('#tip').isHidden()), 'tocar un punto muestra el valor');
 }
 await shot('13-historial');
 
-// 8b. Equipo propio y rutina editable
+// 8a. Solo peso corporal en Ajustes: rearma lo que no eligió el usuario y al destildarlo vuelve todo
 await click('[data-tab="settings"]');
+{
+  const before = await state(), plan = before.plan.id;
+  await page.locator('#view-settings [data-action="eq-bw"]').check({ force: true }); await page.waitForTimeout(150);
+  const bw = await state();
+  ok(bw.equip.db === null && !bw.equip.rings && !bw.equip.kb.length && await page.isChecked('#view-settings [data-action="eq-bw"]'), 'Ajustes: Solo peso corporal vacía el equipo');
+  ok(await page.evaluate((id) => S.routine[id].flat().filter((it) => !it.pinned && getEx(it.ex)).every((it) => possible(it.ex, S.equip, getEx)), plan), 'Ajustes: con peso corporal todos los ejercicios sin fijar se pueden hacer');
+  ok((await toastText()).includes('sin material'), 'Ajustes: avisa que el plan usa ejercicios sin material');
+  await shot('12b-ajustes-peso-corporal');
+  await page.locator('#view-settings [data-action="eq-bw"]').uncheck({ force: true }); await page.waitForTimeout(150);
+  const back = await state();
+  ok(JSON.stringify(back.equip) === JSON.stringify(before.equip) && JSON.stringify(back.routine[plan]) === JSON.stringify(before.routine[plan]), 'Ajustes: al destildarlo vuelven el equipo y los mismos ejercicios');
+}
+
+// 8b. Equipo propio y rutina editable
 await page.check('#view-settings [data-action="eq-flag"][data-k="bench"]');
 ok((await state()).equip.bench === true, 'marca que tiene banco');
 await click('#view-settings [data-action="mach-edit"]');
