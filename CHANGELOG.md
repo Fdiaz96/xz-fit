@@ -2,6 +2,10 @@
 
 Todos los cambios de XZ Fit, del más nuevo al más viejo.
 
+## 1.32.4 — Sin raya entre la mano y los dedos con la palma abajo
+
+- En la extensión de muñeca (palma abajo), la fila de nudillos sigue en los dedos que rodean el mango sin una raya negra en el medio; donde el mango pasa por delante, el borde se mantiene.
+
 ## 1.32.3 — Dedos con borde sobre el mango y lupa sin costuras
 
 - Con la palma arriba, los dedos que cruzan por encima del mango tienen otra vez su borde contra el gris (sobre la palma siguen sin raya).

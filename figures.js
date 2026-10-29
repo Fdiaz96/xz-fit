@@ -467,7 +467,11 @@ function figureSVG(ex, { animate = true, size = '', crop = false, muscles = true
         const top = (J, y) => { const { at } = H(J); return blob([at(0.6, y, 0), at(0.88, y * 1.02, 0.5), at(0.97, y, 1.8)], false); };
         back = bundle(digits, finger);
         const tops = FY.map((y) => [(J) => top(J, y), 2.3]);
-        seam = outl(tops);
+        // Donde la fila de nudillos sigue en los dedos que bajan por detrás no va contorno: si no, queda una raya entre
+        // la mano y los dedos. Donde el mango pasa por delante de esos dedos, el contorno sí queda.
+        const mk = `m${uid}-${pid++}`, handle = (J) => { const { at } = H(J); return capsule(at(0.55, -10, 3.4), at(0.55, 10, 3.4), 2.5, 2.5); };
+        defs += `<mask id="${mk}" maskUnits="userSpaceOnUse" x="-500" y="-500" width="1400" height="1400"><rect x="-500" y="-500" width="1400" height="1400" fill="#FFF"/>${digits.map(([fn, w]) => lines(fn, w, '#000')).join('')}${path(handle, 'fill="#FFF"')}</mask>`;
+        seam = `<g mask="url(#${mk})">${outl(tops)}</g>`;
         fingers = fills(tops, top)
           + FY.map((y) => path((J) => circlePath(H(J).at(0.64, y, -0.5), 1.25), `fill="${PAL.skin2}"`)).join('');
       } else {
