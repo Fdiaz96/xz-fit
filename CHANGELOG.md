@@ -2,6 +2,13 @@
 
 Todos los cambios de XZ Fit (antes Tendón Fuerte), del más nuevo al más viejo.
 
+## 1.30.2 — Cuidar el dolor desde el alta
+
+- En "¿Te duele algo?", al marcar una zona aparece "¿Activar el cuidado ahora?", prendido de entrada: tu primera rutina ya baja la carga de esa zona y suma isométricos. Si lo apagás, lo prendés después en la pestaña Dolor.
+- La escala del dolor y el lado arrancan sin elegir: si falta alguno, te lo marcamos en rojo y no seguís hasta completarlo.
+- En Hoy, la tarjeta "Activar modo dolor" ahora aparece arriba de la rutina, donde se ve.
+- El alta ya no dice que el modo dolor se activa "desde el inicio": ahora indica la pestaña Dolor.
+
 ## 1.30.1 — Entrenar sin equipo
 
 - Nueva opción "Solo peso corporal" en Equipo (en el alta y en Ajustes): si no tenés nada, el plan se arma entero con ejercicios sin material y ya no quedan ejercicios como "falta equipo".

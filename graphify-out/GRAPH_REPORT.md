@@ -1,17 +1,17 @@
 # Graph Report - TendonApp  (2026-10-29)
 
 ## Corpus Check
-- 63 files · ~107,717 words
+- 63 files · ~108,334 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 14 file(s) not represented in the graph (top: (none) 11, .woff2 1, .webmanifest 1)
 
 ## Summary
-- 781 nodes · 1505 edges · 62 communities (59 shown, 3 thin omitted)
+- 781 nodes · 1507 edges · 63 communities (60 shown, 3 thin omitted)
 - Extraction: 93% EXTRACTED · 7% INFERRED · 0% AMBIGUOUS · INFERRED: 110 edges (avg confidence: 0.89)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `7e943238`
+- Built from commit: `61af4f03`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -69,8 +69,9 @@
 - daysBetween
 - UX 5: explicar "al 60 %" y "a calibrar"
 - resolveSlot
+- setDone
 - isoAdjust
-- planOptions
+- esc
 - renderHome
 - esc
 - render
@@ -120,11 +121,11 @@
 - **Plans of the 'planes de entrenamiento' roadmap built on the plan engine** — _specs_tasks_done_motor_de_planes_feature_plans_fb2, _specs_tasks_draft_plan_full_body_3_dias_feature_fb3, _specs_tasks_draft_plan_torso_pierna_4_dias_feature_tp4, _specs_tasks_draft_plan_empuje_traccion_4_dias_feature_et4, _specs_tasks_draft_plan_grupos_5_dias_feature_gr5, _specs_tasks_draft_plan_isometricos_feature_iso [INFERRED 0.95]
 - **Exportaciones via shareFile (Web Share o descarga)** — _specs_tasks_done_datos_locales_copia_feature_backup_restore, _specs_tasks_done_informe_fisio_feature_physio_report, _specs_tasks_done_recordatorios_calendario_feature_ics_calendar [INFERRED 0.95]
 
-## Communities (62 total, 3 thin omitted)
+## Communities (63 total, 3 thin omitted)
 
 ### Community 0 - "app.js"
-Cohesion: 0.09
-Nodes (32): choiceDay(), currentChoice(), DAY_NAMES, db, DEFAULT(), EQUIP_NAMES, exportData(), fieldMsg() (+24 more)
+Cohesion: 0.10
+Nodes (28): choiceDay(), currentChoice(), DAY_NAMES, db, DEFAULT(), EQUIP_NAMES, exportData(), fieldMsg() (+20 more)
 
 ### Community 1 - "Specs de features (datos, editor, calor)"
 Cohesion: 0.05
@@ -287,8 +288,8 @@ Cohesion: 0.33
 Nodes (5): Criterios de aceptación, Dónde, Problema, Propuesta, UX 2: el campo de reps no parece cargado
 
 ### Community 44 - "UX 6: la pestaña Tendones solo cuando importa"
-Cohesion: 0.33
-Nodes (5): Criterios de aceptación, Dónde, Problema, Propuesta, UX 6: la pestaña Tendones solo cuando importa
+Cohesion: 0.40
+Nodes (4): Criterios de aceptación, Problema, Propuesta, UX 6: la pestaña Tendones solo cuando importa
 
 ### Community 45 - "guessWeight"
 Cohesion: 0.26
@@ -322,29 +323,33 @@ Nodes (4): Criterios de aceptación, Problema, Propuesta, UX 5: explicar "al 60 
 Cohesion: 0.38
 Nodes (7): equipUsed(), implFor(), possible(), refreshUnpinned(), resolveDay(), resolvePlan(), resolveSlot()
 
+### Community 53 - "setDone"
+Cohesion: 0.29
+Nodes (7): overlayHost(), retuneGuesses(), setDone(), showTip(), startRest(), stopRest(), weightMode()
+
 ### Community 54 - "isoAdjust"
 Cohesion: 0.67
 Nodes (4): isoAdjust(), progress(), stepDown(), stepUp()
 
-### Community 55 - "planOptions"
-Cohesion: 0.36
-Nodes (8): choiceMissing(), choicePlan(), daysText(), missingNote(), planCard(), planOptions(), renderPlans(), weekStrip()
+### Community 55 - "esc"
+Cohesion: 0.21
+Nodes (17): choiceMissing(), choicePlan(), daysText(), dlg(), equipName(), esc(), mdLite(), openCustom() (+9 more)
 
 ### Community 56 - "renderHome"
-Cohesion: 0.18
-Nodes (20): bodyPart(), fmtKg(), forZones(), lentoDoneRecently(), loadTag(), loadText(), maintenanceItems(), painTag() (+12 more)
+Cohesion: 0.27
+Nodes (13): bodyPart(), forZones(), loadTag(), loadText(), painTag(), planFor(), platesLabel(), renderHome() (+5 more)
 
 ### Community 57 - "esc"
-Cohesion: 0.17
-Nodes (22): activeZones(), dlg(), equipName(), esc(), fmtDate(), fmtDateLong(), helpHead(), lineChart() (+14 more)
+Cohesion: 0.19
+Nodes (19): activeZones(), fmtDate(), fmtDateLong(), fmtKg(), helpHead(), lineChart(), maintenanceItems(), openExercise() (+11 more)
 
 ### Community 58 - "render"
-Cohesion: 0.16
-Nodes (28): answerCheck(), applyChoice(), applyTheme(), askPain(), deleteExForm(), finishRehab(), finishWorkout(), importData() (+20 more)
+Cohesion: 0.17
+Nodes (27): answerCheck(), applyChoice(), applyTheme(), askPain(), deleteExForm(), finishRehab(), finishWorkout(), importData() (+19 more)
 
 ### Community 59 - "getEx"
-Cohesion: 0.15
-Nodes (19): altEx(), customFig(), dayItems(), engineOpts(), freshRoutine(), getEx(), guessFor(), missingLabel() (+11 more)
+Cohesion: 0.16
+Nodes (17): altEx(), customFig(), dayItems(), engineOpts(), freshRoutine(), getEx(), guessFor(), missingLabel() (+9 more)
 
 ### Community 60 - "Feedback de uso (agentes como usuarios)"
 Cohesion: 0.20
@@ -355,8 +360,8 @@ Cohesion: 0.29
 Nodes (4): Pain mode (6 zones, 3 phases, 60% cap, gentle variants), v1.0.0 First version (PWA, IndexedDB, A/B full body, pain mode), v1.8.0 Rehab exercise options per zone and phase, Suggested weight (bodyweight x coefficient, 70% start, calibration)
 
 ### Community 62 - "renderRehab"
-Cohesion: 0.36
-Nodes (8): calmMotion(), cue(), rehabGo(), rehabSkip(), rehabTick(), renderRehab(), slotNow(), startRehab()
+Cohesion: 0.27
+Nodes (10): calmMotion(), cue(), lentoDoneRecently(), rehabGo(), rehabItems(), rehabSkip(), rehabTick(), renderRehab() (+2 more)
 
 ## Knowledge Gaps
 - **61 isolated node(s):** `Sugerencia de pasar a 3 dias (suggestThreeDays)`, `Eliminar sesion con Deshacer`, `Tarjeta de instalacion (beforeinstallprompt / iOS)`, `Service worker sw.js (red primero, cache tendon-v<version>)`, `Tema claro/oscuro (applyTheme, tf-theme)` (+56 more)
@@ -373,8 +378,8 @@ _Questions this graph is uniquely positioned to answer:_
 - **What connects `Sugerencia de pasar a 3 dias (suggestThreeDays)`, `Eliminar sesion con Deshacer`, `Tarjeta de instalacion (beforeinstallprompt / iOS)` to the rest of the system?**
   _61 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `app.js` be split into smaller, more focused modules?**
-  _Cohesion score 0.09090909090909091 - nodes in this community are weakly interconnected._
-- **Why does `getEx()` connect `getEx` to `app.js`, `Pruebas e2e`, `planOptions`, `renderHome`, `esc`?**
+  _Cohesion score 0.10098522167487685 - nodes in this community are weakly interconnected._
+- **Why does `getEx()` connect `getEx` to `app.js`, `Pruebas e2e`, `esc`, `renderHome`, `esc`?**
   _High betweenness centrality (0.138) - this node is a cross-community bridge._
 - **Are the 4 inferred relationships involving `renderHome()` (e.g. with `render()` and `Dónde`) actually correct?**
   _`renderHome()` has 4 INFERRED edges - model-reasoned connections that need verification._

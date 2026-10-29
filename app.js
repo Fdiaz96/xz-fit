@@ -2,7 +2,7 @@
 // (IndexedDB). Los identificadores internos siguen siendo "tendon-fuerte" para no perder los datos ya guardados.
 // Protocolo de tendones del video de Jeremy Ethier con Keith Baar y Coach Q; reglas en logic.js, bocetos en figures.js.
 
-const APP_VERSION = '1.30.1';
+const APP_VERSION = '1.30.2';
 const DAY_NAMES = { lu: 'Lu', ma: 'Ma', mi: 'Mi', ju: 'Ju', vi: 'Vi', sa: 'Sá', do: 'Do' };
 const SIDES = { der: 'derecha', izq: 'izquierda', ambos: 'ambos lados' };
 const REST_SECS = 90, ISO_REST = 60;
@@ -286,6 +286,13 @@ function renderHome() {
     } else if (!hasZones) rehab = `<div class="card ask pain"><h3>Modo dolor activo</h3><p class="muted small">Marcá qué te duele en la pestaña Dolor para armar tu rehabilitación.</p></div>`;
     else rehab = `<div class="card ask pain"><h3>Hoy no hay rehabilitación aparte</h3>${Object.values(S.zones).some((z) => z.phase === 3) ? '<p class="muted small">Los isométricos de mantenimiento van al final del entreno.</p>' : ''}</div>`;
   }
+  // Con zonas marcadas y el modo apagado, la propuesta va arriba de la rutina: cambia los pesos de hoy.
+  if (!S.painMode && hasZones && !S.hidePainTip) {
+    h += `<div class="card ask pain"><h3>Tenés dolor en ${esc(activeZones().map((z) => zoneName(z).toLowerCase()).join(' y '))}</h3>
+      <p class="muted small">El modo dolor agrega isométricos diarios y cuida esas zonas en el entreno de hoy. También lo prendés desde la pestaña Dolor.</p>
+      <div class="btns"><button class="cta pain" data-action="pain-mode-on">Activar modo dolor</button></div>
+      <button class="link" data-action="hide-pain-tip">Ahora no</button></div>`;
+  }
   if (rehabFirst) h += rehab;
   // El entreno del día, como la pizarra del gimnasio: el día en grande y la lista en orden.
   const plan = activePlan(S), day = dayIndex(plan, S.plan.pos), doable = planFor(day).filter((p) => !p.missing);
@@ -310,12 +317,6 @@ function renderHome() {
   if (!rehabFirst) h += rehab;
   // Avisos y decisiones pendientes, debajo del entreno.
   if (S.painMode) for (const zone of activeZones()) if (phaseReady(S, zone, t)) h += `<div class="card ask pain"><h3>${esc(zoneName(zone))}: lista para avanzar</h3><p class="muted small">Dolor ≤ 3 y sin empeorar toda la semana.</p><button class="link" data-action="phase" data-zone="${zone}" data-dir="1">Pasar a ${esc(PHASES[S.zones[zone].phase + 1].name.toLowerCase())}</button></div>`;
-  if (!S.painMode && hasZones && !S.hidePainTip) {
-    h += `<div class="card ask pain"><h3>Tenés dolor en ${esc(activeZones().map((z) => zoneName(z).toLowerCase()).join(' y '))}</h3>
-      <p class="muted small">El modo dolor agrega isométricos diarios y cuida esas zonas en el entreno. Lo activás vos.</p>
-      <div class="btns"><button class="cta pain" data-action="pain-mode-on">Activar modo dolor</button></div>
-      <button class="link" data-action="hide-pain-tip">Ahora no</button></div>`;
-  }
   const stuck = [...new Set(S.routine[plan.id].flat().map((it) => it.ex))].filter((id) => S.lifts[id] && stalled(S, id));
   if (stuck.length >= 2 && S.plan.deload !== weekKey(t) && S.plan.deloadOffer !== weekKey(t)) h += `<div class="card ask"><h3>¿Semana de descarga?</h3><p class="muted small">${stuck.length} ejercicios no progresan hace 3 sesiones (${stuck.slice(0, 3).map((id) => esc(getEx(id)?.name.toLowerCase() || id)).join(', ')}). Una semana con una serie menos y 90 % del peso suele destrabar.</p><div class="btns"><button class="cta" data-action="deload">Hacer descarga esta semana</button></div><button class="link" data-action="deload-no">Ahora no</button></div>`;
   if (plan.id === 'fb2' && suggestThreeDays(S, t)) h += `<div class="card ask"><h3>¿Probás Full body 3 días?</h3><p class="muted small">Venís constante. Con un día más entrenás cada músculo 3 veces por semana, con ejercicios distintos cada día.</p><button class="link" data-action="three-days">Ver el plan</button></div>`;
@@ -1305,6 +1306,8 @@ function onbFieldsOk() {
 let onbStep = 0;
 const ONB_STEPS = 5;
 let onbPlanSet = false;   // en el alta, el plan recomendado se marca una sola vez; después manda lo que elija la persona
+let onbCare = true;       // "¿Activar el cuidado ahora?" en el paso del dolor: prendido salvo que lo apaguen
+let onbPainCheck = false; // tras tocar "Ver mi rutina" con zonas sin escala o lado, se marcan en rojo
 function renderOnb() {
   const p = S.profile;
   const steps = `<div class="steps">${Array.from({ length: ONB_STEPS }, (_, i) => `<i class="${i <= onbStep ? 'on' : ''}"></i>`).join('')}</div>`;
@@ -1333,12 +1336,19 @@ function renderOnb() {
       ${planOptions(currentChoice(), { action: 'onb-plan', dayAction: 'onb-day', tag: { [rec]: 'recomendado' } })}
       <p class="faint small">Lo cambiás cuando quieras en Entreno → Editar rutina.</p>`;
   }
-  if (onbStep === 4) body = `<h1>¿Te duele algo?</h1><p class="muted small">Opcional. Si marcás una zona, la app la cuida: baja la carga de los ejercicios que la exigen y te propone ejercicios para recuperar el tendón. Si no te duele nada, seguí.</p>
-    <div class="tiles list">${ZONES.map((z) => { const zz = S.zones[z.id]; return tile(`data-action="zone-toggle" data-zone="${z.id}"`, !!zz, esc(z.name), esc(z.hint)) + (!zz ? '' : `<div class="zone-detail">
+  if (onbStep === 4) {
+    // Escala y lado arrancan sin elegir: los pide la persona (un 5 por defecto pasaba como dato real).
+    const miss = (msg) => onbPainCheck ? `<small class="fmsg err" role="alert">${msg}</small>` : '';
+    const hasZones = activeZones().length > 0;
+    body = `<h1>¿Te duele algo?</h1><p class="muted small">Opcional. Si marcás una zona, la app la cuida: baja la carga de los ejercicios que la exigen y te propone ejercicios para recuperar el tendón. Si no te duele nada, seguí.</p>
+    <div class="tiles list">${ZONES.map((z) => { const zz = S.zones[z.id]; return tile(`data-action="zone-toggle" data-zone="${z.id}"`, !!zz, esc(z.name), esc(z.hint)) + (!zz ? '' : `<div class="zone-detail" data-zone="${z.id}">
       <span class="small muted">¿Cuánto duele hoy al usarla?</span><div class="chips scale" style="margin-top:6px">${Array.from({ length: 11 }, (_, n) => `<button class="chip pain${zz.pain0 === n ? ' on' : ''}" data-action="zone-pain" data-zone="${z.id}" data-n="${n}">${n}</button>`).join('')}</div>
-      <div class="scale-ends small faint"><span>Nada</span><span>El peor dolor</span></div>
-      <span class="small muted">¿De qué lado?</span><div class="chips" style="margin-top:6px">${Object.entries(SIDES).map(([k, v]) => `<button class="chip pain${zz.side === k ? ' on' : ''}" data-action="zone-side" data-zone="${z.id}" data-side="${k}">${v}</button>`).join('')}</div></div>`); }).join('')}</div>
-    <p class="faint small">El modo dolor queda apagado hasta que lo actives desde el inicio. Usa el protocolo de isométricos del video de Jeremy Ethier con el investigador Keith Baar y el fisioterapeuta Coach Q. No reemplaza a un profesional.</p>`;
+      <div class="scale-ends small faint"><span>Nada</span><span>El peor dolor</span></div>${zz.pain0 == null ? miss('Elegí cuánto duele, de 0 a 10.') : ''}
+      <span class="small muted">¿De qué lado?</span><div class="chips" style="margin-top:6px">${Object.entries(SIDES).map(([k, v]) => `<button class="chip pain${zz.side === k ? ' on' : ''}" data-action="zone-side" data-zone="${z.id}" data-side="${k}">${v}</button>`).join('')}</div>${zz.side == null ? miss('Elegí de qué lado.') : ''}</div>`); }).join('')}</div>
+    ${hasZones ? `<div class="card pain care-now"><div class="row"><div><h3>¿Activar el cuidado ahora?</h3><p class="muted small">Desde tu primer entreno baja la carga de lo que exige esa zona y suma isométricos a la mañana y a la noche.</p></div>
+      <label class="switch"><input type="checkbox" data-action="onb-care" ${onbCare ? 'checked' : ''} aria-label="Activar el cuidado ahora"><i></i></label></div></div>` : ''}
+    <p class="faint small">El modo dolor se prende y se apaga cuando quieras en la pestaña Dolor. Usa el protocolo de isométricos del video de Jeremy Ethier con el investigador Keith Baar y el fisioterapeuta Coach Q. No reemplaza a un profesional.</p>`;
+  }
   dlg('onb').html = `<div class="dlg">${steps}${body}<div class="btns" style="margin-top:16px">${onbStep ? '<button class="sec" data-action="onb-back">Atrás</button>' : ''}<button class="cta" data-action="onb-next">${onbStep === 0 ? 'Armar mi rutina' : onbStep === ONB_STEPS - 1 ? 'Ver mi rutina' : 'Siguiente'}</button></div></div>`;
   calmMotion($('onb'));
 }
@@ -1346,6 +1356,16 @@ function onbNext() {
   if ((onbStep === 1 || onbStep === 2) && !onbFieldsOk()) return;
   if (onbStep === 3 && choiceMissing(currentChoice())) return toast(choiceMissing(currentChoice()));
   if (onbStep < ONB_STEPS - 1) { onbStep++; renderOnb(); $('onb').querySelector('.dlg').scrollTop = 0; return; }
+  // Cada zona marcada necesita su escala y su lado; la primera que falte recibe el foco.
+  const open = Object.entries(S.zones).find(([, z]) => z.pain0 == null || z.side == null);
+  if (open) {
+    onbPainCheck = true; renderOnb();
+    const box = $('onb').querySelector(`.zone-detail[data-zone="${open[0]}"]`);
+    box?.scrollIntoView({ block: 'center' });
+    box?.querySelector(open[1].pain0 == null ? '[data-action="zone-pain"]' : '[data-action="zone-side"]')?.focus({ preventScroll: true });
+    return;
+  }
+  if (activeZones().length) S.painMode = onbCare;
   // La rutina se arma con el equipo elegido en el alta, y el plan (con su rampa de entrada) empieza hoy.
   resetRoutine(); S.plan.pos = 0; S.plan.since = today();
   S.onboarded = true; S.seenVersion = APP_VERSION; persist();
@@ -1466,7 +1486,7 @@ document.addEventListener('click', (e) => {
     'ics': () => shareFile('xz-fit.ics', icsText(S.rem, S.painMode, today()), 'text/calendar'),
     'export': exportData,
     'import': () => $('import-file').click(),
-    'reset': () => { if (confirm('¿Borrar todos los datos? No se puede deshacer.') && confirm('¿Seguro? Se pierde todo el historial.')) { S = DEFAULT(); resetRoutine(); persist(); onbStep = 0; onbPlanSet = false; renderOnb(); $('onb').showModal(); } },
+    'reset': () => { if (confirm('¿Borrar todos los datos? No se puede deshacer.') && confirm('¿Seguro? Se pierde todo el historial.')) { S = DEFAULT(); resetRoutine(); persist(); onbStep = 0; onbPlanSet = false; onbCare = true; onbPainCheck = false; renderOnb(); $('onb').showModal(); } },
     'onb-next': onbNext,
     'edit-routine': () => { editRoutine = !editRoutine; if (editRoutine) editDay = dayIndex(activePlan(S), S.plan.pos); render(); },
     'edit-day': () => { editDay = +d.day; render(); },
@@ -1504,9 +1524,10 @@ document.addEventListener('change', (e) => {
   if (el.dataset.set) return onSetField(el);
   if (el.dataset.w) { const [i, j, k] = el.dataset.w.split('.'); W.items[+i].rows[+j][k] = el.value; return; }
   const a = el.dataset.action;
+  if (a === 'onb-care') onbCare = el.checked;
   if (a === 'pain-mode') { S.painMode = el.checked; persist(); render(); toast(el.checked ? 'Modo dolor activado.' : 'Modo dolor apagado: el entreno usa los pesos completos.'); }
   if (a === 'zone-toggle') {
-    if (el.checked) S.zones[el.dataset.zone] = newZone(el.dataset.zone);
+    if (el.checked) S.zones[el.dataset.zone] = $('onb').open ? newZone(el.dataset.zone, null, null) : newZone(el.dataset.zone);
     else if ($('onb').open || confirm(`¿Quitar ${zoneName(el.dataset.zone).toLowerCase()}? Se pierde la fase y la carga actual.`)) delete S.zones[el.dataset.zone];
     else el.checked = true;
     persist(); $('onb').open ? renderOnb() : render();
