@@ -2,6 +2,10 @@
 
 Todos los cambios de XZ Fit, del más nuevo al más viejo.
 
+## 1.31.1 — Pájaros bien dibujados
+
+- En la animación de pájaros con mancuernas los brazos ya no se cruzan: cada uno se abre hacia su lado, y el ejercicio se ve de frente y un poco desde arriba para que se entienda la apertura.
+
 ## 1.31.0 — Muñeco nuevo
 
 - **El personaje de los ejercicios tiene cuerpo de verdad**: hombros anchos, bíceps, antebrazos, cuádriceps y gemelos con su forma, torso en V, cuello más firme. La remera es ajustada, con cuello y mangas marcadas, el short tiene cintura y ruedo, las zapatillas suela, las manos pulgar y la cara cejas que se fruncen con el esfuerzo.

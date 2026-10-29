@@ -225,7 +225,7 @@ Object.assign(EXERCISES, {
   pajaros: {
     name: 'Pájaros con mancuernas', kind: 'peso', impl: 'db', ratio: 0.04, cat: 'hombro', tag: ['hombro'],
     cues: ['Cadera atrás, espalda recta, torso casi paralelo al piso.', 'Abrí los brazos hacia los costados con los codos apenas flexionados, hasta la altura de la espalda.', 'Apretá atrás 1 s y bajá despacio, sin tirar con el cuello.'],
-    fig: { a: { ...HINGE, E1: [122, 94], W1: [124, 118] }, b: { E1: [120, 86], W1: [120, 96], z: { E: -30, W: -48 } }, props: [{ t: 'db', at: 'W1' }] },
+    fig: { a: { ...HINGE, E1: [122, 94], W1: [124, 118] }, b: { E1: [120, 86], W1: [120, 96], z: { E: 30, W: 48 } }, props: [{ t: 'db', at: 'W1' }], cam: 75, pitch: 40 },
   },
   pullover: {
     name: 'Pullover con mancuerna', kind: 'peso', impl: 'db', needs: ['bench'], ratio: 0.15, cat: 'tiron', tag: ['hombro'],
