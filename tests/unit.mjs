@@ -208,7 +208,7 @@ ok(ids.every((id) => L(`figureSVG(EXERCISES.${id}).startsWith('<svg')`)), `los $
 ok(L('figureSVG(EXERCISES.goblet).includes("<animate")') && !L('figureSVG(EXERCISES.goblet, { animate: false }).includes("<animate")'), 'ilustraciones animadas y estáticas');
 ok(ids.every((id) => L(`EXERCISES.${id}.mus.length && EXERCISES.${id}.mus.every((m) => MUSCLE_NAMES[m])`)), 'cada ejercicio dice qué músculos trabaja');
 ok(L('figureSVG(EXERCISES.curl_martillo).includes("#E5262E")') && !L('figureSVG(EXERCISES.curl_martillo, { muscles: false }).includes("#E5262E")'), 'el músculo trabajado se ilumina en rojo (y se puede apagar)');
-ok(L('figureSVG(EXERCISES.lateral).includes(PAL.db) && figureSVG(EXERCISES.lateral).includes(PAL.floor)'), 'mancuernas en 3D sobre el piso isométrico');
+ok(L('figureSVG(EXERCISES.lateral).includes(PAL.db) && figureSVG(EXERCISES.lateral).includes(PAL.floor2)'), 'mancuernas en 3D sobre el piso isométrico');
 ok(L('figureSVG(EXERCISES.press_suelo).split(PAL.db).length') > L('figureSVG(EXERCISES.remo_silla).split(PAL.db).length'), 'con las dos manos libres hay dos mancuernas; en el remo a un brazo, una');
 ok(L('Object.values(EXERCISES).every((e) => !/NaN|undefined/.test(figureSVG(e)) && !/NaN|undefined/.test(figureSVG(e, { crop: true })))'), 'ninguna ilustración tiene coordenadas inválidas');
 // Músculos en todas las animaciones: no desaparecen, no se hinchan y los miembros no se acortan entre fotogramas.
@@ -228,7 +228,9 @@ ok(!issues.length, `el ancho del músculo cambia de a poco entre fotogramas ${is
 const lenVar = L(`Object.values(EXERCISES).filter((e) => e.fig.b).map((e) => { const { FR } = framesOf(e.fig); const segs = FR.map((J) => ['ua', 'fa', 'th', 'sh'].map((k) => { const s = segOf(k, J, '1'); return s ? Math.hypot(...sub3(s[1], s[0])) : 0; })); const A = segs[0], B = segs[segs.length - 1]; return [e.id, segs.every((sg) => sg.every((x, k) => x >= Math.min(A[k], B[k]) * 0.98 - 0.05 && x <= Math.max(A[k], B[k]) * 1.02 + 0.05))]; })`);
 issues = lenVar.filter(([, okk]) => !okk).map(([id]) => id);
 ok(!issues.length, `brazos y piernas no se acortan a mitad del movimiento (interpolación por ángulos) ${issues.join(', ')}`);
-ok(L(`figureSVG(EXERCISES.curl_martillo).includes('keyTimes="0;0.083')`), 'la animación usa fotogramas intermedios');
+ok(L(`figureSVG(EXERCISES.curl_martillo).includes('keyTimes="0;0.08;0.122')`) && L(`figureSVG(EXERCISES.curl_martillo).match(/values="[^"]*"/)[0].split(';').length`) >= 21, 'la animación usa 10 fotogramas intermedios con una pausa en cada extremo');
+ok(L(`figureSVG(EXERCISES.curl_martillo).includes('class="guide"')`) && !L(`figureSVG(EXERCISES.curl_martillo, { crop: true }).includes('class="guide"')`) && !L(`figureSVG(EXERCISES.iso_prono).includes('class="guide"')`), 'la guía del recorrido se ve en grande, no en las miniaturas ni en los isométricos');
+ok(L(`figureSVG(EXERCISES.curl_martillo).includes('<radialGradient')`) && L(`figureSVG(EXERCISES.goblet).match(/id="mg[^"]*"/)[0] !== figureSVG(EXERCISES.goblet).match(/id="mg[^"]*"/)[0]`), 'el músculo se ilumina con un degradado y cada ilustración tiene ids propios');
 ok(L(`muscleStats(EXERCISES.rdl).yaw < 0 && muscleStats(EXERCISES.lateral).yaw === 65 && muscleStats(EXERCISES.curl_martillo).yaw === 40`), 'la cámara gira para mostrar isquios y glúteos (peso muerto), es más frontal en los dibujados de frente y queda en 40° en el resto');
 // Articulaciones: en ningún fotograma un codo o una rodilla se dobla para el lado imposible (más de 12°).
 const disl = L(`Object.values(EXERCISES).filter((e) => !e.fig.front).flatMap((e) => framesOf(e.fig).FR.flatMap((J) => ['1', '2'].flatMap((n) => [['S', 'E', 'W', 1, 'codo'], ['Hp', 'K', 'F', -1, 'rodilla']].filter(([a, b, c, sg]) => {

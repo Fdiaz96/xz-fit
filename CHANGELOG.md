@@ -2,6 +2,14 @@
 
 Todos los cambios de XZ Fit, del más nuevo al más viejo.
 
+## 1.31.0 — Muñeco nuevo
+
+- **El personaje de los ejercicios tiene cuerpo de verdad**: hombros anchos, bíceps, antebrazos, cuádriceps y gemelos con su forma, torso en V, cuello más firme. La remera es ajustada, con cuello y mangas marcadas, el short tiene cintura y ruedo, las zapatillas suela, las manos pulgar y la cara cejas que se fruncen con el esfuerzo.
+- **Luz y sombra**: cada parte del cuerpo se ve con volumen, iluminada desde arriba a la izquierda, y el piso tiene una sombra difusa que acompaña al personaje cuando sube y baja.
+- **El músculo que trabaja se ve como un resplandor** rojo que se funde con la piel y late con la contracción, en lugar de un parche plano.
+- **Las animaciones tienen ritmo de repetición real**: más posturas intermedias, y una pausa breve arriba y abajo del movimiento (subir, sostener, bajar).
+- **Guía del recorrido**: en la vista grande de cada ejercicio, una línea punteada naranja marca por dónde va la mano, el pie o la cadera, con una flecha en el punto final y un punto que la recorre al ritmo del movimiento.
+
 ## 1.30.21 — Press de hombros bien dibujado
 
 - El dibujo del press de hombros con mancuernas ahora se ve de frente y con las dos mancuernas: arranca con los codos abiertos y las pesas a la altura de las orejas, y termina con los brazos estirados sobre la cabeza. Antes los codos iban hacia adelante, como en una elevación frontal, y los brazos se estiraban de más.

@@ -1,18 +1,20 @@
-// Ilustraciones de ejercicios en vista isométrica: personaje plano con ropa (remera amarilla, short gris, zapatillas),
-// con contorno, animado entre la postura a y la b (SMIL, sin librerías). Generadas por código: sin imágenes de terceros.
-// Las posturas de data.js son de perfil (o de frente); acá se pasan a 3D (x adelante, y arriba, z hacia la derecha del
-// personaje) y se proyectan con una cámara isométrica. Cada parte es una cápsula proyectada; se anima interpolando su
-// contorno (atributo d) en varios fotogramas intermedios calculados por ángulos, así los miembros no se acortan a mitad
-// de camino. Las partes de un miembro forman una sola silueta, los miembros se ordenan por profundidad y el músculo que
-// trabaja el ejercicio se ilumina en rojo; la cámara gira lo necesario para que ese músculo se vea.
+// Ilustraciones de ejercicios en vista isométrica: personaje atlético con ropa (remera amarilla ajustada, short gris,
+// zapatillas), con contorno, luz y sombra, animado entre la postura a y la b (SMIL, sin librerías). Generadas por código:
+// sin imágenes de terceros. Las posturas de data.js son de perfil (o de frente); acá se pasan a 3D (x adelante, y arriba,
+// z hacia la derecha del personaje) y se proyectan con una cámara isométrica. Cada parte es un miembro con perfil muscular
+// (deltoides, bíceps, cuádriceps, gemelo…) proyectado; se anima interpolando su contorno (atributo d) en varios fotogramas
+// intermedios calculados por ángulos, así los miembros no se acortan a mitad de camino. Las partes de un miembro forman una
+// sola silueta, los miembros se ordenan por profundidad, una luz fija (arriba a la izquierda) sombrea cada parte, el
+// músculo que trabaja se ilumina con un resplandor rojo y una línea punteada marca el recorrido del movimiento.
 
 const PAL = {
-  line: '#22262D', skin: '#F1C6A3', skin2: '#D9A684', shirt: '#F6C514', shirt2: '#D7A90B', shorts: '#5E6673', shorts2: '#454C58',
-  shoe: '#FFFFFF', shoe2: '#D3D7DD', hair: '#3A2A1F', db: '#2F7BEA', db2: '#1F5FBF', bar: '#9AA3AF', kb: '#33383F',
+  line: '#22262D', skin: '#F2C9A6', skin2: '#D9A07A', shirt: '#F6C514', shirt2: '#CFA20A', shorts: '#5E6673', shorts2: '#434A56',
+  shoe: '#FFFFFF', shoe2: '#C9CED6', hair: '#3A2A1F', db: '#2F7BEA', db2: '#1F5FBF', bar: '#9AA3AF', kb: '#33383F',
   wood: '#8A5A3C', wood2: '#6E452D', wall: '#E3E6EA', floor: '#E6E9ED', floor2: '#CDD2D8', floor3: '#BAC0C8',
-  shadow: 'rgba(38,42,49,.12)', muscle: '#E5262E',
+  shade: 'rgba(40,28,16,.15)', light: 'rgba(255,255,255,.32)', muscle: '#E5262E', guide: '#FF6B2C',
 };
 const OW = 3.2;   // grosor del contorno: la mitad queda afuera de la silueta
+const LS = [-0.55, -0.835];   // hacia la luz, en pantalla (arriba a la izquierda)
 
 // ——— Vectores y cámara ———
 const add3 = (p, q) => [p[0] + q[0], p[1] + q[1], p[2] + q[2]];
@@ -103,15 +105,25 @@ function poseAt(A, B, t) {
   }
   return J;
 }
-// Fotogramas de la animación: 7 posturas con aceleración suave (ida); la animación va y vuelve.
-const FRAMES = 6, easeT = (t) => 0.5 - Math.cos(Math.PI * t) / 2;
-function framesOf(f) {
+// Fotogramas de la animación: 11 posturas con aceleración suave (ida); la animación va y vuelve con una pausa en cada extremo.
+const FRAMES = 10, easeT = (t) => 0.5 - Math.cos(Math.PI * t) / 2;
+function framesOf(f, frames = FRAMES) {
   const A = pose3D(f.a, f), B = f.b ? pose3D({ ...f.a, ...f.b }, f) : null;
-  const ts = Array.from({ length: FRAMES + 1 }, (_, i) => easeT(i / FRAMES));
+  const ts = Array.from({ length: frames + 1 }, (_, i) => easeT(i / frames));
   if (!B && f.roll) return { FR: ts.map((t) => ({ ...A, roll: f.roll[0] + (f.roll[1] - f.roll[0]) * t })), ts, A, B };   // solo gira la mano
   if (!B) return { FR: [A], ts: [0], A, B };
   return { FR: ts.map((t) => poseAt(A, B, t)), ts, A, B };
 }
+// Ciclo de la animación: ida, pausa, vuelta, pausa (como una repetición real: subir, sostener, bajar). Devuelve los
+// valores en ese orden y los tiempos clave (fracción del ciclo) de cada uno.
+const HOLD = 0.08;
+function loopOf(vals) {
+  const n = vals.length, values = [vals[0], ...vals, vals[n - 1], ...vals.slice(0, -1).reverse()];
+  const kt = (i) => Math.round((HOLD + ((0.5 - HOLD) * i) / (n - 1)) * 1000) / 1000;
+  const keyTimes = [0, ...Array.from({ length: n }, (_, i) => kt(i)), ...Array.from({ length: n }, (_, i) => Math.round((0.5 + kt(i)) * 1000) / 1000)];
+  return { values, keyTimes };
+}
+const timing = (keyTimes, dur, calc = 'linear') => `keyTimes="${keyTimes.join(';')}" calcMode="${calc}" dur="${dur}" repeatCount="indefinite"`;
 
 // ——— Formas proyectadas ———
 // Cápsula de p a q (2D), radio ra en p y rb en q (misma estructura siempre, para poder interpolar).
@@ -126,11 +138,39 @@ function ellipse(c, A, B) {
   return `M${P(1, 0)}C${P(1, k)} ${P(k, 1)} ${P(0, 1)}C${P(-k, 1)} ${P(-1, k)} ${P(-1, 0)}C${P(-1, -k)} ${P(-k, -1)} ${P(0, -1)}C${P(k, -1)} ${P(1, -k)} ${P(1, 0)}Z`;
 }
 const circlePath = (c, r) => ellipse(c, [r, 0], [0, r]);
+// Curva suave por una lista de puntos 2D (Catmull-Rom → Bézier cúbicas), cerrada o abierta. Con la misma cantidad de
+// puntos tiene siempre la misma estructura, así se puede animar el atributo d.
+// Como la curva es continua, desde el segundo tramo alcanza con el comando S (el primer control es el reflejo del anterior).
+function blob(P, closed = true) {
+  const n = P.length, at = (i) => P[closed ? (i + n) % n : Math.max(0, Math.min(n - 1, i))];
+  let d = `M${pt2(P[0])}`;
+  for (let i = 0; i < (closed ? n : n - 1); i++) {
+    const p0 = at(i - 1), p1 = at(i), p2 = at(i + 1), p3 = at(i + 2);
+    d += (i ? 'S' : `C${pt2([p1[0] + (p2[0] - p0[0]) / 6, p1[1] + (p2[1] - p0[1]) / 6])} `) + `${pt2([p2[0] - (p3[0] - p1[0]) / 6, p2[1] - (p3[1] - p1[1]) / 6])} ${pt2(p2)}`;
+  }
+  return d + (closed ? 'Z' : '');
+}
+// Tono más claro (k > 0, hacia el blanco) o más oscuro (k < 0, hacia el negro) de un color #rrggbb.
+function tint(hex, k) {
+  const c = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16)).map((v) => Math.round(k > 0 ? v + (255 - v) * k : v * (1 + k)));
+  return '#' + c.map((v) => v.toString(16).padStart(2, '0')).join('');
+}
 // Disco 3D (centro, normal, radio) proyectado: devuelve centro y semiejes (el primero, el mayor).
 function disc(c3, n, R) {
   let e1 = cross3(n, CAM.v); if (Math.hypot(...e1) < 1e-3) e1 = cross3(n, [0, 1, 0]);
   e1 = unit3(e1); const e2 = unit3(cross3(n, e1));
   return [prj(c3), prjV(scl3(e1, R)), prjV(scl3(e2, R))];
+}
+// Aro 3D (centro, semiejes A y B en 3D): solo la mitad que mira a la cámara, como el ruedo de una manga o una cintura.
+function ring(c, A, B) {
+  const a = dot3(unit3(A), CAM.v), b = dot3(unit3(B), CAM.v), f = Math.atan2(b, a);
+  return blob(Array.from({ length: 7 }, (_, i) => { const g = f - Math.PI / 2 + (Math.PI * i) / 6; return prj(add3(c, add3(scl3(A, Math.cos(g)), scl3(B, Math.sin(g))))); }), false);
+}
+// Aro alrededor de un hueso de dirección d, de radio R.
+function ringOn(c, d, R) {
+  let e1 = cross3(d, [0, 1, 0]); if (Math.hypot(...e1) < 1e-3) e1 = cross3(d, [1, 0, 0]);
+  e1 = unit3(e1); const e2 = unit3(cross3(d, e1));
+  return ring(c, scl3(e1, R), scl3(e2, R));
 }
 // Músculo: huso a lo largo del segmento entre t0 y t1, centrado en o (fracción del radio, sobre la normal) y de medio ancho w.
 function lens([p, q, ra, rb], o, t0, t1, w) {
@@ -143,12 +183,43 @@ function lens([p, q, ra, rb], o, t0, t1, w) {
 // Ancho proyectado de una sección elíptica del torso (semiejes al costado y hacia adelante) medido según la normal m.
 const halfWidth = (J, side, fwd, m) => { const a = prjV(scl3(J.lat, side)), b = prjV(scl3(J.fw, fwd)); return Math.hypot(a[0] * m[0] + a[1] * m[1], b[0] * m[0] + b[1] * m[1]); };
 
+// ——— Perfiles musculares ———
+// Medio ancho base a lo largo de cada hueso (t de 0 a 1) y vientres hacia adelante (front) y atrás (back): deltoides y
+// bíceps en el brazo, extensores en el antebrazo, cuádriceps e isquios en el muslo, gemelo en la pierna.
+const lin = (pts, t) => { let i = 1; while (i < pts.length - 1 && pts[i][0] < t) i++; const [t0, w0] = pts[i - 1], [t1, w1] = pts[i]; return w0 + ((w1 - w0) * Math.min(1, Math.max(0, (t - t0) / (t1 - t0)))); };
+const bump = (c, w, h) => (t) => h * Math.exp(-(((t - c) / w) ** 2));
+const PROF = {
+  ua: { base: [[0, 6.4], [0.2, 6.1], [0.5, 5.5], [0.8, 4.9], [1, 4.4]], front: bump(0.56, 0.22, 1.3), back: bump(0.5, 0.25, 0.8) },
+  fa: { base: [[0, 4.6], [0.25, 4.9], [0.5, 4.2], [0.8, 3.5], [1, 3.2]], front: bump(0.25, 0.2, 0.7), back: bump(0.3, 0.22, 0.6) },
+  th: { base: [[0, 8.8], [0.3, 8.5], [0.6, 7.5], [0.85, 6.4], [1, 6]], front: bump(0.55, 0.22, 1.4), back: bump(0.4, 0.25, 0.9) },
+  sh: { base: [[0, 5.8], [0.2, 5.9], [0.5, 4.9], [0.8, 3.9], [1, 3.6]], front: bump(0.4, 0.3, 0.3), back: bump(0.3, 0.17, 1.6) },
+};
+// Torso en V: hombros y espalda anchos, cintura más fina, cadera un poco más ancha (semiejes al costado y hacia adelante).
+const TO_SIDE = [[0, 14.2], [0.15, 13.6], [0.4, 12.2], [0.65, 10.4], [0.85, 10.8], [1, 11.4]], TO_FWD = [[0, 8], [0.15, 9.2], [0.4, 8.8], [0.65, 7.6], [1, 8]];
+const STA = [0, 0.2, 0.45, 0.72, 1];   // estaciones a lo largo del hueso
+// Contorno de un miembro de p a q (2D) con medio ancho w(t, lado) (lado +1 sobre la normal, −1 el otro, 0 el promedio),
+// entre t0 y t1, con puntas redondeadas (cap: cuánto sobresalen, en radios). 16 puntos, siempre los mismos.
+function limbPts(p, q, w, t0 = 0, t1 = 1, cap = [0.9, 0.9]) {
+  const [ux, uy] = unit(q[0] - p[0], q[1] - p[1]), n = [-uy, ux];
+  const at = (t, s) => { const c = mix(p, q, t), r = w(t, s) * s; return [c[0] + n[0] * r, c[1] + n[1] * r]; };
+  const tip = (t, k, s) => { const c = mix(p, q, t), r = w(t, 0), a = k * (s ? 0.7 : 1) * r, b = s ? 0.75 * r * s : 0; return [c[0] + ux * a + n[0] * b, c[1] + uy * a + n[1] * b]; };
+  const st = STA.map((t) => t0 + (t1 - t0) * t);
+  return [tip(t0, -cap[0], 0), tip(t0, -cap[0], 1), ...st.map((t) => at(t, 1)), tip(t1, cap[1], 1), tip(t1, cap[1], 0), tip(t1, cap[1], -1), ...st.slice().reverse().map((t) => at(t, -1)), tip(t0, -cap[0], -1)];
+}
+// Media luna de sombra (o de brillo) de un miembro: del borde del lado s hacia adentro, con intensidad k (0 = nada).
+function rimPts(p, q, w, s, k, t0 = 0, t1 = 1, inset = 0.42) {
+  const [ux, uy] = unit(q[0] - p[0], q[1] - p[1]), n = [-uy, ux];
+  const st = STA.map((t) => t0 + (t1 - t0) * t), ins = (i) => (i === 0 || i === STA.length - 1 ? 0.3 : 1) * inset * k;
+  const at = (t, i, f) => { const c = mix(p, q, t), r = w(t, s) * s * (1 - f); return [c[0] + n[0] * r, c[1] + n[1] * r]; };
+  return [...st.map((t, i) => at(t, i, i === 0 || i === STA.length - 1 ? 0.08 : 0)), ...st.map((t, i) => at(t, i, ins(i))).reverse()];
+}
+
 // Segmentos 3D [desde, hasta, radio inicial, radio final]. El del torso usa el ancho proyectado de su sección.
 function segOf(key, J, n) {
-  if (key === 'ua') return J['E' + n] && [J['S' + n], J['E' + n], 5.2, 4.3];
-  if (key === 'fa') return J['W' + n] && [J['E' + n], J['W' + n], 4.3, 3.3];
-  if (key === 'th') return J['K' + n] && [J['Hp' + n], J['K' + n], 7.6, 5.8];
-  if (key === 'sh') return J['F' + n] && [J['K' + n], J['F' + n], 5.6, 3.9];
+  if (key === 'ua') return J['E' + n] && [J['S' + n], J['E' + n], 6.4, 4.4];
+  if (key === 'fa') return J['W' + n] && [J['E' + n], J['W' + n], 4.6, 3.2];
+  if (key === 'th') return J['K' + n] && [J['Hp' + n], J['K' + n], 8.8, 6];
+  if (key === 'sh') return J['F' + n] && [J['K' + n], J['F' + n], 5.8, 3.6];
   const a = mix3(J.N, J.P, -0.06), b = mix3(J.N, J.P, 0.86), [p, q] = [prj(a), prj(b)], [ux, uy] = unit(q[0] - p[0], q[1] - p[1]), m = [-uy, ux];
   return [a, b, halfWidth(J, 12.5, 8.5, m), halfWidth(J, 11, 7.5, m)];
 }
@@ -260,82 +331,140 @@ function muscleStats(ex) {
 }
 
 // at: dibuja quieta la postura intermedia t (0 = a, 1 = b), para revisar el movimiento.
+let FIG_N = 0;   // para que los degradados y las formas de cada SVG tengan id propio (conviven muchos en una pantalla)
 function figureSVG(ex, { animate = true, size = '', crop = false, muscles = true, at = null } = {}) {
-  const f = ex.fig, L = PAL.line, fr = framesOf(f);
+  const f = ex.fig, L = PAL.line, fr = framesOf(f, crop ? 6 : FRAMES), uid = (++FIG_N).toString(36), detail = !crop;
   CAM = camera(pickCam(ex, fr.FR), ex.fig.pitch);
   const FR = at == null ? fr.FR : [f.roll && !fr.B ? { ...fr.A, roll: f.roll[0] + (f.roll[1] - f.roll[0]) * at } : poseAt(fr.A, fr.B, at)], ts = at == null ? fr.ts : [at], A = FR[0], moving = FR.length > 1;
   const dur = `${f.dur || 3}s`;
-  // Animación por fotogramas: ida por las 7 posturas y vuelta, a intervalos iguales (la suavidad ya está en las posturas).
-  const loop = (vals) => [...vals, ...vals.slice(0, -1).reverse()];
-  const timing = (n) => `keyTimes="${Array.from({ length: n }, (_, i) => Math.round((i / (n - 1)) * 1000) / 1000).join(';')}" calcMode="linear" dur="${dur}" repeatCount="indefinite"`;
+  // Animación por fotogramas: ida por las posturas, pausa, vuelta y pausa (la suavidad ya está en las posturas).
   const animV = (attr, vals, tag = 'animate', extra = '') => {
     if (!animate || !moving || vals.every((v) => v === vals[0])) return '';
-    const all = loop(vals);
-    return `<${tag} attributeName="${attr}" ${extra}values="${all.join(';')}" ${timing(all.length)}/>`;
+    const { values, keyTimes } = loopOf(vals);
+    return `<${tag} attributeName="${attr}" ${extra}values="${values.join(';')}" ${timing(keyTimes, dur)}/>`;
   };
   // Forma que depende de la postura: se calcula en cada fotograma y se anima el contorno.
   const path = (fn, attrs, extra = '') => {
     const ds = FR.map(fn); if (!ds[0]) return '';
     return `<path d="${ds[0]}" ${attrs}>${animV('d', ds)}${extra}</path>`;
   };
-  // Una sola silueta por grupo: primero todas las formas engrosadas en color de línea, después los rellenos sin borde.
-  const group = (parts, over = '') => parts.map(([fn]) => path(fn, `fill="${L}" stroke="${L}" stroke-width="${OW}" stroke-linejoin="round"`)).join('')
-    + parts.map(([fn, fill]) => path(fn, `fill="${fill}"`)).join('') + over;
-  const shade = (n, k) => PAL[k + (n === '2' ? '2' : '')];
-  const seg2 = (key, J, n) => { const s = segOf(key, J, n); return s && [prj(s[0]), prj(s[1]), s[2], s[3]]; };
-  const seg = (key, n, t0 = 0, t1 = 1, ra, rb) => (J) => {
-    const s = seg2(key, J, n); if (!s) return '';
-    return capsule(mix(s[0], s[1], t0), mix(s[0], s[1], t1), ra ?? s[2], rb ?? s[3]);
+  // La misma forma dibujada dos veces (contorno y relleno) se define una sola vez y se reutiliza con <use>.
+  let defs = '', pid = 0;
+  const shape = (fn) => { const ds = FR.map(fn); if (!ds[0]) return null; const id = `p${uid}-${pid++}`; defs += `<path id="${id}" d="${ds[0]}">${animV('d', ds)}</path>`; return id; };
+  // Una sola silueta por grupo: primero todas las formas engrosadas en color de línea, después los rellenos sin borde,
+  // después sombras y detalles (decor) y por último los músculos (over).
+  const group = (parts, decor = '', over = '') => {
+    const ids = parts.map(([fn]) => shape(fn));
+    return ids.map((id) => id && `<use href="#${id}" fill="${L}" stroke="${L}" stroke-width="${OW}" stroke-linejoin="round"/>`).join('')
+      + ids.map((id, i) => id && `<use href="#${id}" fill="${parts[i][1]}"/>`).join('') + decor + over;
   };
-  // Músculos iluminados: más intensos hacia la postura b (contracción); en los isométricos, un pulso suave. El tamaño no cambia.
+  // Rellenos con volumen: cada parte lleva un degradado de su color, más claro arriba a la izquierda (de donde viene la
+  // luz) y más oscuro abajo a la derecha; sigue a la forma en la animación sin costo.
+  for (const k of ['skin', 'skin2', 'shirt', 'shirt2', 'shorts', 'shorts2', 'shoe', 'shoe2']) defs += `<linearGradient id="g${uid}${k}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${tint(PAL[k], 0.24)}"/><stop offset=".45" stop-color="${PAL[k]}"/><stop offset="1" stop-color="${tint(PAL[k], -0.2)}"/></linearGradient>`;
+  const shade = (n, k) => `url(#g${uid}${k}${n === '2' ? '2' : ''})`;
+  const seg2 = (key, J, n) => { const s = segOf(key, J, n); return s && [prj(s[0]), prj(s[1]), s[2], s[3]]; };
+  const norm2 = ([p, q]) => { const [ux, uy] = unit(q[0] - p[0], q[1] - p[1]); return [-uy, ux]; };
+  // Geometría 2D de una parte: segmento, función de ancho (con los vientres hacia el lado que mira adelante) y puntas.
+  const geo = (key, J, n, extra = 0) => {
+    if (key === 'to') { const s = [prj(mix3(J.N, J.P, -0.08)), prj(mix3(J.N, J.P, 0.9))], m = norm2(s); return { s, w: (t) => halfWidth(J, lin(TO_SIDE, t), lin(TO_FWD, t), m), cap: [0.28, 0.35] }; }
+    if (key === 'pv') { const s = [prj(mix3(J.N, J.P, 0.7)), prj(mix3(J.N, J.P, 1.06))], m = norm2(s); return { s, w: (t) => halfWidth(J, 10.6 + 1.6 * t, 7.6 + 0.8 * t, m), cap: [0.2, 0.7] }; }
+    const s = seg2(key, J, n); if (!s) return null;
+    const pv = prjV(front3(f, key, J, n)), m = norm2(s), fac = pv[0] * m[0] + pv[1] * m[1], P = PROF[key];
+    return { s, w: (t, sd = 0) => lin(P.base, t) + extra + (sd * fac > 0 ? sd * fac * P.front(t) : -sd * fac * P.back(t)), cap: [0.9, 0.9] };
+  };
+  const limb = (key, n, t0 = 0, t1 = 1, extra = 0) => (J) => { const g = geo(key, J, n, extra); return g ? blob(limbPts(g.s[0], g.s[1], g.w, t0, t1, g.cap)) : ''; };
+  // Sombra del lado opuesto a la luz (o brillo del lado iluminado): se desvanece cuando el hueso apunta hacia la luz,
+  // así la sombra cambia de lado sin saltos entre fotogramas.
+  const rim = (key, n, t0 = 0, t1 = 1, extra = 0, lit = false) => (J) => {
+    const g = geo(key, J, n, extra); if (!g) return '';
+    const m = norm2(g.s), dl = m[0] * LS[0] + m[1] * LS[1];
+    const side = (dl > 0 ? -1 : 1) * (lit ? -1 : 1), k = Math.min(1, Math.abs(dl) * 1.4);
+    return blob(rimPts(g.s[0], g.s[1], g.w, side, k, t0, t1, lit ? 0.2 : 0.42));
+  };
+  const shadeOf = (key, n, t0, t1, extra) => path(rim(key, n, t0, t1, extra), `fill="${PAL.shade}"`);
+  const lightOf = (key, n, t0, t1, extra) => path(rim(key, n, t0, t1, extra, true), `fill="${PAL.light}"`);
+  const stroke = (fn, w, col = L, extra = '') => path(fn, `fill="none" stroke="${col}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round"${extra}`);
+  // Músculos iluminados: resplandor rojo que se funde con la piel, más intenso hacia la postura b (contracción); en los
+  // isométricos, un latido suave. El tamaño no cambia.
   const mus = muscles ? ex.mus || [] : [];
-  const glow = !animate ? '' : moving ? animV('opacity', ts.map((t) => r1(0.6 + 0.4 * t))) : '<animate attributeName="opacity" values=".65;1;.65" dur="2.4s" repeatCount="indefinite"/>';
-  // Un músculo oculto (ancho 0) se reduce a un punto, así no queda dibujado su borde.
+  const glow = !animate ? '' : moving ? animV('opacity', ts.map((t) => r1(0.55 + 0.45 * t))) : '<animate attributeName="opacity" values=".6;1;.6" dur="2.4s" repeatCount="indefinite"/>';
+  if (mus.length) defs += `<radialGradient id="mg${uid}"><stop offset="0" stop-color="#FF5A3C" stop-opacity=".95"/><stop offset=".45" stop-color="${PAL.muscle}" stop-opacity=".8"/><stop offset="1" stop-color="${PAL.muscle}" stop-opacity="0"/></radialGradient><radialGradient id="mg${uid}b"><stop offset="0" stop-color="#D33A2E" stop-opacity=".9"/><stop offset=".45" stop-color="#B81D24" stop-opacity=".75"/><stop offset="1" stop-color="#B81D24" stop-opacity="0"/></radialGradient>`;
+  // Un músculo oculto (ancho 0) se reduce a un punto, así no queda dibujado.
   const musOn = (keys, n) => mus.flatMap((m, j) => (MUS[m] || []).map((def) => [def, j === 0])).filter(([[k]]) => keys.includes(k))
     .map(([def, primary]) => { const Ps = patchesOver(f, def, FR, n, primary); return path((J, i) => {
       const P = Ps[i]; if (!P) return '';
-      const k = Math.min(1, P.w / 0.12), tm = (def[1] + def[2]) / 2;
-      return lens(P.s2, P.o, tm + (def[1] - tm) * k, tm + (def[2] - tm) * k, P.w);
-    },
-      `fill="${n === '2' ? '#B81D24' : PAL.muscle}" stroke="#9E1219" stroke-width=".7" stroke-linejoin="round" opacity=".9"`, glow); }).join('');
+      const k = Math.min(1, P.w / 0.12), tm = (def[1] + def[2]) / 2, w = Math.min(P.w * 1.3, 0.98 - Math.abs(P.o));
+      return lens(P.s2, P.o, tm + (def[1] - 0.04 - tm) * k, tm + (def[2] + 0.04 - tm) * k, w);
+    }, `fill="url(#mg${uid}${n === '2' ? 'b' : ''})"`, glow); }).join('');
 
   // ——— Partes del cuerpo ———
+  const sole = (n) => (J) => `M${pt2(prj(add3(J['F' + n], [0, -2.6, 0])))}L${pt2(prj(add3(J['T' + n], [0, -2.6, 0])))}`;
   const legParts = (n) => [
-    [seg('th', n), shade(n, 'skin')], [seg('sh', n), shade(n, 'skin')], [seg('th', n, 0, 0.45, 8.8, 7.6), shade(n, 'shorts')],
-    [(J) => capsule(prj(J['F' + n]), prj(J['T' + n]), 4.4, 3.6), shade(n, 'shoe')],
+    [limb('th', n), shade(n, 'skin')], [limb('sh', n), shade(n, 'skin')], [limb('th', n, -0.02, 0.46, 0.9), shade(n, 'shorts')],
+    [(J) => capsule(prj(J['F' + n]), prj(J['T' + n]), 4.6, 3.8), shade(n, 'shoe')],
   ];
-  const armParts = (n) => [[seg('ua', n), shade(n, 'skin')], [seg('fa', n), shade(n, 'skin')], [seg('ua', n, -0.05, 0.42, 6.6, 6.1), shade(n, 'shirt')]];
-  // Mano: puño redondo; si la postura trae la punta de la mano (G), una cápsula que gira en la muñeca.
-  const hand = (n) => path((J) => (J['G' + n] ? capsule(prj(J['W' + n]), prj(J['G' + n]), 3.4, 3.9) : J['W' + n] ? circlePath(prj(J['W' + n]), 3.9) : ''), `fill="${shade(n, 'skin')}" stroke="${L}" stroke-width="1.6" stroke-linejoin="round"`);
-  const torso = (J) => { const [p, q, ra, rb] = seg2('to', J); return capsule(p, q, ra, rb); };
-  const pelvis = (J) => {
-    const a = mix3(J.N, J.P, 0.8), [p, q] = [prj(a), prj(J.P)], [ux, uy] = unit(q[0] - p[0], q[1] - p[1]), m = [-uy, ux];
-    return capsule(p, q, halfWidth(J, 11, 7.5, m), halfWidth(J, 12, 8, m));
+  // Rótula: un óvalo chico sobre la rodilla, si mira a la cámara.
+  const kneeFw = (n) => A['K' + n] && front3(f, 'th', A, n);
+  // En las miniaturas (crop) no se dibujan los detalles finos (ruedos, rótula, suela, pulgar, pectorales): no se ven y pesan.
+  const legDecor = (n) => !detail ? '' : stroke((J) => { const g = geo('th', J, n); return g ? ringOn(mix3(J['Hp' + n], J['K' + n], 0.46), unit3(sub3(J['K' + n], J['Hp' + n])), g.w(0.46, 0) + 0.9) : ''; }, 1.3, shade(n, 'shorts2'))
+    + (kneeFw(n) && dot3(kneeFw(n), CAM.v) > 0.35 ? path((J) => circlePath(prj(add3(J['K' + n], scl3(front3(f, 'th', J, n), 4.6))), 1.9), `fill="${PAL.skin2}" opacity=".45"`) : '')
+    + stroke(sole(n), 2.4, PAL.shoe2);
+  const armParts = (n) => [[limb('ua', n), shade(n, 'skin')], [limb('fa', n), shade(n, 'skin')], [limb('ua', n, -0.08, 0.42, 0.9), shade(n, 'shirt')]];
+  const armDecor = (n) => !detail ? '' : stroke((J) => { const g = geo('ua', J, n); return g ? ringOn(mix3(J['S' + n], J['E' + n], 0.42), unit3(sub3(J['E' + n], J['S' + n])), g.w(0.42, 0) + 0.9) : ''; }, 1.3, shade(n, 'shirt2'));
+  // Mano: puño con pulgar; si la postura trae la punta de la mano (G), una cápsula que gira en la muñeca.
+  const hand = (n) => {
+    const fist = (J) => (J['G' + n] ? capsule(prj(J['W' + n]), prj(J['G' + n]), 3.6, 4) : J['W' + n] ? circlePath(prj(J['W' + n]), 4.2) : '');
+    const thumb = (J) => {
+      if (!J['W' + n]) return '';
+      const w = prj(J['W' + n]), e = prj(J['E' + n]), d = unit(w[0] - e[0], w[1] - e[1]);
+      let m = [-d[1], d[0]]; if (m[1] > 0) m = [-m[0], -m[1]];   // el pulgar queda arriba
+      const c = J['G' + n] ? mix(w, prj(J['G' + n]), 0.35) : [w[0] + d[0] * 1.2, w[1] + d[1] * 1.2];
+      return circlePath([c[0] + m[0] * 3.2, c[1] + m[1] * 3.2], 1.8);
+    };
+    return group([[fist, shade(n, 'skin')], ...(detail ? [[thumb, shade(n, 'skin')]] : [])]).replace(`stroke-width="${OW}"`, 'stroke-width="2.2"').replace(`stroke-width="${OW}"`, 'stroke-width="2.2"');
   };
+  const torso = limb('to', '1'), pelvis = limb('pv', '1');
+  // Detalles del torso: cuello de la remera, cintura del short, pectorales y abdomen (de frente) o columna (de espaldas).
+  const sp = (J, t, g, k = 1) => prj(add3(mix3(J.N, J.P, t), add3(scl3(J.fw, lin(TO_FWD, t) * Math.cos(g) * k), scl3(J.lat, lin(TO_SIDE, t) * Math.sin(g) * k))));
+  const facing = dot3(A.fw, CAM.v);
+  const torsoDecor = shadeOf('pv', '1') + shadeOf('to', '1') + lightOf('to', '1') + (!detail ? '' : stroke((J) => ring(mix3(J.N, J.P, 0.72), scl3(J.lat, 11), scl3(J.fw, 7.6)), 2.2, PAL.shorts2)
+    + stroke((J) => ring(add3(J.N, scl3(J.up, -2.5)), scl3(J.lat, 6.4), scl3(J.fw, 4.6)), 1.5, PAL.shirt2)
+    + (facing > 0.3 ? [-1, 1].map((k) => stroke((J) => `M${pt2(sp(J, 0.19, k * 0.8, 1.02))}Q${pt2(sp(J, 0.34, k * 0.42, 1.04))} ${pt2(sp(J, 0.31, k * 0.06, 1.03))}`, 1.1, PAL.shirt2, ' opacity=".7"')).join('')
+      + stroke((J) => `M${pt2(sp(J, 0.4, 0, 1.02))}L${pt2(sp(J, 0.7, 0, 1.02))}M${pt2(sp(J, 0.5, -0.3, 1.02))}L${pt2(sp(J, 0.5, 0.3, 1.02))}M${pt2(sp(J, 0.6, -0.27, 1.02))}L${pt2(sp(J, 0.6, 0.27, 1.02))}`, 1, PAL.shirt2, ' opacity=".5"') : '')
+    + (facing < -0.3 ? stroke((J) => `M${pt2(sp(J, 0.08, Math.PI, 1.02))}L${pt2(sp(J, 0.66, Math.PI, 1.02))}`, 1.1, PAL.shirt2, ' opacity=".6"')
+      + [-1, 1].map((k) => stroke((J) => `M${pt2(sp(J, 0.12, Math.PI + k * 0.75, 1.03))}Q${pt2(sp(J, 0.3, Math.PI + k * 0.5, 1.04))} ${pt2(sp(J, 0.36, Math.PI + k * 0.15, 1.03))}`, 1, PAL.shirt2, ' opacity=".55"')).join('') : ''));
 
   // Cabeza y cara: puntos sobre la cabeza en ejes adelante (a), arriba (b) y costado derecho (c).
   const HR = 10.6, fp = (J, a, b, c) => prj(add3(J.H, add3(scl3(J.fw, a), add3(scl3(J.up, b), scl3(J.lat, c)))));
   const faces = (a, b, c) => dot3(unit3(add3(scl3(A.fw, a), add3(scl3(A.up, b), scl3(A.lat, c)))), CAM.v) > 0.12;
-  const stroke = (fn, w) => path(fn, `fill="none" stroke="${L}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round"`);
-  const hair = (J) => {   // casquete: arco por arriba y atrás de la cabeza, de la nuca a la frente
+  // Óvalo de la cabeza (apenas más alto que ancho) en los ejes de pantalla del cuerpo.
+  const axes = (J) => { let u = prjV(J.up); u = Math.hypot(...u) < 0.2 ? [0, -1] : unit(...u); return [[-u[1] * HR * 0.98, u[0] * HR * 0.98], [u[0] * HR * 1.05, u[1] * HR * 1.05]]; };
+  const skull = (J) => { const [a, b] = axes(J); return ellipse(prj(J.H), a, b); };
+  const skullShade = (J) => {   // media luna abajo a la derecha (lado opuesto a la luz), dentro del óvalo
+    const [a, b] = axes(J), c = prj(J.H), D = [-LS[0], -LS[1]], g0 = Math.atan2(D[0] * b[0] + D[1] * b[1], D[0] * a[0] + D[1] * a[1]);
+    const P = Array.from({ length: 7 }, (_, i) => { const g = g0 - 1.3 + (2.6 * i) / 6, k = 0.93; return [c[0] + (a[0] * Math.cos(g) + b[0] * Math.sin(g)) * k, c[1] + (a[1] * Math.cos(g) + b[1] * Math.sin(g)) * k]; });
+    return blob([...P, ...P.map((p, i) => { const k = 0.64 + 0.3 * Math.abs(i - 3) / 3; return [c[0] + (p[0] - c[0]) * k, c[1] + (p[1] - c[1]) * k]; }).reverse()]);
+  };
+  const hair = (J) => {   // casquete: arco por arriba y atrás de la cabeza, de la nuca a la frente, con un mechón adelante
     // Visto de atrás (la cara mira lejos de la cámara) el pelo cubre casi toda la cabeza.
-    const c = prj(J.H), u = unit(...prjV(J.up)), fw = prjV(J.fw), h = unit(u[0] - fw[0] * 0.8, u[1] - fw[1] * 0.8), R = HR + 0.4;
+    const c = prj(J.H), u = unit(...prjV(J.up)), fw = prjV(J.fw), h = unit(u[0] - fw[0] * 0.8, u[1] - fw[1] * 0.8), R = HR + 0.6;
     const away = Math.max(0, -dot3(J.fw, CAM.v)), b0 = -1.85 - away * 0.9, f0 = 1.15 + away * 1.6;
     const at = (ang, r) => { const cs = Math.cos(ang), sn = Math.sin(ang); return [c[0] + (h[0] * cs - h[1] * sn) * r, c[1] + (h[0] * sn + h[1] * cs) * r]; };
-    return `M${pt2(at(b0, R))}A${R} ${R} 0 1 1 ${pt2(at(f0, R))}Q${pt2(at((b0 + f0) / 2 + Math.PI, HR * (0.3 + away * 0.5)))} ${pt2(at(b0, R))}Z`;
+    return `M${pt2(at(b0, R))}A${R} ${R} 0 1 1 ${pt2(at(f0, R))}Q${pt2(at(f0 + 0.2, R * 1.02))} ${pt2(at(f0 + 0.55, R * 0.6))}Q${pt2(at((b0 + f0) / 2 + Math.PI, HR * (0.3 + away * 0.5)))} ${pt2(at(b0, R))}Z`;
   };
   const ear = faces(0, 0, 1) ? [[(J) => circlePath(fp(J, 1.2, -1.8, HR - 0.4), 2.6), PAL.skin]] : [];
   const nose = faces(1, 0, 0) || dot3(A.fw, CAM.v) > -0.5 ? [[(J) => circlePath(fp(J, HR - 0.4, -0.8, 0), 2.2), PAL.skin]] : [];
+  // Ojos y cejas (bajan con el esfuerzo hacia la postura b), boca, nariz y oreja según hacia dónde mira la cara.
   const faceParts = [-1, 1].filter((k) => faces(0.9, 0.15, k * 0.36) && dot3(unit3(add3(scl3(A.fw, 0.9), add3(scl3(A.up, 0.15), scl3(A.lat, k * 0.36)))), CAM.v) > 0.42).map((k) =>
-    path((J) => circlePath(fp(J, 9.6, 1.6, k * 3.9), 1.4), `fill="${L}"`)
-    + stroke((J) => `M${pt2(fp(J, 9.6, 4.8, k * 2.2))}L${pt2(fp(J, 8.4, 5.1, k * 5.8))}`, 1.3)).join('')
+    path((J) => circlePath(fp(J, 9.6, 1.6, k * 3.9), 1.5), `fill="${L}"`)
+    + stroke((J, i) => `M${pt2(fp(J, 9.4, 4.4 - 1.1 * ts[i], k * 2.3))}L${pt2(fp(J, 8.8, 5.2, k * 5.7))}`, 1.3)).join('')
     + (faces(0.9, -0.4, 0) ? stroke((J) => `M${pt2(fp(J, 9.4, -4.6, -2.6))}Q${pt2(fp(J, 10.4, -6.6, 0))} ${pt2(fp(J, 9.4, -4.6, 2.6))}`, 1.2)
       + path((J) => circlePath(fp(J, HR + 0.6, -1.4, 0.3), 0.9), `fill="${PAL.skin2}"`) : '')
     + (ear.length ? stroke((J) => `M${pt2(fp(J, 2.2, 0.4, HR))}Q${pt2(fp(J, 0, -1, HR + 0.4))} ${pt2(fp(J, 2.2, -3.6, HR))}`, 1) : '');
   const head = group([
-    [(J) => capsule(prj(J.N), prj(mix3(J.N, J.H, 0.55)), 3.6, 3.6), PAL.skin], ...ear, ...nose,
-    [(J) => circlePath(prj(J.H), HR), PAL.skin], [hair, PAL.hair],
-  ], faceParts);
+    [(J) => capsule(prj(J.N), prj(mix3(J.N, J.H, 0.55)), 4.8, 4.4), shade('1', 'skin')], ...ear, ...nose,
+    [skull, shade('1', 'skin')], [hair, PAL.hair],
+  ], path(skullShade, `fill="${PAL.shade}"`), faceParts);
 
   // ——— Objetos (mancuernas, pesa rusa, aros, banda, toalla) ———
   const props = [];
@@ -344,38 +473,60 @@ function figureSVG(ex, { animate = true, size = '', crop = false, muscles = true
     const mirrored = f.a.W2 === undefined && !f.front && !f.z?.W && !f.one;
     if (p.at === 'W1' && mirrored && ['db', 'ring', 'band'].includes(p.t)) props.push({ ...p, at: 'W2' });
   }
-  const propsOf = (n) => props.filter((p) => p.at.slice(-1) === n).map((p) => propSVG(p, FR, ts, { path, group, animV, animate, front: !!f.front, dur }));
+  const ctxP = { path, group, animV, animate, front: !!f.front, dur };
+  const propsOf = (n) => props.filter((p) => p.at.slice(-1) === n).map((p) => propSVG(p, FR, ts, ctxP));
   const arm = (n) => {
     const ps = propsOf(n).filter((p) => !p.own);
-    return group(armParts(n), musOn(['ua', 'fa'], n)) + ps.map((p) => p.under).join('') + hand(n) + ps.map((p) => p.over).join('');
+    return group(armParts(n), armDecor(n), musOn(['ua', 'fa'], n)) + ps.map((p) => p.under).join('') + hand(n) + ps.map((p) => p.over).join('');
   };
 
   // Grupos ordenados por profundidad (promedio de los fotogramas).
   const zOf = (fn) => FR.reduce((s, J) => s + fn(J), 0) / FR.length;
   const avgD = (keys) => (J) => keys.filter((k) => J[k]).reduce((s, k, _, arr) => s + depth(J[k]) / arr.length, 0);
   const groups = [
-    { z: zOf(avgD(['N', 'P'])), svg: group([[pelvis, PAL.shorts], [torso, PAL.shirt]], musOn(['to'], '1')) },
+    { z: zOf(avgD(['N', 'P'])), svg: group([[pelvis, shade('1', 'shorts')], [torso, shade('1', 'shirt')]], torsoDecor, musOn(['to'], '1')) },
     { z: zOf((J) => depth(J.H)) + 4, svg: head },
     // La pesa rusa se ordena sola por su profundidad (la campana cuelga debajo del mango): de atrás queda tapada por el cuerpo.
     ...props.filter((p) => p.t === 'kb').map((p) => {
-      const n = p.at.slice(-1), c = (J) => { const w = p.mid ? mix3(J.W1, J.W2, 0.5) : J[p.at]; return [w[0], w[1] - 12, w[2]]; };
-      return { z: zOf((J) => depth(c(J))) - 1, svg: propSVG(p, FR, ts, { path, group, animV, animate, front: !!f.front, dur }).under };
+      const c = (J) => { const w = p.mid ? mix3(J.W1, J.W2, 0.5) : J[p.at]; return [w[0], w[1] - 12, w[2]]; };
+      return { z: zOf((J) => depth(c(J))) - 1, svg: propSVG(p, FR, ts, ctxP).under };
     }),
     ...['1', '2'].flatMap((n) => [
       { z: zOf(avgD(['S' + n, 'E' + n, 'W' + n])) + 2, svg: arm(n) },
-      { z: zOf(avgD(['Hp' + n, 'K' + n, 'F' + n])), svg: group(legParts(n), musOn(['th', 'sh'], n)) },
+      { z: zOf(avgD(['Hp' + n, 'K' + n, 'F' + n])), svg: group(legParts(n), legDecor(n), musOn(['th', 'sh'], n)) },
     ]),
   ].sort((a, b) => a.z - b.z);
 
-  // Piso: baldosa isométrica que abarca al personaje y la escena; sombra debajo del cuerpo.
+  // Piso: baldosa isométrica que abarca al personaje y la escena; sombra difusa debajo del cuerpo, que lo sigue.
   const pts3 = FR.flatMap((J) => ['N', 'P', 'H', 'S1', 'S2', 'E1', 'E2', 'W1', 'W2', 'G1', 'G2', 'K1', 'K2', 'F1', 'F2', 'T1', 'T2'].filter((k) => J[k]).map((k) => J[k]));
   const scene = (f.scene || []).map((s) => sceneBoxes(s, !!f.front, A));
   const sceneP = scene.flatMap((s) => s.pts);
   const xs = [...pts3, ...sceneP].map((p) => p[0]), zs = [...pts3, ...sceneP].map((p) => p[2]);
   const X0 = Math.min(...xs) - 18, X1 = Math.max(...xs) + 18, Z0 = Math.min(-26, ...zs) - 12, Z1 = Math.max(26, ...zs) + 12;
-  const floor = box([X0, X1], [-7, 0], [Z0, Z1], [PAL.floor, PAL.floor2, PAL.floor3], 'rgba(34,38,45,.18)');
-  const cx = (A.P[0] + (A.F1?.[0] ?? A.P[0])) / 2, sh = disc([cx, 0, 0], [0, 1, 0], 1);
-  const shadow = `<path d="${ellipse(sh[0], scl3(sh[1], 30).slice(0, 2), scl3(sh[2], 18).slice(0, 2))}" fill="${PAL.shadow}"/>`;
+  defs += `<radialGradient id="sg${uid}"><stop offset="0" stop-color="#262A31" stop-opacity=".22"/><stop offset=".6" stop-color="#262A31" stop-opacity=".12"/><stop offset="1" stop-color="#262A31" stop-opacity="0"/></radialGradient><linearGradient id="fg${uid}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#EEF0F3"/><stop offset="1" stop-color="#DCE0E5"/></linearGradient>`;
+  const floor = box([X0, X1], [-7, 0], [Z0, Z1], [`url(#fg${uid})`, PAL.floor2, PAL.floor3], 'rgba(34,38,45,.18)');
+  const shadow = path((J) => {
+    const F = J.F1 || J.P, c = [(J.P[0] + F[0]) / 2, 0, (J.P[2] + F[2]) / 2], k = 0.8 + 0.3 * Math.max(0, 1 - Math.max(0, J.P[1]) / 90), sh = disc(c, [0, 1, 0], 1);
+    return ellipse(sh[0], scl3([...sh[1], 0], 32 * k).slice(0, 2), scl3([...sh[2], 0], 19 * k).slice(0, 2));
+  }, `fill="url(#sg${uid})"`);
+
+  // Guía del recorrido: línea punteada por donde va la mano (o el pie, la cadera…) que más se mueve, con flecha en la
+  // postura b y un punto que la recorre al ritmo de la animación. Solo en la vista grande.
+  let guide = '';
+  if (!crop && moving && fr.B) {
+    let best = null;
+    for (const k of ['G1', 'W1', 'G2', 'W2', 'F2', 'K2', 'F1', 'K1', 'P', 'H']) {
+      if (!FR.every((J) => J[k])) continue;
+      const P = FR.map((J) => prj(J[k])), span = Math.max(...P.map((q) => Math.hypot(q[0] - P[0][0], q[1] - P[0][1])));
+      if (span > 6 && (!best || span > best.span * 1.15)) best = { P, span };
+    }
+    if (best) {
+      const P = best.P, d = blob(P, false), e = P[P.length - 1], [ux, uy] = unit(e[0] - P[P.length - 2][0], e[1] - P[P.length - 2][1]), m = [-uy, ux];
+      const tip = [e[0] + ux * 3, e[1] + uy * 3], arrow = `M${pt2(tip)}L${pt2([e[0] - ux * 2.6 + m[0] * 3.2, e[1] - uy * 2.6 + m[1] * 3.2])}L${pt2([e[0] - ux * 2.6 - m[0] * 3.2, e[1] - uy * 2.6 - m[1] * 3.2])}Z`;
+      const dot = animate ? `<circle r="2.7" cx="${r1(P[0][0])}" cy="${r1(P[0][1])}" fill="${PAL.guide}" stroke="#FFF" stroke-width="1.3">${animV('cx', P.map((q) => r1(q[0])))}${animV('cy', P.map((q) => r1(q[1])))}</circle>` : '';
+      guide = `<g class="guide"><path d="${d}" fill="none" stroke="#FFF" stroke-width="3.6" stroke-linecap="round" opacity=".6"/><path d="${d}" fill="none" stroke="${PAL.guide}" stroke-width="1.7" stroke-dasharray="2.6 3" stroke-linecap="round"/><circle cx="${r1(P[0][0])}" cy="${r1(P[0][1])}" r="1.8" fill="#FFF" stroke="${PAL.guide}" stroke-width="1.3"/><path d="${arrow}" fill="${PAL.guide}" stroke="#FFF" stroke-width="1" stroke-linejoin="round"/>${dot}</g>`;
+    }
+  }
 
   // Encuadre: miniaturas cuadradas alrededor del cuerpo; grande, 200×170 con el piso y la escena.
   const p2 = pts3.map(prj).concat(FR.map((J) => { const c = prj(J.H); return [c[0], c[1] - HR - 4]; }));
@@ -383,7 +534,7 @@ function figureSVG(ex, { animate = true, size = '', crop = false, muscles = true
   const bb = (ps) => [Math.min(...ps.map((q) => q[0])), Math.min(...ps.map((q) => q[1])), Math.max(...ps.map((q) => q[0])), Math.max(...ps.map((q) => q[1]))];
   let vb;
   if (crop) {
-    const [x0, y0, x1, y1] = bb(p2), side = Math.max(x1 - x0, y1 - y0) + 26, cxx = (x0 + x1) / 2, cyy = (y0 + y1) / 2;
+    const [x0, y0, x1, y1] = bb(p2), side = Math.max(x1 - x0, y1 - y0) + 28, cxx = (x0 + x1) / 2, cyy = (y0 + y1) / 2;
     vb = [cxx - side / 2, cyy - side / 2, side, side];
   } else {
     const [x0, y0, x1, y1] = bb([...p2, ...fl, ...sceneP.map(prj)]);
@@ -391,8 +542,8 @@ function figureSVG(ex, { animate = true, size = '', crop = false, muscles = true
     if (w / h > 200 / 170) h = (w * 170) / 200; else w = (h * 200) / 170;
     vb = [(x0 + x1) / 2 - w / 2, (y0 + y1) / 2 - h / 2, w, h];
   }
-  return `<svg class="fig ${size}" viewBox="${vb.map(r1).join(' ')}" role="img" aria-label="Ilustración: ${ex.name}">
-    ${floor}${shadow}${scene.map((s) => s.svg).join('')}${groups.map((g) => g.svg).join('')}</svg>`;
+  return `<svg class="fig ${size}" viewBox="${vb.map(r1).join(' ')}" role="img" aria-label="Ilustración: ${ex.name}"><defs>${defs}</defs>
+    ${floor}${shadow}${scene.map((s) => s.svg).join('')}${groups.map((g) => g.svg).join('')}${guide}</svg>`;
 }
 
 // Caja 3D [x], [y], [z] con las tres caras visibles (arriba, frente y costado) en tonos de un mismo color.
@@ -474,15 +625,15 @@ function propSVG(p, FR, ts, { path, group, animV, animate, front, dur }) {
       // Qué disco queda adelante; si cambia durante el giro, se alternan dos versiones (una visible por vez).
       const signs = FR.map((J) => (dot3(handleDir(grip, J, n, front), CAM.v) >= 0 ? 1 : -1));
       if (signs.every((x) => x === signs[0]) || !animate) return { under: `<g${extra}>${plate(-signs[0])}${bar}</g>`, over: `<g${extra}>${plate(signs[0])}</g>` };
-      const loopS = [...signs, ...signs.slice(0, -1).reverse()];
-      const show = (sg) => `<animate attributeName="opacity" calcMode="discrete" values="${loopS.map((x) => (x === sg ? 1 : 0)).join(';')}" dur="${dur}" repeatCount="indefinite"/>`;
+      const { values, keyTimes } = loopOf(signs);
+      const show = (sg) => `<animate attributeName="opacity" values="${values.map((x) => (x === sg ? 1 : 0)).join(';')}" ${timing(keyTimes, dur, 'discrete')}/>`;
       const both = (layer) => [1, -1].map((sg) => `<g opacity="${signs[0] === sg ? 1 : 0}">${show(sg)}${layer(sg)}</g>`).join('');
       return { under: both((sg) => plate(-sg) + bar), over: both((sg) => plate(sg)) };
     };
     if (Array.isArray(p.grip)) {
       // Cambio de agarre: una vista se desvanece mientras aparece la otra (en los isométricos, un ida y vuelta de 6 s).
-      const k = ts.length > 1 ? ts : [0, 0.5, 1, 0.5];
-      const fade = (inv) => (animate ? `<animate attributeName="opacity" values="${[...k, ...k.slice(0, -1).reverse()].map((t) => r1(inv ? 1 - t : t)).join(';')}" dur="6s" repeatCount="indefinite"/>` : '');
+      const { values, keyTimes } = loopOf(ts.length > 1 ? ts : [0, 0.5, 1]);
+      const fade = (inv) => (animate ? `<animate attributeName="opacity" values="${values.map((t) => r1(inv ? 1 - t : t)).join(';')}" ${timing(keyTimes, '6s')}/>` : '');
       const [g1, g2] = [one(p.grip[0], ` opacity="1"`), one(p.grip[1], ` opacity="0"`)];
       const inject = (s, inv) => s.replace('>', `>${fade(inv)}`);
       return { under: inject(g1.under, true) + inject(g2.under, false), over: inject(g1.over, true) + inject(g2.over, false) };
@@ -511,7 +662,7 @@ function propSVG(p, FR, ts, { path, group, animV, animate, front, dur }) {
       return `M${pt2(a2)}L${pt2(c)}M${pt2([c[0] + m[0] * 4.5, c[1] + m[1] * 4.5])}L${pt2(b2)}L${pt2([c[0] - m[0] * 4.5, c[1] - m[1] * 4.5])}Z`;
     };
     const pulse = animate ? '<animate attributeName="opacity" values=".35;1;.35" dur="1.2s" repeatCount="indefinite"/>' : '';
-    return { under: '', over: `<g>${pulse}${path(head, `fill="${L}" stroke="${L}" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"`)}${path(head, 'fill="#FF6B2C" stroke="#FF6B2C" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"')}</g>` };
+    return { under: '', over: `<g>${pulse}${path(head, `fill="${L}" stroke="${L}" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"`)}${path(head, `fill="${PAL.guide}" stroke="${PAL.guide}" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"`)}</g>` };
   }
   if (p.t === 'ring') {
     const top = (J) => prj([J[p.at][0], 175, J[p.at][2]]);
