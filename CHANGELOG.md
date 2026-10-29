@@ -2,6 +2,10 @@
 
 Todos los cambios de XZ Fit, del más nuevo al más viejo.
 
+## 1.31.5 — Muñeco sin costuras
+
+- El muñeco ya no tiene líneas que lo cortan en las uniones: desaparecieron las rayas donde la remera se junta con los brazos, el borde del short sobre los muslos y la línea de la entrepierna. El contorno de afuera y las separaciones entre brazos o piernas que se cruzan siguen igual.
+
 ## 1.31.4 — Flexiones en pica, de nuevo
 
 - El dibujo de las flexiones en pica se rehízo: el cuerpo forma una V invertida amplia, con las piernas estiradas, las manos lejos de los pies y una línea recta de la cadera a las manos. Al bajar, la cabeza va hacia el piso por delante de las manos. Antes los pies quedaban muy cerca de las manos y el cuerpo se veía encogido.

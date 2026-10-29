@@ -199,10 +199,10 @@ const TO_SIDE = [[0, 14.2], [0.15, 13.6], [0.4, 12.2], [0.65, 10.4], [0.85, 10.8
 const STA = [0, 0.2, 0.45, 0.72, 1];   // estaciones a lo largo del hueso
 // Contorno de un miembro de p a q (2D) con medio ancho w(t, lado) (lado +1 sobre la normal, −1 el otro, 0 el promedio),
 // entre t0 y t1, con puntas redondeadas (cap: cuánto sobresalen, en radios). 16 puntos, siempre los mismos.
-function limbPts(p, q, w, t0 = 0, t1 = 1, cap = [0.9, 0.9]) {
+function limbPts(p, q, w, t0 = 0, t1 = 1, cap = [0.9, 0.9], pad = 0) {
   const [ux, uy] = unit(q[0] - p[0], q[1] - p[1]), n = [-uy, ux];
   const at = (t, s) => { const c = mix(p, q, t), r = w(t, s) * s; return [c[0] + n[0] * r, c[1] + n[1] * r]; };
-  const tip = (t, k, s) => { const c = mix(p, q, t), r = w(t, 0), a = k * (s ? 0.7 : 1) * r, b = s ? 0.75 * r * s : 0; return [c[0] + ux * a + n[0] * b, c[1] + uy * a + n[1] * b]; };
+  const tip = (t, k, s) => { const c = mix(p, q, t), r = w(t, 0), a = k * (s ? 0.7 : 1) * r + Math.sign(k) * pad, b = s ? 0.75 * r * s : 0; return [c[0] + ux * a + n[0] * b, c[1] + uy * a + n[1] * b]; };
   const st = STA.map((t) => t0 + (t1 - t0) * t);
   return [tip(t0, -cap[0], 0), tip(t0, -cap[0], 1), ...st.map((t) => at(t, 1)), tip(t1, cap[1], 1), tip(t1, cap[1], 0), tip(t1, cap[1], -1), ...st.slice().reverse().map((t) => at(t, -1)), tip(t0, -cap[0], -1)];
 }
@@ -353,11 +353,18 @@ function figureSVG(ex, { animate = true, size = '', crop = false, muscles = true
   const shape = (fn) => { const ds = FR.map(fn); if (!ds[0]) return null; const id = `p${uid}-${pid++}`; defs += `<path id="${id}" d="${ds[0]}">${animV('d', ds)}</path>`; return id; };
   // Una sola silueta por grupo: primero todas las formas engrosadas en color de línea, después los rellenos sin borde,
   // después sombras y detalles (decor) y por último los músculos (over).
-  const group = (parts, decor = '', over = '') => {
-    const ids = parts.map(([fn]) => shape(fn));
+  // Una parte puede venir ya definida (id) para repintarla en las uniones; patch va entre el contorno y los rellenos.
+  const group = (parts, decor = '', over = '', patch = '') => {
+    const ids = parts.map(([fn]) => (typeof fn === 'string' || fn === null ? fn : shape(fn)));
     return ids.map((id) => id && `<use href="#${id}" fill="${L}" stroke="${L}" stroke-width="${OW}" stroke-linejoin="round"/>`).join('')
-      + ids.map((id, i) => id && `<use href="#${id}" fill="${parts[i][1]}"/>`).join('') + decor + over;
+      + patch + ids.map((id, i) => id && `<use href="#${id}" fill="${parts[i][1]}"/>`).join('') + decor + over;
   };
+  const fill = (id, col) => (id ? `<use href="#${id}" fill="${col}"/>` : '');
+  const clipOf = (fns) => { const id = `c${uid}-${pid++}`; defs += `<clipPath id="${id}">${fns.map((fn) => path(fn, '')).join('')}</clipPath>`; return id; };
+  // Uniones sin costura: dentro de la silueta de una parte (con su contorno) y cerca de las articulaciones se repinta,
+  // antes de su relleno, lo que tiene al lado (torso, short, manga), así el contorno no corta el cuerpo en el hombro,
+  // la cintura ni la entrepierna.
+  const joinPatch = (own, joints, r, content) => !content ? '' : `<g clip-path="url(#${clipOf(joints.map((k) => (J) => (J[k] ? circlePath(prj(J[k]), r) : '')))})"><g clip-path="url(#${clipOf(own)})">${content}</g></g>`;
   // Rellenos con volumen: cada parte lleva un degradado de su color, más claro arriba a la izquierda (de donde viene la
   // luz) y más oscuro abajo a la derecha; sigue a la forma en la animación sin costo.
   for (const k of ['skin', 'skin2', 'shirt', 'shirt2', 'shorts', 'shorts2', 'shoe', 'shoe2']) defs += `<linearGradient id="g${uid}${k}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${tint(PAL[k], 0.24)}"/><stop offset=".45" stop-color="${PAL[k]}"/><stop offset="1" stop-color="${tint(PAL[k], -0.2)}"/></linearGradient>`;
@@ -366,16 +373,18 @@ function figureSVG(ex, { animate = true, size = '', crop = false, muscles = true
   const norm2 = ([p, q]) => { const [ux, uy] = unit(q[0] - p[0], q[1] - p[1]); return [-uy, ux]; };
   // Geometría 2D de una parte: segmento, función de ancho (con los vientres hacia el lado que mira adelante) y puntas.
   const geo = (key, J, n, extra = 0) => {
-    if (key === 'to') { const s = [prj(mix3(J.N, J.P, -0.08)), prj(mix3(J.N, J.P, 0.9))], m = norm2(s); return { s, w: (t) => halfWidth(J, lin(TO_SIDE, t), lin(TO_FWD, t), m), cap: [0.28, 0.35] }; }
+    if (key === 'to') { const s = [prj(mix3(J.N, J.P, -0.08)), prj(mix3(J.N, J.P, 0.9))], m = norm2(s); return { s, w: (t) => halfWidth(J, lin(TO_SIDE, t), lin(TO_FWD, t), m) + extra, cap: [0.28, 0.35] }; }
     if (key === 'pv') {   // pelvis: abulta hacia atrás (glúteos), de frente queda plana
       const s = [prj(mix3(J.N, J.P, 0.7)), prj(mix3(J.N, J.P, 1.04))], m = norm2(s), bk = prjV(scl3(J.fw, -1)), fac = bk[0] * m[0] + bk[1] * m[1], glute = bump(0.72, 0.28, 2.6);
-      return { s, w: (t, sd = 0) => halfWidth(J, 10.6 + 1.6 * t, 7.4 + 0.6 * t, m) + (sd * fac > 0 ? sd * fac * glute(t) : 0), cap: [0.2, 0.42] };
+      return { s, w: (t, sd = 0) => halfWidth(J, 10.6 + 1.6 * t, 7.4 + 0.6 * t, m) + extra + (sd * fac > 0 ? sd * fac * glute(t) : 0), cap: [0.2, 0.42] };
     }
     const s = seg2(key, J, n); if (!s) return null;
     const pv = prjV(front3(f, key, J, n)), m = norm2(s), fac = pv[0] * m[0] + pv[1] * m[1], P = PROF[key];
     return { s, w: (t, sd = 0) => lin(P.base, t) + extra + (sd * fac > 0 ? sd * fac * P.front(t) : -sd * fac * P.back(t)), cap: [0.9, 0.9] };
   };
-  const limb = (key, n, t0 = 0, t1 = 1, extra = 0) => (J) => { const g = geo(key, J, n, extra); return g ? blob(limbPts(g.s[0], g.s[1], g.w, t0, t1, g.cap)) : ''; };
+  const limb = (key, n, t0 = 0, t1 = 1, extra = 0, pad = 0) => (J) => { const g = geo(key, J, n, extra + pad); return g ? blob(limbPts(g.s[0], g.s[1], g.w, t0, t1, g.cap, pad)) : ''; };
+  // La misma parte agrandada lo que sobresale el contorno (para recortar).
+  const outer = (key, n, t0, t1, extra = 0) => limb(key, n, t0, t1, extra, OW / 2);
   // Sombra del lado opuesto a la luz (o brillo del lado iluminado): se desvanece cuando el hueso apunta hacia la luz,
   // así la sombra cambia de lado sin saltos entre fotogramas.
   const rim = (key, n, t0 = 0, t1 = 1, extra = 0, lit = false) => (J) => {
@@ -403,7 +412,7 @@ function figureSVG(ex, { animate = true, size = '', crop = false, muscles = true
   // ——— Partes del cuerpo ———
   const sole = (n) => (J) => `M${pt2(prj(add3(J['F' + n], [0, -2.6, 0])))}L${pt2(prj(add3(J['T' + n], [0, -2.6, 0])))}`;
   const legParts = (n) => [
-    [limb('th', n), shade(n, 'skin')], [limb('sh', n), shade(n, 'skin')], [limb('th', n, -0.02, 0.46, 0.9), shade(n, 'shorts')],
+    [limb('th', n), shade(n, 'skin')], [limb('sh', n), shade(n, 'skin')], [core['th' + n], shade(n, 'shorts')],
     [(J) => capsule(prj(J['F' + n]), prj(J['T' + n]), 4.6, 3.8), shade(n, 'shoe')],
   ];
   // Rótula: un óvalo chico sobre la rodilla, si mira a la cámara.
@@ -412,7 +421,7 @@ function figureSVG(ex, { animate = true, size = '', crop = false, muscles = true
   const legDecor = (n) => !detail ? '' : stroke((J) => { const g = geo('th', J, n); return g ? ringOn(mix3(J['Hp' + n], J['K' + n], 0.46), unit3(sub3(J['K' + n], J['Hp' + n])), g.w(0.46, 0) + 0.9) : ''; }, 1.3, shade(n, 'shorts2'))
     + (kneeFw(n) && dot3(kneeFw(n), CAM.v) > 0.35 ? path((J) => circlePath(prj(add3(J['K' + n], scl3(front3(f, 'th', J, n), 4.6))), 1.9), `fill="${PAL.skin2}" opacity=".45"`) : '')
     + stroke(sole(n), 2.4, PAL.shoe2);
-  const armParts = (n) => [[limb('ua', n), shade(n, 'skin')], [limb('fa', n), shade(n, 'skin')], [limb('ua', n, -0.08, 0.42, 0.9), shade(n, 'shirt')]];
+  const armParts = (n) => [[limb('ua', n), shade(n, 'skin')], [limb('fa', n), shade(n, 'skin')], [core['ua' + n], shade(n, 'shirt')]];
   const armDecor = (n) => !detail ? '' : stroke((J) => { const g = geo('ua', J, n); return g ? ringOn(mix3(J['S' + n], J['E' + n], 0.42), unit3(sub3(J['E' + n], J['S' + n])), g.w(0.42, 0) + 0.9) : ''; }, 1.3, shade(n, 'shirt2'));
   // Mano: puño con pulgar; si la postura trae la punta de la mano (G), una cápsula que gira en la muñeca.
   const hand = (n) => {
@@ -434,6 +443,10 @@ function figureSVG(ex, { animate = true, size = '', crop = false, muscles = true
     return group([[fist, shade(n, 'skin')], ...(detail && !f.palm ? [[thumb, shade(n, 'skin')]] : [])]).replace(`stroke-width="${OW}"`, 'stroke-width="2.2"').replace(`stroke-width="${OW}"`, 'stroke-width="2.2"') + marks;
   };
   const torso = limb('to', '1'), pelvis = limb('pv', '1');
+  // Torso, short y mangas se definen una vez: se usan en su grupo y para tapar el contorno en las uniones.
+  const core = { pv: shape(pelvis), to: shape(torso) };
+  for (const n of ['1', '2']) { core['th' + n] = shape(limb('th', n, -0.02, 0.46, 0.9)); core['ua' + n] = shape(limb('ua', n, -0.08, 0.42, 0.9)); }
+  const coreFill = fill(core.pv, shade('1', 'shorts')) + fill(core.to, shade('1', 'shirt')) + shadeOf('to', '1') + lightOf('to', '1');
   // Detalles del torso: cuello de la remera, cintura del short, pectorales y abdomen (de frente) o columna (de espaldas).
   const sp = (J, t, g, k = 1) => prj(add3(mix3(J.N, J.P, t), add3(scl3(J.fw, lin(TO_FWD, t) * Math.cos(g) * k), scl3(J.lat, lin(TO_SIDE, t) * Math.sin(g) * k))));
   const facing = dot3(A.fw, CAM.v);
@@ -489,14 +502,14 @@ function figureSVG(ex, { animate = true, size = '', crop = false, muscles = true
   const propsOf = (n) => props.filter((p) => p.at.slice(-1) === n).map((p) => propSVG(p, FR, ts, ctxP));
   const arm = (n) => {
     const ps = propsOf(n).filter((p) => !p.own);
-    return group(armParts(n), armDecor(n), musOn(['ua', 'fa'], n)) + ps.map((p) => p.under).join('') + hand(n) + ps.map((p) => p.over).join('');
+    return group(armParts(n), armDecor(n), musOn(['ua', 'fa'], n), joinPatch([outer('ua', n, -0.08, 0.6, 0.9)], ['S' + n], 12, coreFill)) + ps.map((p) => p.under).join('') + hand(n) + ps.map((p) => p.over).join('');
   };
 
   // Grupos ordenados por profundidad (promedio de los fotogramas).
   const zOf = (fn) => FR.reduce((s, J) => s + fn(J), 0) / FR.length;
   const avgD = (keys) => (J) => keys.filter((k) => J[k]).reduce((s, k, _, arr) => s + depth(J[k]) / arr.length, 0);
   const groups = [
-    { z: zOf(avgD(['N', 'P'])), svg: group([[pelvis, shade('1', 'shorts')], [torso, shade('1', 'shirt')]], torsoDecor, musOn(['to'], '1')) },
+    { z: zOf(avgD(['N', 'P'])), svg: group([[core.pv, shade('1', 'shorts')], [core.to, shade('1', 'shirt')]], torsoDecor, musOn(['to'], '1'), joinPatch([outer('pv', '1', 0, 1), outer('to', '1', 0, 1)], ['Hp1', 'Hp2', 'S1', 'S2'], 14, ['1', '2'].map((n) => fill(core['th' + n], shade(n, 'shorts')) + fill(core['ua' + n], shade(n, 'shirt'))).join(''))) },
     { z: zOf((J) => depth(J.H)) + 4, svg: head },
     // La pesa rusa se ordena sola por su profundidad (la campana cuelga debajo del mango): de atrás queda tapada por el cuerpo.
     ...props.filter((p) => p.t === 'kb').map((p) => {
@@ -505,7 +518,7 @@ function figureSVG(ex, { animate = true, size = '', crop = false, muscles = true
     }),
     ...['1', '2'].flatMap((n) => [
       { z: zOf(avgD(['S' + n, 'E' + n, 'W' + n])) + 2, svg: arm(n) },
-      { z: zOf(avgD(['Hp' + n, 'K' + n, 'F' + n])), svg: group(legParts(n), legDecor(n), musOn(['th', 'sh'], n)) },
+      { z: zOf(avgD(['Hp' + n, 'K' + n, 'F' + n])), svg: group(legParts(n), legDecor(n), musOn(['th', 'sh'], n), joinPatch([outer('th', n, -0.02, 0.46, 0.9)], ['Hp' + n], 22, fill(core['th' + (n === '1' ? '2' : '1')], shade(n === '1' ? '2' : '1', 'shorts')) + coreFill)) },
     ]),
   ].sort((a, b) => a.z - b.z);
 
