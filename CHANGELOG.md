@@ -2,6 +2,10 @@
 
 Todos los cambios de XZ Fit, del más nuevo al más viejo.
 
+## 1.32.2 — Manos sin costuras
+
+- Las manos ya no tienen rayas negras por dentro, igual que los hombros y la ingle. En la muñeca el antebrazo se repinta sobre la base de la mano, así no queda la línea de la unión (en todos los ejercicios). En los de muñeca, el contorno de los dedos se dibuja junto con el de la palma y los rellenos tapan las uniones: no queda la raya negra en la base de los dedos.
+
 ## 1.32.1 — Palma clara en la vista grande y lupa con volumen
 
 - En los ejercicios de muñeca la cámara mira más desde arriba, así se ve la cara de la mano. Con la palma abajo se ve el dorso con los nudillos y los dedos quedan escondidos debajo del mango (antes se dibujaban encima y la mano parecía igual que con la palma arriba). Con la palma arriba se ve la palma con el mango apoyado y las uñas en las puntas de los dedos que lo rodean.

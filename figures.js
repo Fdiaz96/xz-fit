@@ -437,7 +437,7 @@ function figureSVG(ex, { animate = true, size = '', crop = false, muscles = true
     // así se ve de un vistazo si la palma mira arriba (palma clara, dedos cerrándose por encima del mango) o abajo
     // (dorso con nudillos, dedos bajando por delante del mango).
     const lines = (fn, w, col, extra = '') => stroke(fn, w, col, extra);
-    let marks = '', fingers = '', back = '', body = fist;
+    let marks = '', fingers = '', back = '', seam = '', body = fist;
     if (f.palm && A['G' + n] && detail) {
       const grip = (f.props || []).find((q) => q.t === 'db')?.grip;
       // Ejes: d de la muñeca a la punta, h a lo ancho (a lo largo del mango), s hacia el lado de la palma.
@@ -454,20 +454,26 @@ function figureSVG(ex, { animate = true, size = '', crop = false, muscles = true
       const finger = (J, y) => { const { at } = H(J); return blob([at(0.6, y, 0), at(0.9, y * 1.02, 1), at(0.98, y, 3.4), at(0.84, y * 0.96, 5.6)], false); };
       const thumbL = (J) => { const { at, th } = H(J); return blob([at(0.12, th * 3, 0.6), at(0.38, th * 3.9, 2), at(0.56, th * 3, 4.4)], false); };
       body = (J) => { const { at } = H(J); return blob([at(-0.06, 0, 0), at(0, 2.7, 0), at(0.35, 3.3, 0), at(0.66, 3.2, 0), at(0.7, 0, 0), at(0.66, -3.2, 0), at(0.35, -3.3, 0), at(0, -2.7, 0)]); };
-      // Como un solo bloque: primero el contorno de todos los dedos, después los rellenos y las rayas entre dedos.
-      const bundle = (digits, sep) => digits.map(([fn, w]) => lines(fn, w + 2.2, L)).join('') + digits.map(([fn, w]) => lines(fn, w, shade(n, 'skin'))).join('')
-        + lines((J) => [-1.6, 0, 1.6].map((y) => sep(J, y)).join(''), 0.7, PAL.skin2);
+      // Como un solo bloque: primero el contorno de todos los dedos, después los rellenos y las rayas entre dedos. Los
+      // dedos que se ven van con la mano: su contorno se dibuja junto con el de la palma (seam) y los rellenos tapan las
+      // uniones, así no queda una raya negra en la base de los dedos.
+      const outl = (digits) => digits.map(([fn, w]) => lines(fn, w + 2.2, L)).join('');
+      const fills = (digits, sep) => digits.map(([fn, w]) => lines(fn, w, shade(n, 'skin'))).join('') + lines((J) => [-1.6, 0, 1.6].map((y) => sep(J, y)).join(''), 0.7, PAL.skin2);
+      const bundle = (digits, sep) => outl(digits) + fills(digits, sep);
       const digits = [[thumbL, 2.6], ...FY.map((y) => [(J) => finger(J, y), 2.3])];
       if (f.palm === 'down') {
         // Palma abajo: los dedos se cierran por debajo del mango y quedan detrás de él (back va antes que la pesa); arriba
         // se ve el dorso y el primer tramo de los dedos, que termina en la fila de nudillos doblados, con brillo.
         const top = (J, y) => { const { at } = H(J); return blob([at(0.6, y, 0), at(0.88, y * 1.02, 0.5), at(0.97, y, 1.8)], false); };
         back = bundle(digits, finger);
-        fingers = bundle(FY.map((y) => [(J) => top(J, y), 2.3]), top)
+        const tops = FY.map((y) => [(J) => top(J, y), 2.3]);
+        seam = outl(tops);
+        fingers = fills(tops, top)
           + FY.map((y) => path((J) => circlePath(H(J).at(0.64, y, -0.5), 1.25), `fill="${PAL.skin2}"`)).join('');
       } else {
         // Palma arriba: los dedos rodean el mango por encima y sus puntas vuelven hacia la muñeca: se ven las uñas.
-        fingers = bundle(digits, finger) + FY.map((y) => path((J) => circlePath(H(J).at(0.88, y * 0.97, 5.2), 0.95), `fill="#FFF3EC" stroke="${PAL.skin2}" stroke-width=".6"`)).join('');
+        seam = outl(digits);
+        fingers = fills(digits, finger) + FY.map((y) => path((J) => circlePath(H(J).at(0.88, y * 0.97, 5.2), 0.95), `fill="#FFF3EC" stroke="${PAL.skin2}" stroke-width=".6"`)).join('');
       }
       marks = f.palm === 'up'
         // palma clara, con el pliegue de la base del pulgar y el de los dedos
@@ -480,7 +486,9 @@ function figureSVG(ex, { animate = true, size = '', crop = false, muscles = true
       const ax = (J) => { const w = prj(J['W' + n]), g = prj(J['G' + n]), len = Math.hypot(g[0] - w[0], g[1] - w[1]), d = unit(g[0] - w[0], g[1] - w[1]), p = [-d[1], d[0]]; return { len, at: (x, y) => [w[0] + d[0] * x + p[0] * y, w[1] + d[1] * x + p[1] * y] }; };
       marks = lines((J) => { const { at, len } = ax(J); return [-1.7, 0, 1.7].map((s) => `M${pt2(at(0.5 * len, s * 0.9))}L${pt2(at(1.05 * len, s))}`).join('') + `M${pt2(at(0.45 * len, -3.4))}Q${pt2(at(0.4 * len, 0))} ${pt2(at(0.45 * len, 3.4))}`; }, 0.9, PAL.skin2);
     }
-    return { body: group([[body, shade(n, 'skin')], ...(detail && (!f.palm || !A['G' + n]) ? [[thumb, shade(n, 'skin')]] : [])]).replace(`stroke-width="${OW}"`, 'stroke-width="2.2"').replace(`stroke-width="${OW}"`, 'stroke-width="2.2"') + marks, fingers, back };
+    // En la muñeca se repinta el antebrazo (sin contorno) sobre la base de la mano: no queda la raya de la unión.
+    const wrist = detail && A['W' + n] ? joinPatch([limb('fa', n)], ['W' + n], 4, path(limb('fa', n), `fill="${shade(n, 'skin')}"`)) : '';
+    return { body: group([[body, shade(n, 'skin')], ...(detail && (!f.palm || !A['G' + n]) ? [[thumb, shade(n, 'skin')]] : [])], '', '', seam).replace(`stroke-width="${OW}"`, 'stroke-width="2.2"').replace(`stroke-width="${OW}"`, 'stroke-width="2.2"') + wrist + marks, fingers, back };
   };
   const torso = limb('to', '1'), pelvis = limb('pv', '1');
   // Torso, short y mangas se definen una vez: se usan en su grupo y para tapar el contorno en las uniones.
