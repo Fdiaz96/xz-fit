@@ -2,6 +2,10 @@
 
 Todos los cambios de XZ Fit, del más nuevo al más viejo.
 
+## 1.31.4 — Flexiones en pica, de nuevo
+
+- El dibujo de las flexiones en pica se rehízo: el cuerpo forma una V invertida amplia, con las piernas estiradas, las manos lejos de los pies y una línea recta de la cadera a las manos. Al bajar, la cabeza va hacia el piso por delante de las manos. Antes los pies quedaban muy cerca de las manos y el cuerpo se veía encogido.
+
 ## 1.31.3 — Cinco dibujos revisados
 
 - **Excéntrico de muñeca**: ahora se entiende. Arranca con la mano arriba y la otra mano ayudando a subirla, y baja sola, despacio, con la palma hacia abajo. La flecha marca la bajada, que es la parte que cuenta. Se ve de cerca, como los otros ejercicios de muñeca.

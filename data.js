@@ -317,7 +317,9 @@ Object.assign(EXERCISES, {
   pica: {
     name: 'Flexiones en pica', kind: 'reps', impl: 'bw', cat: 'empuje', tag: ['hombro', 'muneca'],
     cues: ['Manos y pies en el piso, cadera bien alta: el cuerpo forma una V invertida.', 'Doblá los codos llevando la cabeza hacia el piso, entre las manos.', 'Más difícil: con los pies en una silla.'],
-    fig: { a: { N: [120, 111], P: [92, 82], E1: [124, 128], W1: [132, 148], K1: [82, 113], F1: [75, 146], T1: [66, 150] }, b: { N: [122, 125], P: [100, 92], E1: [111.1, 138.6], K1: [86, 118] }, dur: 2.4, cam: 35 },
+    // V invertida amplia: piernas estiradas, manos lejos de los pies y una línea recta de la cadera a las manos; al bajar
+    // la cabeza va hacia el piso por delante de las manos.
+    fig: { a: { N: [127, 119], P: [100, 90], E1: [141.6, 134.7], W1: [156, 150], K1: [88, 118], F1: [75, 147], T1: [67, 150] }, b: { N: [134, 127], P: [100, 96], E1: [136, 144], K1: [86, 121] }, dur: 2.4, cam: 25, pitch: 20 },
   },
   flex_declinadas: {
     name: 'Flexiones con los pies en una silla', kind: 'reps', impl: 'bw', cat: 'empuje', tag: ['hombro', 'muneca'],
