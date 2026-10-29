@@ -529,7 +529,18 @@ ok((await page.locator('#sumsheet').textContent()).includes('kg levantados') && 
 await shot('18-resumen');
 await click('#sumsheet [data-action="close"]');
 ok((await page.locator('#view-home .week .dots i.on').count()) === 1, 'Inicio muestra 1 entreno hecho esta semana');
-ok((await page.locator('#view-home .today .day-msg').textContent()).includes('Entreno de hoy hecho'), 'después del primer entreno vuelven los mensajes de siempre');
+ok((await page.locator('#view-home .today.rest .rest-title').textContent()) === 'Hoy ya entrenaste' && (await page.locator('#view-home .today.rest .rest-sum').textContent()).includes('2 series'), 'después de entrenar, Hoy dice "Hoy ya entrenaste" con un resumen chico');
+await shot('05a-inicio-ya-entrenaste');
+ok(await page.locator('#view-home .today .cta[data-action="start-workout"]').count() === 0 && (await page.locator('#view-home .today button.sec[data-action="start-workout"]').textContent()) === 'Entrenar igual' && await page.locator('#view-home .today .next-list:not([open])').count() === 1, 'ya entrenado: sin botón grande, "Entrenar igual" secundario y la lista plegada');
+{
+  // "Próximo" con el día que toca: mañana, el día de la semana o nada si no hay días marcados
+  ok(await page.evaluate(() => { const r = [...S.rem.train]; S.rem.train = [weekdayKey(addDays(today(), 1))]; render(); const x = document.querySelector('#view-home .next-when').textContent; S.rem.train = [weekdayKey(addDays(today(), 3))]; render(); const y = document.querySelector('#view-home .next-when').textContent, want = parseDay(addDays(today(), 3)).toLocaleDateString('es', { weekday: 'long' }); S.rem.train = r; render(); return x === 'Próximo, mañana' && y === `Próximo, el ${want}`; }), 'ya entrenado: "Próximo, mañana" o "Próximo, el <día>" según los días del plan');
+  await page.evaluate(() => { window.__restBk = JSON.stringify({ sessions: S.sessions, train: S.rem.train }); S.sessions.forEach((x) => { x.date = addDays(x.date, -1); }); S.rem.train = [weekdayKey(addDays(today(), 2))]; render(); });
+  ok((await page.locator('#view-home .today.rest .rest-title').textContent()) === 'Hoy descansás' && (await page.locator('#view-home .today button.sec[data-action="start-workout"]').textContent()) === 'Empezar igual' && (await page.locator('#view-home .next-when').textContent()).startsWith('Próximo, el '), 'día fuera del plan: "Hoy descansás", el próximo con su día y "Empezar igual" secundario');
+  await shot('05b-inicio-descanso');
+  if (SHOTS) { await page.evaluate(() => { document.documentElement.dataset.theme = 'light'; }); await shot('05c-inicio-descanso-claro'); await page.evaluate(() => { applyTheme(); }); }
+  await page.evaluate(() => { const b = JSON.parse(window.__restBk); S.sessions = b.sessions; S.rem.train = b.train; render(); });
+}
 ok(s.lifts.goblet && s.lifts.goblet.w === 12, 'el goblet queda calibrado');
 ok(s.plan.pos === 1, 'el próximo entreno es el B (Día B)');
 

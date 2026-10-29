@@ -43,6 +43,16 @@ a { color: var(--acc-fg); }
 .today .day-name { font-size: clamp(64px, 24vw, 104px); line-height: .88; font-weight: 700; text-transform: uppercase; letter-spacing: -.01em; padding-top: .14em; }   /* lugar para la tilde de "DÍA" con el interlineado apretado */
 .today .sep { display: none; }
 .today .day-count { font: 500 15px/1.4 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; color: var(--muted); }
+/* Ya entrenó o descansa: el estado va en grande, sin el subrayado verde de "toca entrenar"; lo próximo queda chico y apagado. */
+.today .rest-title { margin: 14px 0 0; font-size: clamp(44px, 14vw, 64px); line-height: .92; font-weight: 700; color: var(--text); padding-top: .1em; }
+.rest-sum { margin: 10px 0 22px; font-size: 15px; color: var(--muted); }
+.today.rest .next { border-top: 1px solid var(--line); padding-top: 12px; }
+.next-when { margin: 0 0 2px; font-size: 13px; font-weight: 600; color: var(--muted); }
+.today.rest h3 { border-bottom: 0; padding-bottom: 0; }
+.today.rest .day-name { font-size: 30px; line-height: 1.1; padding-top: 0; color: var(--muted); }
+.next-list summary { padding: 10px 0; font-size: 14px; font-weight: 600; color: var(--muted); cursor: pointer; }
+.next-list .board { margin-bottom: 8px; }
+button.sec.next-go { width: 100%; margin-top: 8px; }
 .board { list-style: none; margin: 0 0 18px; padding: 0; counter-reset: ex; }
 .board li { counter-increment: ex; border-bottom: 1px solid var(--line); }
 .board button { display: grid; grid-template: "n name load" auto "n dose load" auto / 26px 1fr auto; column-gap: 10px; width: 100%; padding: 11px 0; text-align: left; }
@@ -64,6 +74,7 @@ a { color: var(--acc-fg); }
 .card.ask.pain { box-shadow: inset 3px 0 0 var(--pain); }
 .card.ask h3 { font-size: 17px; }
 button.quick-pain { width: 100%; margin: -12px 0 var(--gap); }
+.today.rest + button.quick-pain { margin-top: 0; }
 
 /* Tema claro (Ajustes → Tema). El lima queda para fondos de botón; el texto de acento pasa a verde oscuro. */
 :root[data-theme="light"] {

@@ -2,6 +2,12 @@
 
 Todos los cambios de XZ Fit (antes Tendón Fuerte), del más nuevo al más viejo.
 
+## 1.30.4 — Hoy sabe si ya entrenaste o descansás
+
+- Después de entrenar, Hoy dice "Hoy ya entrenaste" con un resumen chico de lo que hiciste, en vez de volver a empujarte al próximo entreno.
+- Si hoy no es uno de tus días, dice "Hoy descansás".
+- En los dos casos, el próximo entreno queda abajo y más chico, con el día que toca ("Próximo, el jueves" o "mañana"). Si igual querés entrenar, "Entrenar igual" o "Empezar igual" está a mano, y la lista de ejercicios se abre con "Ver ejercicios".
+
 ## 1.30.3 — Avisos que no estorban
 
 - Los avisos ya no tapan lo que tenés que tocar: se ubican donde no pisan botones ni campos (por ejemplo, arriba durante el descanso), y aunque queden encima de algo, el toque pasa al botón de abajo.

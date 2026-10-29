@@ -2,7 +2,7 @@
 // (IndexedDB). Los identificadores internos siguen siendo "tendon-fuerte" para no perder los datos ya guardados.
 // Protocolo de tendones del video de Jeremy Ethier con Keith Baar y Coach Q; reglas en logic.js, bocetos en figures.js.
 
-const APP_VERSION = '1.30.3';
+const APP_VERSION = '1.30.4';
 const DAY_NAMES = { lu: 'Lu', ma: 'Ma', mi: 'Mi', ju: 'Ju', vi: 'Vi', sa: 'Sá', do: 'Do' };
 const SIDES = { der: 'derecha', izq: 'izquierda', ambos: 'ambos lados' };
 const REST_SECS = 90, ISO_REST = 60;
@@ -284,6 +284,14 @@ function newZone(zone, pain = 5, side = 'der') {
 }
 
 // ——— Inicio ———
+// Cuándo toca el próximo día del plan después de hoy: "mañana", "el jueves" o nada si no hay días marcados.
+function nextTrainWhen(t) {
+  for (let i = 1; i <= 7; i++) {
+    const d = addDays(t, i);
+    if (S.rem.train.includes(weekdayKey(d))) return i === 1 ? 'mañana' : `el ${parseDay(d).toLocaleDateString('es', { weekday: 'long' })}`;
+  }
+  return '';
+}
 function renderHome() {
   const t = today(), checks = pendingChecks(S, t);
   const hasZones = activeZones().length > 0;
@@ -325,19 +333,33 @@ function renderHome() {
   const last = S.sessions.find((s) => s.type === 'entreno');
   const doneToday = last?.date === t, trainDay = S.rem.train.includes(weekdayKey(t));
   // Sin entrenos guardados, el día no importa: el primero siempre se presenta en positivo.
-  const first = !last, onMsg = first || doneToday || trainDay;
+  const first = !last;
   const firstHint = doable.some((p) => p.calib) ? ' Con la primera serie de cada ejercicio calibramos tus pesos.'
     : doable.some((p) => p.guess) ? ' Los pesos son estimados: con tu primera serie ajustamos el resto.'
     : doable.some((p) => p.pick) ? ' Elegís vos los pesos de cada ejercicio.' : '';
-  const dayMsg = first ? `Tu primer entreno.${firstHint}`
-    : doneToday ? '✓ Entreno de hoy hecho' : trainDay ? 'Hoy toca entrenar' : 'Hoy es día de descanso, podés entrenar igual';
+  const dayMsg = first ? `Tu primer entreno.${firstHint}` : 'Hoy toca entrenar';
   // El peso con su unidad, igual que en Entreno; si todavía no es un peso de trabajo, la etiqueta va debajo.
   const load = (p) => p.ex.kind !== 'peso' ? '' : `<span class="load">${loadText(p)}${loadTag(p)}</span>`;
-  h += `<section class="card today${onMsg ? ' on' : ''}">
+  const board = `<ol class="board">${doable.map((p) => `<li><button data-action="ex-detail" data-ex="${p.ex.id}"><span class="name">${esc(p.ex.name)}${p.r ? `<em>${painTag(p.r)}</em>` : ''}</span><span class="dose">${p.sets} × ${setLabel(p)}</span>${load(p)}</button></li>`).join('')}</ol>`;
+  const title = `<h3><span class="day-name">${esc(plan.days[day].name)}</span><span class="sep"> · </span><span class="day-count">${doable.length} ejercicios</span></h3>`;
+  const deloadNote = S.plan.deload === weekKey(t) ? ' Semana de descarga.' : '';
+  if (!first && (doneToday || !trainDay)) {
+    // Ya entrenó o hoy no es día del plan: el estado va en grande y lo próximo queda en segundo plano, sin empujar a entrenar.
+    const when = nextTrainWhen(t), done = S.sessions.filter((s) => s.type === 'entreno' && s.date === t);
+    const sets = done.reduce((n, s) => n + (s.sets || 0), 0), min = done.reduce((n, s) => n + (s.min || 0), 0);
+    const names = [...new Set(done.map((s) => activePlan(S).days[s.day]?.name ?? `Entreno ${s.tpl}`))].join(' y ');
+    const sum = doneToday ? `${esc(names)}: ${sets} ${sets === 1 ? 'serie' : 'series'}${min ? ` en ${min} ${min === 1 ? 'minuto' : 'minutos'}` : ''}.` : 'Descansar también es parte del plan.';
+    h += `<section class="card today rest">
     <p class="plan-line"><span>${esc(plan.name)}</span>${last ? `<span>Último: ${fmtDate(last.date)}</span>` : ''}</p>
-    <p class="day-msg">${dayMsg}${S.plan.deload === weekKey(t) ? '. Semana de descarga.' : ''}</p>
-    <h3><span class="day-name">${esc(plan.days[day].name)}</span><span class="sep"> · </span><span class="day-count">${doable.length} ejercicios</span></h3>
-    <ol class="board">${doable.map((p) => `<li><button data-action="ex-detail" data-ex="${p.ex.id}"><span class="name">${esc(p.ex.name)}${p.r ? `<em>${painTag(p.r)}</em>` : ''}</span><span class="dose">${p.sets} × ${setLabel(p)}</span>${load(p)}</button></li>`).join('')}</ol>
+    <h2 class="rest-title">${doneToday ? 'Hoy ya entrenaste' : 'Hoy descansás'}</h2>
+    <p class="rest-sum">${sum}${deloadNote}</p>
+    <div class="next"><p class="next-when">Próximo${when ? `, ${when}` : ''}</p>${title}
+      <details class="next-list"><summary>Ver ejercicios</summary>${board}</details></div>
+    <button class="sec next-go" data-action="start-workout" data-day="${day}">${doneToday ? 'Entrenar igual' : 'Empezar igual'}</button></section>`;
+  } else h += `<section class="card today on">
+    <p class="plan-line"><span>${esc(plan.name)}</span>${last ? `<span>Último: ${fmtDate(last.date)}</span>` : ''}</p>
+    <p class="day-msg">${dayMsg}${deloadNote}</p>
+    ${title}${board}
     <button class="cta stick" data-action="start-workout" data-day="${day}">Empezar ${esc(plan.days[day].name.toLowerCase())}</button></section>`;
   if (S.painMode && hasZones) h += `<button class="sec quick-pain" data-action="quick-pain">Anotar cómo está el dolor ahora</button>`;
   if (!rehabFirst) h += rehab;
