@@ -2,6 +2,11 @@
 
 Todos los cambios de XZ Fit (antes Tendón Fuerte), del más nuevo al más viejo.
 
+## 1.30.8 — El entreno arranca en la primera serie
+
+- Al empezar un entreno ves la serie 1 sin bajar: la entrada en calor, la explicación de los pesos (estimados o de calibración) y la del RIR vienen plegadas. Tocalas para abrirlas; con la entrada en calor abierta, el foco queda en ella.
+- Si tildás una serie sin anotar las reps (o los segundos), la serie muestra el valor que guardamos y la primera vez del entreno te avisamos: "Anotamos 9 reps, lo sugerido". Si hiciste otra cosa, lo cambiás en la serie.
+
 ## 1.30.7 — Descansos a medida y cronómetro para la plancha
 
 - El descanso dura según el ejercicio: los compuestos usan el que elegiste en Ajustes; elevaciones, curl, tríceps e isométricos, 1 minuto; la plancha y el core, 45 segundos.

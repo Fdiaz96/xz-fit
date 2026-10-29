@@ -2,7 +2,7 @@
 // (IndexedDB). Los identificadores internos siguen siendo "tendon-fuerte" para no perder los datos ya guardados.
 // Protocolo de tendones del video de Jeremy Ethier con Keith Baar y Coach Q; reglas en logic.js, bocetos en figures.js.
 
-const APP_VERSION = '1.30.7';
+const APP_VERSION = '1.30.8';
 const DAY_NAMES = { lu: 'Lu', ma: 'Ma', mi: 'Mi', ju: 'Ju', vi: 'Vi', sa: 'Sá', do: 'Do' };
 const SIDES = { der: 'derecha', izq: 'izquierda', ambos: 'ambos lados' };
 const REST_SECS = 90, ISO_REST = 60;
@@ -747,8 +747,8 @@ function startWorkout(day) {
   }
   LIVE = null;   // empezar otro reemplaza al que quedó sin terminar
   W = { plan: activePlan(S).id, day, dayName: activePlan(S).days[day].name, items, started: Date.now(), warm: warm.map((x) => ({ ...x, done: false })), off: [], out: [] };
-  // Qué es el RIR: abierto en el primer ejercicio con peso del primer entreno; después, al tocar la columna.
-  W.rirHelp = S.sessions.some((s) => s.type === 'entreno') ? -1 : items.findIndex((p) => p.ex.kind === 'peso');
+  // Al empezar se ve la serie 1: la entrada en calor, la explicación de arriba y la del RIR arrancan plegadas y se abren al tocarlas.
+  W.rirHelp = -1; W.warmOpen = W.introOpen = false;
   // Con 2 o más ejercicios sin peso de trabajo, la explicación va una vez arriba y cada ejercicio lleva solo la etiqueta.
   W.calibIntro = items.filter((p) => p.calib).length >= 2;
   W.guessIntro = items.filter((p) => p.guess || p.pick).length >= 2;
@@ -756,8 +756,9 @@ function startWorkout(day) {
 }
 function renderWorkout() {
   // El ejercicio en curso es el primero con series pendientes; su primera serie pendiente es la que sigue.
-  // Mientras falte la entrada en calor y no haya series hechas, el foco está en ella y no en el primer ejercicio.
-  const warmNow = W.warm?.some((x) => !x.done) && !W.items.some((it) => it.rows.some((r) => r.done));
+  // Con la entrada en calor abierta, a medias y sin series hechas, el foco está en ella y no en el primer ejercicio.
+  const warmOpen = W.warmOpen && W.warm?.some((x) => !x.done);
+  const warmNow = warmOpen && !W.items.some((it) => it.rows.some((r) => r.done));
   const cur = warmNow ? -1 : W.items.findIndex((it) => it.rows.some((r) => !r.done));
   const total = W.items.reduce((n, it) => n + it.rows.length, 0), done = W.items.reduce((n, it) => n + it.rows.filter((r) => r.done).length, 0);
   const track = W.items.map((it) => `<i style="flex:${it.rows.length}"><b style="width:${(100 * it.rows.filter((r) => r.done).length) / it.rows.length}%"></b></i>`).join('');
@@ -791,15 +792,16 @@ function renderWorkout() {
       <div class="sets">${head}${rows}</div></section>`;
   }).join('');
   const warmMin = W.warm?.reduce((n, x) => n + (x.min || 1), 0);
-  const warm = W.warm?.length ? `<details class="card warm${warmNow ? ' now' : ''}" ${W.warm.every((x) => x.done) ? '' : 'open'}><summary><div><h3>Entrada en calor</h3><span class="muted small">Unos ${warmMin} minutos</span></div><span class="muted small">${W.warm.filter((x) => x.done).length} de ${W.warm.length}</span></summary>
+  const warm = W.warm?.length ? `<details class="card warm fold${warmNow ? ' now' : ''}" data-fold="warmOpen" ${warmOpen ? 'open' : ''}><summary><div><h3>Entrada en calor</h3><span class="muted small">Unos ${warmMin} minutos</span></div><span class="muted small">${W.warm.filter((x) => x.done).length} de ${W.warm.length}</span></summary>
     ${W.warm.map((x, i) => `<button class="warm-item${x.done ? ' on' : ''}${warmNow && i === W.warm.findIndex((y) => !y.done) ? ' next' : ''}" data-action="warm" data-i="${i}"><span class="box">${x.done ? '✓' : ''}</span><span><b>${esc(x.t)}</b>${esc(x.d)}</span></button>`).join('')}</details>` : '';
-  const calib = W.calibIntro && W.items.some((it) => it.calib) ? `<section class="card calib-intro"><h3>Hoy calibramos tus pesos</h3>
+  const intro = (title, gist, body) => `<details class="card calib-intro fold" data-fold="introOpen" ${W.introOpen ? 'open' : ''}><summary><div><h3>${title}</h3><span class="muted small">${gist}</span></div></summary>${body}</details>`;
+  const calib = W.calibIntro && W.items.some((it) => it.calib) ? intro('Hoy calibramos tus pesos', 'En la primera serie, reps hasta que te queden 2', `
     <p>En la primera serie de cada ejercicio con <span class="nowrap"><span class="calib-tag">calibración</span>,</span> hacé reps hasta que sientas que te salen solo 2 más y frená ahí. Anotá las reps y el RIR: con eso calculamos tu peso de trabajo.</p>
-    <p class="muted small">El peso que ves es un punto de partida.</p></section>`
-    : W.guessIntro && W.items.some((it) => it.guess) ? `<section class="card calib-intro"><h3>Pesos estimados</h3>
-    <p>Los pesos con <span class="nowrap"><span class="calib-tag">estimado</span></span> salen de tu perfil. Si te queda liviano o pesado, cambialo en la serie: con lo que anotes ajustamos los demás ejercicios.</p></section>`
-    : W.guessIntro && W.items.some((it) => it.pick) ? `<section class="card calib-intro"><h3>Elegís vos los pesos</h3>
-    <p>Anotá el peso que uses en cada serie. La próxima vez cada ejercicio arranca con el último que usaste.</p></section>` : '';
+    <p class="muted small">El peso que ves es un punto de partida.</p>`)
+    : W.guessIntro && W.items.some((it) => it.guess) ? intro('Pesos estimados', 'Si te queda liviano o pesado, cambialo en la serie', `
+    <p>Los pesos con <span class="nowrap"><span class="calib-tag">estimado</span></span> salen de tu perfil. Con lo que anotes en la serie ajustamos los demás ejercicios.</p>`)
+    : W.guessIntro && W.items.some((it) => it.pick) ? intro('Elegís vos los pesos', 'Anotá el peso que uses en cada serie', `
+    <p>Anotá el peso que uses en cada serie. La próxima vez cada ejercicio arranca con el último que usaste.</p>`) : '';
   dlg('wsheet').html = `<div class="dlg"><div class="dlg-head w-head"><button class="link danger" data-action="cancel-workout">Salir</button><div class="w-title"><strong>${esc(W.dayName)}</strong><span class="w-count">${done} de ${total} series</span></div><button class="link" data-action="finish-workout">Terminar</button>
       <div class="w-track" role="progressbar" aria-label="Series hechas" aria-valuemin="0" aria-valuemax="${total}" aria-valuenow="${done}">${track}</div></div>${warm}${calib}${body}
     <button class="cta" data-action="finish-workout">Terminar entreno</button></div>`;
@@ -807,15 +809,17 @@ function renderWorkout() {
 }
 function setDone(i, j) {
   const it = W.items[i], r = it.rows[j], k = it.ex.kind;
+  let auto = '';   // lo que se anotó solo, para avisarlo
   if (!r.done) {
     // Sin reps anotadas valen las sugeridas (el centro del rango), salvo en la serie de calibración, que necesita las reales.
     if ((k === 'peso' || k === 'reps') && !(Number(r.reps) > 0)) {
       if (it.calib && j === 0 && k === 'peso') return toast('Anotá las repeticiones que hiciste.');
-      r.reps = repCenter(it.range);
+      r.reps = repCenter(it.range); auto = `${r.reps} reps`;
     }
     if (k === 'peso' && it.pick && !(Number(r.w) > 0)) return toast('Anotá el peso que usaste.');
-    if ((k === 'tiempo' || k === 'iso') && !(Number(r.secs) > 0)) r.secs = it.secs;
+    if ((k === 'tiempo' || k === 'iso') && !(Number(r.secs) > 0)) { r.secs = it.secs; auto = `${r.secs} s`; }
   }
+  let said = false;   // ya hubo otro aviso por esta serie
   r.done = !r.done;
   if (r.done && it.calib && j === 0 && k === 'peso') {
     if (r.rir === '') { r.done = false; return toast('Elegí cuántas reps te quedaban (RIR).'); }
@@ -825,6 +829,7 @@ function setDone(i, j) {
     it.w = it.r ? painCap(c.w, it.steps) : c.w;
     it.rows.slice(1).forEach((x) => { if (!x.done) x.w = it.w; });
     persist();
+    said = true;
     toast(`Calibrado: tu peso de trabajo es ${fmtKg(c.w)}${it.r ? ` (hoy ${fmtKg(it.w)} por modo dolor)` : ''}.`);
   }
   // Automático y manual: la primera serie anotada fija el peso de trabajo; en automático, además ajusta a los que siguen.
@@ -837,9 +842,11 @@ function setDone(i, j) {
     it.guess = it.pick = false; it.first = true; it.base = base; it.w = w;
     persist();
     const n = weightMode() === 'auto' ? retuneGuesses() : 0;
-    if (n) toast(`Con esta serie ajustamos el peso de ${n === 1 ? '1 ejercicio' : `${n} ejercicios`} que siguen.`);
+    if (n) { said = true; toast(`Con esta serie ajustamos el peso de ${n === 1 ? '1 ejercicio' : `${n} ejercicios`} que siguen.`); }
   }
   renderWorkout();
+  // Tildar sin anotar guarda lo sugerido: se avisa la primera vez del entreno (la serie ya muestra el valor cargado).
+  if (r.done && auto && !said && !W.autoSaid) { W.autoSaid = true; toast(`Anotamos ${auto}, lo sugerido. Si hiciste otra cosa, cambialo en la serie.`); }
   // Descansa mientras quede alguna serie del entreno (también al pasar al ejercicio siguiente), lo que pide este ejercicio.
   // Con la última serie hecha no hay nada que esperar: se corta el descanso que viniera corriendo.
   if (r.done) W.items.some((x) => x.rows.some((y) => !y.done)) ? startRest(restSecs(it.ex, S.prefs.rest || REST_SECS)) : stopRest();
@@ -1737,6 +1744,13 @@ document.addEventListener('change', (e) => {
 });
 document.addEventListener('input', (e) => { if (e.target.dataset.w) { const [i, j, k] = e.target.dataset.w.split('.'); W.items[+i].rows[+j][k] = e.target.value; saveLiveSoon(); } });
 // Escape cierra los diálogos; en entreno y rehab se pregunta antes.
+// Lo plegable del entreno recuerda si quedó abierto entre redibujos; la entrada en calor abierta pasa a ser el foco.
+document.addEventListener('toggle', (e) => {
+  const f = e.target.dataset?.fold;
+  if (!f || !W || W[f] === e.target.open) return;
+  W[f] = e.target.open;
+  if (f === 'warmOpen') renderWorkout();
+}, true);
 document.addEventListener('cancel', (e) => { if (['wsheet', 'rsheet', 'painsheet', 'onb'].includes(e.target.id)) e.preventDefault(); }, true);
 
 let installEvt = null;

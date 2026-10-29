@@ -276,8 +276,15 @@ button.pick.on { outline: 2px solid var(--acc); }
 .pick-row button.pick { flex: 1; }
 
 /* Entrada en calor */
-details.warm summary { display: flex; justify-content: space-between; align-items: center; cursor: pointer; list-style: none; }
-details.warm summary::-webkit-details-marker { display: none; }
+/* Plegables del entreno (entrada en calor, explicación de arriba): arrancan cerrados y la flecha avisa que se abren. */
+details.fold summary { display: flex; align-items: center; gap: 10px; cursor: pointer; list-style: none; }
+details.fold summary::-webkit-details-marker { display: none; }
+details.fold summary::after { content: ''; flex: none; width: 7px; height: 7px; margin: 0 4px 4px 0; border-right: 1.5px solid var(--faint); border-bottom: 1.5px solid var(--faint); transform: rotate(45deg); transition: transform .2s; }
+details.fold[open] summary::after { transform: rotate(225deg); margin: 4px 4px 0 0; }
+details.fold[open] summary { margin-bottom: 8px; }
+details.fold summary > div { flex: 1; min-width: 0; }
+details.fold summary h3 { margin: 0 0 2px; }
+@media (prefers-reduced-motion: reduce) { details.fold summary::after { transition: none; } }
 button.warm-item { display: flex; gap: 10px; align-items: flex-start; text-align: left; width: 100%; padding: 8px 0; color: var(--muted); font-size: 14px; }
 button.warm-item .box { flex: none; width: 24px; height: 24px; border-radius: 7px; border: 2px solid var(--line); display: grid; place-items: center; font-weight: 700; }
 details.warm.now { box-shadow: inset 0 0 0 2px var(--acc); }

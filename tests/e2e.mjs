@@ -500,8 +500,19 @@ await page.evaluate((r) => { S.rem.train = r; render(); }, remTrain);
 await click('#view-home [data-action="start-workout"]');
 await page.waitForSelector('#wsheet[open]');
 ok((await page.locator('#wsheet .warm').textContent()).includes('Isométrico de codo lateral'), 'la entrada en calor incluye el isométrico de la zona sensible');
+// Al empezar se ve la serie 1: entrada en calor, explicación de arriba y RIR plegadas.
+{
+  const s1 = await page.locator('#wsheet .set.next').first().boundingBox();
+  ok(await page.locator('#wsheet details.warm[open]').count() === 0 && await page.locator('#wsheet details.calib-intro[open]').count() === 0 && await page.locator('#wsheet .rir-note').count() === 0, 'al empezar, la entrada en calor, la explicación y el RIR arrancan plegados');
+  ok(s1 && s1.y + s1.height <= 844 && await page.locator('#wsheet .wex').first().locator('.set.next').count() === 1, 'la serie 1 del primer ejercicio queda a la vista y es la que sigue');
+  await click('#wsheet details.warm summary');
+  ok(await page.locator('#wsheet details.warm.now[open]').count() === 1 && await page.locator('#wsheet .set.next').count() === 0, 'abrir la entrada en calor la vuelve el foco');
+  await click('#wsheet .rir-help');
+  ok(await page.locator('#wsheet .rir-note').count() === 1, 'tocar RIR ? abre su explicación');
+  await click('#wsheet .rir-help');
+}
 await click('#wsheet [data-action="warm"][data-i="0"]');
-ok(await page.locator('#wsheet .warm-item.on').count() === 1, 'marca un ítem de la entrada en calor');
+ok(await page.locator('#wsheet .warm-item.on').count() === 1 && await page.locator('#wsheet details.warm[open]').count() === 1, 'marca un ítem de la entrada en calor y sigue abierta');
 await shot('09b-entrada-en-calor');
 const first = page.locator('#wsheet .wex').first();
 ok(await page.locator('#wsheet .calib-intro').count() === 1 && (await page.locator('#wsheet .calib-intro').textContent()).includes('Hoy calibramos tus pesos'), 'el primer entreno explica la calibración una sola vez, arriba');
@@ -619,6 +630,17 @@ const setCounts = await cards().evaluateAll((els) => els.map((e) => e.querySelec
 ok(setCounts.every((n) => n === 3), `CK-19: con 3 días en el perfil y fuera de la rampa cada ejercicio tiene 3 series (${setCounts.join(',')})`);
 ok((await card('Elevaciones laterales').textContent()).includes('× 12–20') && (await card('Sentadilla goblet').textContent()).includes('× 6–12'), 'CK-21: laterales muestran "× 12–20" y la goblet "× 6–12"');
 ok(await card('Elevaciones laterales').locator('input[data-w$=".0.reps"]').getAttribute('placeholder') === '≈16' && await card('Sentadilla goblet').locator('input[data-w$=".0.reps"]').getAttribute('placeholder') === '≈9', 'el placeholder de reps sugiere el centro del rango (≈16 y ≈9)');
+// Tildar sin anotar: la serie muestra las reps cargadas y avisa una vez en el entreno.
+{
+  const gi = await cards().evaluateAll((els) => els.findIndex((e) => e.textContent.includes('Sentadilla goblet')));
+  await click(`#wsheet [data-action="set-done"][data-i="${gi}"][data-j="1"]`);
+  ok((await page.locator(`#wsheet input[data-w="${gi}.1.reps"]`).inputValue()) === '9' && (await toastText()).includes('Anotamos 9 reps'), 'tildar sin anotar muestra 9 en la serie y avisa "Anotamos 9 reps"');
+  await page.evaluate(() => hideToast());
+  await click(`#wsheet [data-action="set-done"][data-i="${gi}"][data-j="2"]`);
+  ok(await page.locator('#toast').isHidden() || !(await toastText()).includes('Anotamos'), 'el aviso de lo anotado sale una sola vez por entreno');
+  await click(`#wsheet [data-action="set-done"][data-i="${gi}"][data-j="1"]`); await click(`#wsheet [data-action="set-done"][data-i="${gi}"][data-j="2"]`);
+  await page.evaluate((i) => { W.autoSaid = false; W.items[i].rows.forEach((r) => (r.reps = '')); stopRest(); hideToast(); renderWorkout(); }, gi);
+}
 ok((await page.locator('#wsheet .dlg-head strong').textContent()) === 'Día A', 'el encabezado del entreno es el nombre del día');
 // Calibración: 6 kg × 15 reps con RIR 2, rango [12, 20] apunta a 18 reps → 4 kg (sin rango daría 6)
 const lat = card('Elevaciones laterales'), latI = await cards().evaluateAll((els) => els.findIndex((e) => e.textContent.includes('Elevaciones laterales')));
@@ -1039,7 +1061,7 @@ const errorsBeforeLive = errors.length;
 await page.evaluate(() => document.querySelector('#view-home [data-action="start-workout"]').click());
 await page.waitForTimeout(150);
 const firstWarm = await page.locator('#wsheet [data-action="warm"]').count();
-if (firstWarm) await click('#wsheet [data-action="warm"][data-i="0"]');
+if (firstWarm) { await click('#wsheet details.warm summary'); await click('#wsheet [data-action="warm"][data-i="0"]'); }
 await click('#wsheet [data-action="set-done"][data-i="0"][data-j="0"]');
 await page.fill('#wsheet [data-w="0.1.reps"]', '9');
 await page.waitForTimeout(600);
