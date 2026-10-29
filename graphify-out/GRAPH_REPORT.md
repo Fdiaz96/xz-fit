@@ -1,17 +1,17 @@
 # Graph Report - fix-pesa-rusa  (2026-10-29)
 
 ## Corpus Check
-- 63 files · ~128,725 words
+- 63 files · ~129,612 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 15 file(s) not represented in the graph (top: (none) 12, .woff2 1, .webmanifest 1)
 
 ## Summary
-- 871 nodes · 1799 edges · 63 communities (60 shown, 3 thin omitted)
+- 872 nodes · 1801 edges · 63 communities (60 shown, 3 thin omitted)
 - Extraction: 93% EXTRACTED · 7% INFERRED · 0% AMBIGUOUS · INFERRED: 118 edges (avg confidence: 0.88)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `5375ac04`
+- Built from commit: `8063d399`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -82,7 +82,7 @@
 
 ## God Nodes (most connected - your core abstractions)
 1. `esc()` - 45 edges
-2. `figureSVG()` - 41 edges
+2. `figureSVG()` - 42 edges
 3. `render()` - 32 edges
 4. `Training Plan Engine skill (SKILL.md)` - 30 edges
 5. `toast()` - 28 edges
@@ -140,7 +140,7 @@ Cohesion: 0.18
 Nodes (9): activePlan()/dayIndex()/weeksSince()/firstWorkout(), 'Falta equipo' missing-slot item, implFor (logic.js), possible() via implFor, resolveDay(), resolvePlan(), resolveSlot(), syncRoutine() (app.js, called from render) (+1 more)
 
 ### Community 4 - "Figuras 3D (figures.js)"
-Cohesion: 0.11
+Cohesion: 0.12
 Nodes (61): add3(), blob(), box(), bump(), CAM, CAM_YAWS, CAM_YAWS_FRONT, camCache (+53 more)
 
 ### Community 5 - "Pruebas e2e"
@@ -152,8 +152,8 @@ Cohesion: 0.09
 Nodes (23): B_NO_RINGS, calTarget(), ctx, defEq, disl, eq(), equip, est() (+15 more)
 
 ### Community 7 - "Catálogos data.js"
-Cohesion: 0.08
-Nodes (25): CATS, CHAIR_SEAT, EXERCISES, EXPERIENCE, HINGE, LYING, MUSCLE_NAMES, NO_RINGS (+17 more)
+Cohesion: 0.07
+Nodes (26): CATS, CHAIR_SEAT, EXERCISES, EXPERIENCE, HINGE, LYING, MUSCLE_NAMES, NO_RINGS (+18 more)
 
 ### Community 8 - "Skill motor de planes"
 Cohesion: 0.16
@@ -365,14 +365,14 @@ Nodes (4): Criterios de aceptación, Problema, Propuesta, UX 5: explicar "al 60 
 
 ## Knowledge Gaps
 - **61 isolated node(s):** `Sugerencia de pasar a 3 dias (suggestThreeDays)`, `Eliminar sesion con Deshacer`, `Tarjeta de instalacion (beforeinstallprompt / iOS)`, `Service worker sw.js (red primero, cache tendon-v<version>)`, `Tema claro/oscuro (applyTheme, tf-theme)` (+56 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 282 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 283 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
 - **3 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `README.md XZ Fit` connect `Modo dolor y README` to `logic.js`, `Figuras 3D (figures.js)`, `app.js`, `Catálogos data.js`, `Shell HTML, PWA y fuente`, `Historial de versiones`, `v1.0.0 First version (PWA, IndexedDB, A/B full body, pain mode)`?**
-  _High betweenness centrality (0.161) - this node is a cross-community bridge._
+  _High betweenness centrality (0.162) - this node is a cross-community bridge._
 - **Are the 6 inferred relationships involving `render()` (e.g. with `noticeText()` and `renderHistory()`) actually correct?**
   _`render()` has 6 INFERRED edges - model-reasoned connections that need verification._
 - **What connects `Sugerencia de pasar a 3 dias (suggestThreeDays)`, `Eliminar sesion con Deshacer`, `Tarjeta de instalacion (beforeinstallprompt / iOS)` to the rest of the system?**

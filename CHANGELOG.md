@@ -2,6 +2,10 @@
 
 Todos los cambios de XZ Fit, del más nuevo al más viejo.
 
+## 1.31.10 — Extensión de muñeca, instrucción completa
+
+- La extensión de muñeca lenta ya no dice "misma posición": ahora explica la postura completa (sentado, antebrazo en el muslo, palma hacia abajo y la mano fuera de la rodilla), así se entiende aunque no venga después de la isométrica.
+
 ## 1.31.9 — Manos con dedos
 
 - En los ejercicios de muñeca con mancuerna, la mano ahora tiene palma, cuatro dedos y pulgar, y rodea el mango. Con la palma hacia arriba (flexión) se ve el mango apoyado en la palma clara y los dedos cerrándose por encima; con la palma hacia abajo (extensión, excéntrico) la mano tapa el mango y se ven los nudillos arriba.
