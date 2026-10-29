@@ -30,6 +30,8 @@ const PHASES = {
 // Posturas base reutilizadas.
 const STAND = { N: [100, 45], P: [100, 88], E1: [105, 68], W1: [109, 91], K1: [102, 119], F1: [100, 150] };
 const SEATED = { N: [106, 68], P: [92, 108], E1: [110, 100], W1: [134, 100], K1: [128, 110], F1: [130, 150], E2: [106, 99], W2: [114, 108], K2: [124, 111], F2: [126, 150] };
+// Ejercicios de muñeca sentado: la otra mano descansa en el borde de la silla, lejos del regazo.
+const WRIST_SEAT = { ...SEATED, E2: [96, 92], W2: [94, 113], z: { E2: 3, W2: 5 } };
 const CHAIR_SEAT = { t: 'chair', x: 74, y: 112, w: 40, back: 'left' };
 
 // kind: peso (kg × reps), iso (sostener s), lento (reps a tempo 3/3), tiempo (s, sin peso), reps (sin peso).
@@ -39,32 +41,32 @@ const EXERCISES = {
   iso_ext_muneca: {
     name: 'Extensión de muñeca isométrica', kind: 'iso', impl: 'db', load0: 2, zone: 'codo_lat',
     cues: ['Sentado, antebrazo apoyado en el muslo, palma hacia abajo y la mano fuera de la rodilla.', 'Sostené la mancuerna con la muñeca recta o apenas levantada, sin moverla.', 'Dolor tolerable: hasta 3–4 sobre 10.'],
-    fig: { a: { ...SEATED, G1: [142, 100] }, palm: 'down', props: [{ t: 'db', at: 'W1', sm: true }], scene: [CHAIR_SEAT] },
+    fig: { a: { ...WRIST_SEAT, G1: [142, 100] }, palm: 'down', props: [{ t: 'db', at: 'W1', sm: true }], scene: [CHAIR_SEAT] },
   },
   ext_muneca_lenta: {
     name: 'Extensión de muñeca lenta', kind: 'lento', impl: 'db', load0: 2, zone: 'codo_lat',
     cues: ['Misma posición, palma hacia abajo.', 'Subí la mano en 3 s y bajala en 3 s.', 'Si duele más de 4, bajá el peso.'],
-    fig: { a: { ...SEATED, G1: [140.2, 107.4] }, b: { G1: [140.2, 92.6] }, palm: 'down', props: [{ t: 'db', at: 'W1', sm: true }], scene: [CHAIR_SEAT], dur: 6, cam: 18, pitch: 36, focus: ['H', 'E1', 'G1', 'K1'] },
+    fig: { a: { ...WRIST_SEAT, G1: [140.2, 107.4] }, b: { G1: [140.2, 92.6] }, palm: 'down', props: [{ t: 'db', at: 'W1', sm: true }], scene: [CHAIR_SEAT], dur: 6, cam: 40, pitch: 36, focus: ['H', 'E1', 'G1', 'K1'] },
   },
   iso_flex_muneca: {
     name: 'Flexión de muñeca isométrica', kind: 'iso', impl: 'db', load0: 2, zone: 'codo_med',
     cues: ['Sentado, antebrazo en el muslo, palma hacia arriba.', 'Sostené la mancuerna con la muñeca recta, sin moverla.', 'Dolor tolerable: hasta 3–4 sobre 10.'],
-    fig: { a: { ...SEATED, G1: [142, 100] }, palm: 'up', props: [{ t: 'db', at: 'W1', sm: true }], scene: [CHAIR_SEAT] },
+    fig: { a: { ...WRIST_SEAT, G1: [142, 100] }, palm: 'up', props: [{ t: 'db', at: 'W1', sm: true }], scene: [CHAIR_SEAT] },
   },
   flex_muneca_lenta: {
     name: 'Flexión de muñeca lenta', kind: 'lento', impl: 'db', load0: 2, zone: 'codo_med',
     cues: ['Palma hacia arriba, antebrazo apoyado.', 'Subí la mano en 3 s y bajala en 3 s.'],
-    fig: { a: { ...SEATED, G1: [140.2, 107.4] }, b: { G1: [140.2, 92.6] }, palm: 'up', props: [{ t: 'db', at: 'W1', sm: true }], scene: [CHAIR_SEAT], dur: 6, cam: 18, pitch: 36, focus: ['H', 'E1', 'G1', 'K1'] },
+    fig: { a: { ...WRIST_SEAT, G1: [140.2, 107.4] }, b: { G1: [140.2, 92.6] }, palm: 'up', props: [{ t: 'db', at: 'W1', sm: true }], scene: [CHAIR_SEAT], dur: 6, cam: 40, pitch: 36, focus: ['H', 'E1', 'G1', 'K1'] },
   },
   iso_prono: {
     name: 'Sostén neutro de muñeca', kind: 'iso', impl: 'db', load0: 2, zone: 'muneca',
     cues: ['Sentado, antebrazo en el muslo, la mancuerna vertical como un martillo.', 'Agarrala de un extremo (más difícil) o del centro (más fácil).', 'Muñeca recta, sin moverla.'],
-    fig: { a: { ...SEATED, G1: [142, 100] }, props: [{ t: 'db', at: 'W1' }], scene: [CHAIR_SEAT] },
+    fig: { a: { ...WRIST_SEAT, G1: [142, 100] }, props: [{ t: 'db', at: 'W1' }], scene: [CHAIR_SEAT] },
   },
   prono_lenta: {
     name: 'Pronación y supinación lenta', kind: 'lento', impl: 'db', load0: 2, zone: 'muneca',
     cues: ['Mancuerna vertical agarrada de un extremo.', 'Girá la palma hacia abajo en 3 s y hacia arriba en 3 s.', 'El antebrazo no se mueve.'],
-    fig: { a: { ...SEATED, G1: [142, 100] }, props: [{ t: 'db', at: 'W1' }], scene: [CHAIR_SEAT], dur: 6 },
+    fig: { a: { ...WRIST_SEAT, G1: [142, 100] }, props: [{ t: 'db', at: 'W1' }], scene: [CHAIR_SEAT], dur: 6 },
   },
   iso_pared: {
     name: 'Empuje isométrico contra la pared', kind: 'iso', impl: 'bw', zone: 'hombro',
@@ -391,7 +393,7 @@ Object.assign(EXERCISES, {
   excentrico_muneca: {
     name: 'Excéntrico de muñeca', kind: 'lento', impl: 'db', load0: 2, zone: 'codo_lat',
     cues: ['Antebrazo apoyado en el muslo, palma hacia abajo.', 'Subí la mano ayudándote con la otra y bajala sola en 4 s.', 'Clásico para codo de tenista: la bajada es lo que cuenta.'],
-    fig: { a: { ...SEATED, G1: [140.2, 92.6], E2: [96, 92], W2: [94, 113], z: { E2: 3, W2: 5 } }, b: { G1: [140.2, 107.4] }, palm: 'down', props: [{ t: 'db', at: 'W1', sm: true }], scene: [CHAIR_SEAT], dur: 5, cam: 18, pitch: 36, focus: ['H', 'E1', 'G1', 'K1'] },
+    fig: { a: { ...WRIST_SEAT, G1: [140.2, 92.6] }, b: { G1: [140.2, 107.4] }, palm: 'down', props: [{ t: 'db', at: 'W1', sm: true }], scene: [CHAIR_SEAT], dur: 5, cam: 40, pitch: 36, focus: ['H', 'E1', 'G1', 'K1'] },
   },
   tyler_toalla: {
     name: 'Tyler twist con toalla', kind: 'lento', impl: 'bw', zone: 'codo_lat',

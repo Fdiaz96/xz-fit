@@ -2,6 +2,13 @@
 
 Todos los cambios de XZ Fit, del más nuevo al más viejo.
 
+## 1.31.9 — Manos con dedos
+
+- En los ejercicios de muñeca con mancuerna, la mano ahora tiene palma, cuatro dedos y pulgar, y rodea el mango. Con la palma hacia arriba (flexión) se ve el mango apoyado en la palma clara y los dedos cerrándose por encima; con la palma hacia abajo (extensión, excéntrico) la mano tapa el mango y se ven los nudillos arriba.
+- La mancuerna chica tiene el mango más largo, así los discos quedan a los costados y no tapan la mano, y estos ejercicios se ven un poco más desde arriba.
+- En el Tyler twist el puño muestra los dedos y los nudillos sobre la toalla.
+- En todos los ejercicios de muñeca sentado, la otra mano descansa en el borde de la silla en vez del regazo.
+
 ## 1.31.8 — Excéntrico de muñeca, más simple
 
 - En el excéntrico de muñeca, la otra mano ya no se mueve: queda quieta, apoyada en el borde de la silla. Solo se mueve la muñeca que trabaja, que baja despacio con la palma hacia abajo. Antes la mano que ayudaba se deslizaba por el antebrazo y se veía rara.
