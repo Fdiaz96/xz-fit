@@ -2,6 +2,13 @@
 
 Todos los cambios de XZ Fit (antes Tendón Fuerte), del más nuevo al más viejo.
 
+## 1.30.3 — Avisos que no estorban
+
+- Los avisos ya no tapan lo que tenés que tocar: se ubican donde no pisan botones ni campos (por ejemplo, arriba durante el descanso), y aunque queden encima de algo, el toque pasa al botón de abajo.
+- Duran menos: los cortos se van en unos 2 segundos, y cualquier toque en otro lado los cierra. Los que ofrecen "Deshacer" se quedan un poco más.
+- Al cambiar de pestaña o de paso en el alta, el aviso anterior se cierra; en el alta, cada paso arranca desde arriba (también al volver atrás).
+- En Cambiar plan, el aviso de los días ya no tapa "Cancelar"; al agregar un ejercicio, "+ Agregar ejercicio" queda a la vista.
+
 ## 1.30.2 — Cuidar el dolor desde el alta
 
 - En "¿Te duele algo?", al marcar una zona aparece "¿Activar el cuidado ahora?", prendido de entrada: tu primera rutina ya baja la carga de esa zona y suma isométricos. Si lo apagás, lo prendés después en la pestaña Dolor.

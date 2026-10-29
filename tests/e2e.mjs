@@ -179,6 +179,7 @@ await click('#view-train [data-action="routine-pick"][data-day="1"]:not([data-i]
 await page.waitForSelector('#pickersheet[open]');
 await click('#pickersheet [data-ex="pullover"]');
 let dayB = await dayRoutine(1);
+ok(!overlaps(await page.locator('#toast').boundingBox(), await page.locator('#view-train .add-ex').boundingBox()), 'el aviso "Ejercicio agregado" no tapa "+ Agregar ejercicio"');
 ok(dayB.length === 7 && JSON.stringify(dayB.at(-1)) === JSON.stringify({ slot: await page.evaluate(() => slotOf('pullover')), ex: 'pullover', pinned: true }) && dayB.at(-1).slot !== null, 'agregar un ejercicio de la biblioteca: { slot: slotOf(id), ex, pinned: true }');
 await click('#view-train [data-action="routine-pick"][data-day="1"]:not([data-i])');
 await click('#pickersheet [data-action="exform"]:not([data-id])');
@@ -412,6 +413,13 @@ for (const k of ['ma', 'mi', 'ju', 'vi', 'sa']) await onbDay(k);
 ok((await state()).plan.id === 'fb1' && (await page.locator('#onb .plan-opt.on').textContent()).includes('Full body 1 día'), 'a tu medida con 1 día arma Full body 1 día');
 await onbDay('lu');
 ok((await state()).rem.train.join() === 'lu' && (await toastText()).includes('al menos un día'), 'no deja la semana sin días');
+// Los avisos no frenan toques ni pasan al paso siguiente; al cambiar de paso se arranca arriba
+ok(await page.evaluate(() => { const t = $('toast'), r = t.getBoundingClientRect(), el = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2); return !t.hidden && !t.contains(el); }), 'el aviso deja tocar lo que tiene abajo');
+ok(await page.evaluate(() => { const sc = $('onb').querySelector('.dlg'); sc.scrollTop = 400; toast('Prueba'); $('onb').querySelector('[data-action="onb-back"]').click(); return $('toast').hidden && $('onb').querySelector('.dlg').scrollTop === 0; }), 'al ir atrás en el alta se cierra el aviso y se arranca arriba');
+await page.evaluate(() => { toast('Prueba'); $('onb').querySelector('[data-action="onb-next"]').click(); });
+ok(await page.evaluate(() => $('toast').hidden) && await page.locator('#onb [data-action="onb-plan"]').count() > 0, 'al ir adelante en el alta se cierra el aviso');
+await page.evaluate(() => toast('Prueba')); await click('#onb h1');
+ok(await page.evaluate(() => $('toast').hidden), 'un toque en otro lado cierra el aviso');
 await page.locator('#onb [data-action="onb-plan"][value="fb2"]').check({ force: true }); await page.waitForTimeout(80);
 ok(!(await state()).plan.custom && (await state()).rem.train.join() === 'lu,ju', 'volver a un plan de la lista trae sus días');
 await click('[data-action="onb-back"]'); await click('[data-action="onb-next"]');
@@ -446,6 +454,7 @@ await shot('05-inicio');
 ok(await page.evaluate(() => S.plan.since === today() && planFor(dayIndex(activePlan(S), S.plan.pos)).every((p) => p.missing || p.sets === 2)),
   'usuario nuevo: el plan empieza hoy y el primer entreno lleva 2 series por ejercicio (rampa de entrada)');
 
+ok(await page.evaluate(() => { toast('Prueba'); document.querySelector('.tabbar [data-tab="train"]').click(); return $('toast').hidden; }), 'al cambiar de pestaña se cierra el aviso');
 // 2. Entreno con el modo dolor apagado: pesos completos
 await click('[data-tab="train"]');
 ok(await page.locator('#view-train >> text=más liviano').count() === 0, 'sin modo dolor no hay ejercicios más livianos');

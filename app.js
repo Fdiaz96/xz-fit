@@ -2,7 +2,7 @@
 // (IndexedDB). Los identificadores internos siguen siendo "tendon-fuerte" para no perder los datos ya guardados.
 // Protocolo de tendones del video de Jeremy Ethier con Keith Baar y Coach Q; reglas en logic.js, bocetos en figures.js.
 
-const APP_VERSION = '1.30.2';
+const APP_VERSION = '1.30.3';
 const DAY_NAMES = { lu: 'Lu', ma: 'Ma', mi: 'Mi', ju: 'Ju', vi: 'Vi', sa: 'Sá', do: 'Do' };
 const SIDES = { der: 'derecha', izq: 'izquierda', ambos: 'ambos lados' };
 const REST_SECS = 90, ISO_REST = 60;
@@ -80,14 +80,40 @@ const dlg = (id) => ({
 let toastTimer;
 function overlayHost() { return [...document.querySelectorAll('dialog[open]')].pop() || document.body; }
 // undo: función opcional que muestra el botón "Deshacer" (el aviso dura más).
+// El aviso no frena los toques (pasan al botón de abajo) y dura según lo que haya que leer.
 let toastUndo = null;
 function toast(msg, undo) {
-  const t = $('toast'); overlayHost().appendChild(t);
-  t.querySelector('span').textContent = msg; t.hidden = false;
+  const t = $('toast'), host = overlayHost(); host.appendChild(t);
+  t.querySelector('span').textContent = msg; t.hidden = false; t.style.top = t.style.bottom = '';
   t.querySelector('button')?.remove(); toastUndo = undo || null;
   if (undo) t.insertAdjacentHTML('beforeend', '<button type="button" data-action="undo">Deshacer</button>');
-  clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.hidden = true; toastUndo = null; }, undo ? 6000 : 3500);
+  // Elige dónde pisa menos botones y campos: primero su lugar de siempre (en una hoja, el hueco de arriba si entra),
+  // después arriba o abajo de todo; ante un empate queda el primero (igual deja tocar lo de abajo y dura poco).
+  const sheetTop = host.matches?.('dialog.sheet') ? host.getBoundingClientRect().top - t.offsetHeight - 8 : -1;
+  const places = [...(sheetTop >= 4 ? [[sheetTop + 'px', 'auto']] : []), ['', ''], ['calc(12px + var(--safe-t))', 'auto'], ['auto', 'calc(16px + var(--safe-b))']];
+  const place = ([top, bottom]) => { t.style.top = top; t.style.bottom = bottom; };
+  // Se ubica antes de pintar, cuando la pantalla ya se redibujó con lo que generó el aviso.
+  requestAnimationFrame(() => {
+    if (t.hidden) return;
+    let best = places[0], min = Infinity;
+    for (const pl of places) { place(pl); const n = coveredControls(t); if (n < min) { min = n; best = pl; } if (!n) break; }
+    place(best);
+  });
+  clearTimeout(toastTimer); toastTimer = setTimeout(hideToast, undo ? 5000 : Math.min(4500, 1800 + msg.length * 30));
 }
+// Cuántos puntos del aviso caen sobre un control. El aviso no recibe toques, así que elementFromPoint ve lo de abajo.
+// Las filas del pizarrón de Hoy no cuentan: son la lista del día (se tocan para ver el detalle), no botones de acción.
+function coveredControls(t) {
+  const r = t.getBoundingClientRect(); let n = 0;
+  for (const x of [r.left + 12, r.left + r.width / 2, r.right - 12]) for (const y of [r.top + 4, r.top + r.height / 2, r.bottom - 4]) {
+    const el = document.elementFromPoint(x, y);
+    if (el?.closest('button, input, select, textarea, a[href], #rest') && !el.closest('.board')) n++;
+  }
+  return n;
+}
+function hideToast() { clearTimeout(toastTimer); $('toast').hidden = true; toastUndo = null; }
+// Un toque en cualquier otro lado cierra el aviso (salvo el que ofrece "Deshacer").
+document.addEventListener('pointerdown', (e) => { const t = $('toast'); if (!t.hidden && !toastUndo && !t.contains(e.target)) hideToast(); }, true);
 
 // ——— Tema ———
 function applyTheme() {
@@ -512,6 +538,8 @@ function pickExercise(id) {
   // Lo que elige el usuario queda fijado; el cambio conserva el hueco para poder re-resolverlo.
   if (swap) items[PK.i] = { ...items[PK.i], ex: id, pinned: true }; else items.push({ slot: slotOf(id), ex: id, pinned: true });
   $('pickersheet').close(); routineSet(PK.day, items); PK = null;
+  // Al agregar, el ejercicio nuevo y "+ Agregar ejercicio" quedan a la vista, no debajo del aviso.
+  if (!swap) document.querySelector('#view-train .add-ex')?.scrollIntoView({ block: 'center' });
   toast(swap ? 'Ejercicio cambiado.' : 'Ejercicio agregado.');
 }
 
@@ -1352,10 +1380,12 @@ function renderOnb() {
   dlg('onb').html = `<div class="dlg">${steps}${body}<div class="btns" style="margin-top:16px">${onbStep ? '<button class="sec" data-action="onb-back">Atrás</button>' : ''}<button class="cta" data-action="onb-next">${onbStep === 0 ? 'Armar mi rutina' : onbStep === ONB_STEPS - 1 ? 'Ver mi rutina' : 'Siguiente'}</button></div></div>`;
   calmMotion($('onb'));
 }
+// Cambiar de paso: el aviso del paso anterior no pasa al nuevo y se arranca desde arriba.
+function onbGo(d) { onbStep += d; hideToast(); renderOnb(); $('onb').querySelector('.dlg').scrollTop = 0; }
 function onbNext() {
   if ((onbStep === 1 || onbStep === 2) && !onbFieldsOk()) return;
   if (onbStep === 3 && choiceMissing(currentChoice())) return toast(choiceMissing(currentChoice()));
-  if (onbStep < ONB_STEPS - 1) { onbStep++; renderOnb(); $('onb').querySelector('.dlg').scrollTop = 0; return; }
+  if (onbStep < ONB_STEPS - 1) { onbGo(1); return; }
   // Cada zona marcada necesita su escala y su lado; la primera que falte recibe el foco.
   const open = Object.entries(S.zones).find(([, z]) => z.pain0 == null || z.side == null);
   if (open) {
@@ -1395,7 +1425,7 @@ async function importData(file) {
 // ——— Eventos ———
 document.addEventListener('click', (e) => {
   const tabBtn = e.target.closest('.tabbar button');
-  if (tabBtn) return showTab(tabBtn.dataset.tab);
+  if (tabBtn) { hideToast(); return showTab(tabBtn.dataset.tab); }  // el aviso de una pestaña no pasa a la otra
   const hit = e.target.closest('[data-tip]');
   if (hit) return showTip(hit);
   $('tip').hidden = true;
@@ -1451,7 +1481,7 @@ document.addEventListener('click', (e) => {
     'save-pain': savePain,
     'check': () => answerCheck(d.zone, d.val),
     'pain-mode-on': () => { S.painMode = true; persist(); render(); toast('Modo dolor activado.'); },
-    'go-pain': () => showTab('tendons'),
+    'go-pain': () => { hideToast(); showTab('tendons'); },
     'hide-pain-tip': () => { S.hidePainTip = true; persist(); render(); },
     'phase': () => {
       const z = S.zones[d.zone], to = z.phase + Number(d.dir);
@@ -1480,7 +1510,7 @@ document.addEventListener('click', (e) => {
       const [gone] = S.sessions.splice(i, 1); persist(); render();
       toast('Sesión eliminada.', () => { S.sessions.splice(i, 0, gone); persist(); render(); toast('Sesión recuperada.'); });
     },
-    'undo': () => { const f = toastUndo; toastUndo = null; $('toast').hidden = true; f?.(); },
+    'undo': () => { const f = toastUndo; hideToast(); f?.(); },
     'set-sex': () => { S.profile.sex = d.v; persist(); $('onb').open ? renderOnb() : render(); },
     'set-exp': () => { S.profile.exp = d.v; persist(); $('onb').open ? renderOnb() : render(); },
     'ics': () => shareFile('xz-fit.ics', icsText(S.rem, S.painMode, today()), 'text/calendar'),
@@ -1515,7 +1545,7 @@ document.addEventListener('click', (e) => {
       if (!confirm('¿Eliminar la máquina? Los ejercicios que la usan quedan como "falta equipo".')) return;
       S.equip.machines = S.equip.machines.filter((m) => m.id !== d.id); persist(); $('machsheet').close(); $('onb').open ? renderOnb() : render();
     },
-    'onb-back': () => { onbStep--; renderOnb(); },
+    'onb-back': () => onbGo(-1),
   };
   actions[a]?.();
 });

@@ -431,7 +431,9 @@ dialog #rest { bottom: calc(16px + var(--safe-b)); }
 #toast button { float: right; margin: -4px -4px 0 10px; color: var(--acc-fg); font-weight: 700; padding: 4px 6px; }
 .thumb[data-action] { cursor: zoom-in; }
 /* Avisos abajo, sobre la barra de pestañas (o sobre el descanso); en las hojas que suben desde abajo, arriba del borde */
-#toast { position: fixed; z-index: 40; left: 16px; right: 16px; bottom: calc(76px + var(--safe-b)); max-width: 608px; margin: 0 auto; background: var(--card2); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; box-shadow: 0 8px 24px rgba(0, 0, 0, .4); animation: toast-up .2s ease-out; }
+#toast { position: fixed; z-index: 40; left: 16px; right: 16px; bottom: calc(76px + var(--safe-b)); max-width: 608px; margin: 0 auto; background: var(--card2); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; box-shadow: 0 8px 24px rgba(0, 0, 0, .4); animation: toast-up .2s ease-out; pointer-events: none; }
+/* El aviso deja pasar los toques al control de abajo; solo "Deshacer" se toca. */
+#toast button { pointer-events: auto; }
 dialog.full #toast { bottom: calc(16px + var(--safe-b)); }
 :has(> #rest:not([hidden])) > #toast { bottom: calc(148px + var(--safe-b)); }
 dialog.full:has(> #rest:not([hidden])) > #toast { bottom: calc(88px + var(--safe-b)); }
