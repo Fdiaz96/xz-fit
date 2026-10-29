@@ -899,10 +899,23 @@ s = await state();
 await click('[data-action="start-rehab"]');
 await page.waitForSelector('#rsheet[open]');
 await shot('11-rehab');
-for (let i = 0; i < 20 && await page.locator('#rsheet [data-action="rehab-go"], #rsheet [data-action="rehab-skip"]').count(); i++) {
-  await click('#rsheet [data-action="rehab-go"], #rsheet [data-action="rehab-skip"]');
+// Cada sostén se completa entero (se adelanta el reloj); los descansos se saltean.
+const holdFull = async () => { await page.evaluate(() => { R.end = Date.now(); }); await page.waitForTimeout(350); };
+for (let i = 0; i < 40 && await page.locator('#rsheet [data-action="rehab-go"], #rsheet [data-action="rehab-skip"]').count(); i++) {
+  if (await page.evaluate(() => R.state === 'hold')) await holdFull();
+  else await click('#rsheet [data-action="rehab-go"], #rsheet [data-action="rehab-skip"]');
 }
-await click('[data-action="finish-rehab"]');
+s = await state();
+ok(s.sessions[0].type === 'rehab' && s.sessions[0].items.length === 2 && !s.sessions[0].pain, 'la rehabilitación se guarda al terminar la última serie, antes de anotar el dolor');
+ok(s.sessions[0].items.every((i) => i.sets.every((x) => x.secs === s.zones[i.zone].secs)), 'guarda los segundos sostenidos de cada serie');
+const doneTxt = await page.locator('#rsheet').innerText();
+ok(/Sesión de la (mañana|noche) hecha/i.test(doneTxt) && /3 de 3 series de \d+ s/.test(doneTxt) && doneTxt.includes('Lo próximo'), `"¡Listo!" festeja y resume (${doneTxt.replace(/\s+/g, " ").slice(0, 200)})`);
+ok(await page.locator('#rsheet .done-mark').count() === 1 && (await page.locator('#rsheet .dlg-head [data-action="cancel-rehab"]').textContent()) === 'Cerrar', 'tilde de festejo y "Cerrar" sin preguntar');
+await shot('11b-rehab-listo');
+const homeRehab = await page.locator('#view-home .card.rehab').innerText();
+ok(homeRehab.includes('Hecha ✓') && homeRehab.includes('Lo próximo'), 'en Hoy la tarjeta queda con el tilde y lo próximo');
+ok(await page.locator('#view-home .card.rehab').evaluate((c) => !!c.nextElementSibling?.matches('.card.today') || !!c.closest('#view-home').querySelector('.card.rehab ~ .card.today')), 'la tarjeta hecha sigue arriba del entreno');
+await click('#rsheet [data-action="rehab-pain"]');
 await click('#painsheet [data-zone="codo_lat"][data-n="6"]');
 await click('#painsheet [data-zone="muneca"][data-n="2"]');
 await click('[data-action="save-pain"]');
@@ -910,6 +923,18 @@ s = await state();
 ok(s.sessions[0].type === 'rehab' && s.sessions[0].items.length === 2 && s.sessions[0].items.every((i) => i.sets.length === 3), 'guarda 2 isométricos de 3 series');
 ok(s.zones.codo_lat.load === 2 && s.zones.codo_lat.secs === 35, 'dolor 6 → baja la carga (en el mínimo, baja el tiempo)');
 ok((await toastText()).includes('bajamos'), 'avisa que bajó la carga');
+ok((await state()).sessions.filter((x) => x.type === 'rehab').length === 1, 'el dolor se suma a la misma sesión, sin duplicarla');
+// Cortar el sostén: antes de la mitad no cuenta; después, cuenta con los segundos reales. Salir sin terminar no guarda.
+await page.evaluate(() => startRehab()); await page.waitForSelector('#rsheet[open]');
+await click('#rsheet [data-action="rehab-go"]');
+await click('#rsheet [data-action="rehab-skip"]');
+ok(await page.evaluate(() => R.items[0].done === 0 && R.state === 'listo') && (await toastText()).includes('muy poco para contar'), 'cortada a los pocos segundos, la serie no cuenta y avisa');
+await click('#rsheet [data-action="rehab-go"]');
+await page.evaluate(() => { R.end = Date.now() + 10000; });
+await click('#rsheet [data-action="rehab-skip"]');
+ok(await page.evaluate(() => R.items[0].done === 1 && R.items[0].held[0] === R.items[0].secs - 10), 'cortada pasada la mitad, cuenta con el tiempo sostenido');
+await click('#rsheet [data-action="cancel-rehab"]');
+ok(!(await page.locator('#rsheet[open]').count()) && (await state()).sessions.filter((x) => x.type === 'rehab').length === 1, 'salir a mitad de la sesión no la guarda');
 
 // 6. Al día siguiente: ¿cómo amaneció?
 await page.evaluate(() => { const y = addDays(today(), -1); S.sessions.forEach((s) => (s.date = y)); Object.values(S.zones).forEach((z) => z.adjustedOn && (z.adjustedOn = y)); render(); });

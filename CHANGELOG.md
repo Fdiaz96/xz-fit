@@ -2,6 +2,14 @@
 
 Todos los cambios de XZ Fit (antes Tendón Fuerte), del más nuevo al más viejo.
 
+## 1.30.13 — La rehabilitación se guarda sola
+
+- La sesión de rehabilitación se guarda apenas terminás la última serie: si cerrás la app en "¡Listo!", ya cuenta.
+- Anotar cómo dolió pasa a ser un paso aparte y opcional, al final.
+- La pantalla final festeja y resume lo que hiciste (series y segundos de cada ejercicio), qué te toca después y cuántas sesiones llevás en la semana.
+- En Hoy la tarjeta Mañana/Noche no desaparece: queda con "Hecha ✓" y lo próximo.
+- Si cortás un isométrico antes de la mitad del tiempo, la serie no cuenta y te avisa; pasada la mitad, se guardan los segundos que sostuviste de verdad.
+
 ## 1.30.12 — Mové tus días con un toque
 
 - En la tarjeta "Tu plan" (Editar rutina y Ajustes) los días se tocan: con el plan completo, tocar un día libre pasa ahí el entreno más cercano y se guarda al toque, con Deshacer.

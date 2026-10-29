@@ -2,7 +2,7 @@
 // (IndexedDB). Los identificadores internos siguen siendo "tendon-fuerte" para no perder los datos ya guardados.
 // Protocolo de tendones del video de Jeremy Ethier con Keith Baar y Coach Q; reglas en logic.js, bocetos en figures.js.
 
-const APP_VERSION = '1.30.12';
+const APP_VERSION = '1.30.13';
 const DAY_NAMES = { lu: 'Lu', ma: 'Ma', mi: 'Mi', ju: 'Ju', vi: 'Vi', sa: 'Sá', do: 'Do' };
 const SIDES = { der: 'derecha', izq: 'izquierda', ambos: 'ambos lados' };
 const REST_SECS = 90, ISO_REST = 60;
@@ -277,6 +277,11 @@ function rehabItems() {
 const lentoDoneRecently = (exId) => S.sessions.some((s) => s.type === 'rehab' && daysBetween(s.date, today()) <= 1 && s.items.some((i) => i.ex === exId && i.sets.some((x) => x.done)));
 const slotNow = () => (new Date().getHours() < 15 ? 'mañana' : 'noche');
 const rehabDone = (slot) => S.sessions.some((s) => s.type === 'rehab' && s.date === today() && s.slot === slot);
+// Cuándo toca la próxima sesión, con la del momento hecha: isométricos mañana y noche; isotónicos (fase 2), día por medio.
+function rehabNext(slot, done) {
+  const iso = Object.values(S.zones).some((z) => z.phase === 1);
+  return !iso ? 'pasado mañana' : slot === 'mañana' && !done.noche ? 'a la noche' : 'mañana a la mañana';
+}
 const activeZones = () => Object.keys(S.zones);
 function newZone(zone, pain = 5, side = 'der') {
   const ex = EXERCISES[REHAB_OPTIONS[zone][1][0]], steps = weightSteps(S.equip, implFor(ex, S.equip));
@@ -308,13 +313,14 @@ function renderHome() {
   let rehab = '', rehabFirst = false;
   if (S.painMode) {
     const items = rehabItems();
-    if (items.length || S.custom.length) {
-      const slot = slotNow(), done = { mañana: rehabDone('mañana'), noche: rehabDone('noche') };
-      rehabFirst = !done[slot];
-      const cell = (s) => `<span class="slot${done[s] ? ' done' : ''}${s === slot ? ' now' : ''}">${s[0].toUpperCase() + s.slice(1)}<b>${done[s] ? 'Hecha' : s === slot ? 'Toca ahora' : 'Pendiente'}</b></span>`;
-      rehab = `<div class="card rehab"><div class="slots">${cell('mañana')}${cell('noche')}</div>
-        <h3>Rehabilitación de la ${slot}</h3>
-        <p class="muted small">${items.map((i) => esc(i.ex.name)).join(', ') || 'Tus ejercicios del fisio'}</p>
+    const slot = slotNow(), done = { mañana: rehabDone('mañana'), noche: rehabDone('noche') };
+    // Hecha la del momento, la tarjeta queda en su lugar con el tilde y lo próximo (los isotónicos de fase 2 ya no figuran hoy).
+    if (items.length || S.custom.length || done[slot]) {
+      rehabFirst = true;
+      const cell = (s) => `<span class="slot${done[s] ? ' done' : ''}${s === slot ? ' now' : ''}">${s[0].toUpperCase() + s.slice(1)}<b>${done[s] ? 'Hecha ✓' : s === slot ? 'Toca ahora' : 'Pendiente'}</b></span>`;
+      rehab = `<div class="card rehab${done[slot] ? ' done' : ''}"><div class="slots">${cell('mañana')}${cell('noche')}</div>
+        <h3>Rehabilitación de la ${slot}${done[slot] ? ' hecha' : ''}</h3>
+        <p class="muted small">${done[slot] ? `Lo próximo: ${rehabNext(slot, done)}.` : items.map((i) => esc(i.ex.name)).join(', ') || 'Tus ejercicios del fisio'}</p>
         ${done[slot] ? '' : `<button class="cta pain" data-action="start-rehab">Empezar rehabilitación</button>`}</div>`;
     } else if (!hasZones) rehab = `<div class="card ask pain"><h3>Modo dolor activo</h3><p class="muted small">Marcá qué te duele en la pestaña Dolor para armar tu rehabilitación.</p></div>`;
     else rehab = `<div class="card ask pain"><h3>Hoy no hay rehabilitación aparte</h3>${Object.values(S.zones).some((z) => z.phase === 3) ? '<p class="muted small">Los isométricos de mantenimiento van al final del entreno.</p>' : ''}</div>`;
@@ -1160,9 +1166,10 @@ async function openNews() {
 }
 
 // ——— Sesión de rehabilitación ———
-let R = null;   // { slot, items, idx, set, phase: 'listo'|'hold'|'rest', end, timer }
+let R = null;   // { slot, items, idx, set, phase: 'listo'|'hold'|'rest', end, timer, saved: id de la sesión ya guardada }
+const ISO_MIN = 0.5;   // una serie isométrica cuenta si se sostuvo al menos la mitad del tiempo
 function startRehab() {
-  const items = rehabItems().map((it) => ({ ...it, done: 0 }));
+  const items = rehabItems().map((it) => ({ ...it, done: 0, held: [] }));
   const custom = S.custom.filter((c) => !c.zone || S.zones[c.zone]).map((c) => ({ custom: c, done: false }));
   R = { slot: slotNow(), items, custom, idx: 0, state: 'listo' };
   renderRehab(); $('rsheet').showModal(); calmMotion($('rsheet')); keepAwake(true);
@@ -1186,12 +1193,27 @@ function renderRehab() {
         <button class="cta pain" data-action="rehab-next" ${it.done < it.sets ? 'disabled' : ''}>Siguiente</button>`}
       <details class="cues"><summary>Cómo se hace</summary><ul>${it.ex.cues.map((c) => `<li>${esc(c)}</li>`).join('')}</ul></details>`;
   } else {
-    main = `<h1 style="font-size:28px">${R.custom.length ? 'Tus ejercicios del fisio' : '¡Listo!'}</h1>
-      ${R.custom.map((c, i) => `<div class="card"><div class="row"><div><h3>${esc(c.custom.name)}</h3><p class="muted small">${c.custom.sets} × ${c.custom.value} ${c.custom.mode === 'segundos' ? 's' : 'reps'}${c.custom.zone ? ` para tu ${esc(zoneName(c.custom.zone).toLowerCase())}` : ''}</p>${c.custom.note ? `<p class="small">${esc(c.custom.note)}</p>` : ''}</div>
-        <button class="chip${c.done ? ' on' : ''}" data-action="custom-done" data-i="${i}">${c.done ? 'Hecho' : 'Marcar'}</button></div></div>`).join('')}
-      <button class="cta pain" data-action="finish-rehab">Terminar y anotar dolor</button>`;
+    // Terminada la última serie la sesión ya quedó guardada: esta pantalla festeja, resume y deja el dolor como paso opcional.
+    if (!R.saved && R.items.length) saveRehab();
+    const sess = S.sessions.find((x) => x.id === R.saved), done = { mañana: rehabDone('mañana'), noche: rehabDone('noche') };
+    const and = (xs) => (xs.length > 1 ? `${xs.slice(0, -1).join(', ')} y ${xs.at(-1)}` : xs[0]);
+    const dose = (it) => it.ex.kind === 'iso' ? `de ${it.held.every((x) => x === it.held[0]) ? it.held[0] : and(it.held.map(String))} s` : `de ${it.reps} reps`;
+    const sum = R.items.filter((it) => it.done).map((it) => `<div class="row"><span>${esc(it.ex.name)}</span><span class="num">${it.done} de ${it.sets} series ${dose(it)}</span></div>`).join('');
+    const custom = R.custom.map((c, i) => `<div class="card"><div class="row"><div><h3>${esc(c.custom.name)}</h3><p class="muted small">${c.custom.sets} × ${c.custom.value} ${c.custom.mode === 'segundos' ? 's' : 'reps'}${c.custom.zone ? ` para tu ${esc(zoneName(c.custom.zone).toLowerCase())}` : ''}</p>${c.custom.note ? `<p class="small">${esc(c.custom.note)}</p>` : ''}</div>
+        <button class="chip${c.done ? ' on' : ''}" data-action="custom-done" data-i="${i}">${c.done ? 'Hecho' : 'Marcar'}</button></div></div>`).join('');
+    const ws = weekStats(S, today());
+    main = sess ? `<div class="rehab-done"><div class="done-mark${R.cheered ? ' still' : ''}" aria-hidden="true"><svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="52"/><path d="M38 62l15 15 30-34"/></svg></div>
+        <h1>¡Sesión de la ${R.slot} hecha!</h1>
+        <p class="muted">Lo próximo: ${rehabNext(R.slot, done)}.${ws.rehabTarget ? ` Llevás ${ws.rehab} de ${ws.rehabTarget} sesiones esta semana.` : ''}</p></div>
+      ${sum ? `<div class="card rehab-sum">${sum}</div>` : ''}
+      ${custom ? `<h2>Tus ejercicios del fisio</h2>${custom}` : ''}
+      <button class="cta pain" data-action="rehab-pain">Anotar cómo dolió</button>
+      <p class="faint small rehab-opt">Opcional. Con varios registros por semana sabemos si podés pasar de fase.</p>
+      <button class="sec rehab-close" data-action="rehab-close">Listo</button>`
+      : `<h1 style="font-size:28px">Tus ejercicios del fisio</h1>${custom}<p class="faint small rehab-opt">Marcá los que hiciste: la sesión se guarda con el primero.</p>`;
+    if (sess) R.cheered = true;   // el festejo se anima una vez, no al marcar los ejercicios del fisio
   }
-  dlg('rsheet').html = `<div class="dlg"><div class="dlg-head"><button class="link" data-action="cancel-rehab">Salir</button><strong>Rehabilitación de la ${R.slot}</strong><span></span></div>${main}</div>`;
+  dlg('rsheet').html = `<div class="dlg"><div class="dlg-head"><button class="link" data-action="cancel-rehab">${R.saved ? 'Cerrar' : 'Salir'}</button><strong>Rehabilitación de la ${R.slot}</strong><span></span></div>${main}</div>`;
   calmMotion($('rsheet'));
 }
 // Solo actualiza el número y el anillo: redibujar todo reiniciaría la animación del boceto.
@@ -1209,7 +1231,13 @@ function rehabTick() {
   clearInterval(R.timer); R.timer = null; R.left = null;
   const it = R.items[R.idx];
   if (R.state === 'hold') {
-    it.done++;
+    // Se guarda lo sostenido de verdad; cortada antes de la mitad, la serie no cuenta y se repite.
+    const held = R.held ?? it.secs; R.held = null;
+    if (held < it.secs * ISO_MIN) {
+      R.state = 'listo'; renderRehab();
+      return toast(`Sostuviste ${held} s de ${it.secs}: muy poco para contar la serie. Repetila cuando puedas; si duele, cortá acá.`);
+    }
+    it.held.push(held); it.done++;
     if (it.done >= it.sets) { R.state = 'listo'; R.idx++; cue('done', R.items[R.idx] ? 'Listo. Siguiente ejercicio' : 'Terminaste'); }
     else { R.state = 'rest'; R.end = Date.now() + ISO_REST * 1000; R.timer = setInterval(rehabTick, 250); cue('done', 'Descansá'); }
   } else if (R.state === 'rest') {
@@ -1223,17 +1251,28 @@ function rehabGo() {
   R.state = 'hold'; R.end = Date.now() + it.secs * 1000; R.left = it.secs;
   R.timer = setInterval(rehabTick, 250); renderRehab(); cue('go', 'Sostené');
 }
-function rehabSkip() { R.end = Date.now(); rehabTick(); }
-function finishRehab() {
-  clearInterval(R?.timer);
-  const done = R.items.filter((it) => it.done > 0);
-  const items = done.map((it) => ({ ex: it.ex.id, zone: it.zone, sets: Array.from({ length: it.done }, () => ({ w: it.w, secs: it.ex.kind === 'iso' ? it.secs : 0, reps: it.ex.kind === 'lento' ? it.reps : 0, done: true })) }))
+// "Terminar serie" en pleno sostén: anota los segundos sostenidos hasta ahí.
+function rehabSkip() {
+  if (R.state === 'hold') R.held = Math.max(0, R.items[R.idx].secs - Math.ceil((R.end - Date.now()) / 1000));
+  R.end = Date.now(); rehabTick();
+}
+// Guarda (o actualiza) la sesión con lo hecho: se llama al terminar la última serie y al marcar los ejercicios del fisio.
+function saveRehab() {
+  const items = R.items.filter((it) => it.done > 0).map((it) => ({ ex: it.ex.id, zone: it.zone, sets: Array.from({ length: it.done }, (_, k) => ({ w: it.w, secs: it.ex.kind === 'iso' ? it.held[k] : 0, reps: it.ex.kind === 'lento' ? it.reps : 0, done: true })) }))
     .concat(R.custom.filter((c) => c.done).map((c) => ({ ex: 'custom:' + c.custom.id, name: c.custom.name, zone: c.custom.zone || undefined, sets: [{ done: true }] })));
-  const session = { id: uid(), date: today(), type: 'rehab', slot: R.slot, items };
-  if (!items.length) { toast('No hiciste ningún ejercicio todavía.'); return; }
-  const zones = [...new Set([...done.map((i) => i.zone), ...R.custom.filter((c) => c.done && c.custom.zone).map((c) => c.custom.zone)])];
-  R = null; $('rsheet').close(); keepAwake(false);
-  if (zones.length) askPain(session, zones); else saveSession(session);
+  const i = S.sessions.findIndex((x) => x.id === R.saved);
+  if (!items.length) { if (i >= 0) S.sessions.splice(i, 1); R.saved = null; }
+  else if (i >= 0) S.sessions[i].items = items;
+  else { const session = { id: uid(), date: today(), type: 'rehab', slot: R.slot, items }; S.sessions.unshift(session); R.saved = session.id; }
+  persist(); render();
+}
+function closeRehab() { clearInterval(R?.timer); R = null; $('rsheet').close(); keepAwake(false); }
+// El dolor, después y opcional: se anota sobre la sesión ya guardada.
+function rehabPain() {
+  const sess = S.sessions.find((x) => x.id === R.saved); if (!sess) return;
+  const zones = [...new Set(sess.items.map((i) => i.zone).filter(Boolean))];
+  closeRehab();
+  if (zones.length) askPain(sess, zones); else toast('Rehabilitación guardada.');
 }
 
 // ——— Dolor 0–10 ———
@@ -1262,7 +1301,9 @@ function savePain() {
       msgs.push(zoneName(zone).toLowerCase());
     }
   }
-  P = null; $('painsheet').close(); saveSession(session);
+  P = null; $('painsheet').close();
+  // La rehabilitación ya está guardada desde la última serie: solo se le suma el dolor.
+  if (S.sessions.includes(session)) { persist(); render(); toast('Dolor anotado.'); } else saveSession(session);
   if (msgs.length) toast(`Dolió más de 4 en ${msgs.join(' y ')}: bajamos la carga para la próxima.`);
 }
 // Respuesta de "¿cómo amaneció?": ajusta la carga del isométrico con el dolor de ayer.
@@ -1695,9 +1736,10 @@ document.addEventListener('click', (e) => {
     'rehab-skip': rehabSkip,
     'lento-set': () => { const it = R.items[R.idx]; it.done = +d.s < it.done ? +d.s : +d.s + 1; renderRehab(); },
     'rehab-next': () => { R.idx++; R.state = 'listo'; renderRehab(); },
-    'custom-done': () => { R.custom[+d.i].done = !R.custom[+d.i].done; renderRehab(); },
-    'finish-rehab': finishRehab,
-    'cancel-rehab': () => { if (confirm('¿Salir sin guardar la sesión?')) { clearInterval(R?.timer); R = null; $('rsheet').close(); keepAwake(false); } },
+    'custom-done': () => { R.custom[+d.i].done = !R.custom[+d.i].done; saveRehab(); renderRehab(); },
+    'rehab-pain': rehabPain,
+    'rehab-close': () => { closeRehab(); toast('Rehabilitación guardada.'); },
+    'cancel-rehab': () => { if (R.saved) { closeRehab(); toast('Rehabilitación guardada.'); } else if (confirm('¿Salir sin guardar la sesión?')) closeRehab(); },
     'pref': () => { S.prefs[d.k] = d.v === undefined ? !S.prefs[d.k] : Number(d.v); persist(); render(); if (d.k === 'sound' || d.k === 'voice') cue('go', 'Así suena'); },
     'news': openNews,
     'theme': () => { S.prefs.theme = d.v; applyTheme(); persist(); render(); },
