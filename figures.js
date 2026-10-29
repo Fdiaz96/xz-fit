@@ -612,8 +612,45 @@ function figureSVG(ex, { animate = true, size = '', crop = false, muscles = true
     if (w / h > 200 / 170) h = (w * 170) / 200; else w = (h * 200) / 170;
     vb = [(x0 + x1) / 2 - w / 2, (y0 + y1) / 2 - h / 2, w, h];
   }
+  const lupa = detail && f.palm && FR[0].G1 ? palmInset(f.palm, vb, FR, animV, uid) : '';
   return `<svg class="fig ${size}" viewBox="${vb.map(r1).join(' ')}" role="img" aria-label="Ilustración: ${ex.name}"><defs>${defs}</defs>
-    ${floor}${shadow}${scene.map((s) => s.svg).join('')}${groups.map((g) => g.svg).join('')}${guide}</svg>`;
+    ${floor}${shadow}${scene.map((s) => s.svg).join('')}${groups.map((g) => g.svg).join('')}${guide}${lupa}</svg>`;
+}
+
+// Lupa de la mano en los ejercicios de muñeca: desde la isométrica la palma se ve chica, así que en una esquina va la
+// mano de costado (antebrazo sobre el muslo, mano pasando la rodilla) con la pesa encima de la palma (palma arriba) o
+// colgando debajo de la mano (palma abajo), girando en la muñeca al ritmo de la animación, y un círculo marca la mano.
+function palmInset(palm, vb, FR, animV, uid) {
+  const up = palm === 'up', sg = up ? -1 : 1, L = PAL.line;
+  const cw = vb[2] * 0.37, ch = cw * 0.76, m = vb[2] * 0.03, x0 = vb[0] + vb[2] - cw - m, y0 = vb[1] + m, s = cw / 100, lw = 2.2 / s;
+  // Ángulo de la mano respecto del antebrazo en cada fotograma (positivo: la mano sube).
+  const elev = (v) => (Math.atan2(v[1], Math.hypot(v[0], v[2])) * 180) / Math.PI;
+  const angs = FR.map((J) => r1(-(elev(sub3(J.G1, J.W1)) - elev(sub3(J.W1, J.E1)))));
+  const pv = [62, 46], rot = (a) => `${a} ${pv[0]} ${pv[1]}`;
+  const spin = animV('transform', angs.map(rot), 'animateTransform', 'type="rotate" ');
+  const out = (d, w, col) => `<path d="${d}" fill="none" stroke="${L}" stroke-width="${r1(w + lw * 2)}" stroke-linecap="round"/><path d="${d}" fill="none" stroke="${col}" stroke-width="${w}" stroke-linecap="round"/>`;
+  const solid = (d, col) => `<path d="${d}" fill="${col}" stroke="${L}" stroke-width="${r1(lw)}" stroke-linejoin="round"/>`;
+  const cap = (x1, x2, y, r) => `M${x1} ${y - r}H${x2}A${r} ${r} 0 0 1 ${x2} ${y + r}H${x1}A${r} ${r} 0 0 1 ${x1} ${y - r}Z`;
+  const skin = `url(#lp${uid})`, cy = 46 + sg * 11.5;   // centro del mango: del lado de la palma
+  // Dedos: de la punta de la mano rodean el mango por el lado de afuera.
+  const fingers = `M77 ${46 + sg * 3}Q83 ${cy + sg}76 ${cy + sg * 6}`;
+  const hand = `<g transform="rotate(${rot(angs[0])})">${spin}
+      <circle cx="72" cy="${cy}" r="9" fill="${PAL.db}" stroke="${L}" stroke-width="${r1(lw)}"/><circle cx="72" cy="${cy}" r="3.2" fill="${PAL.db2}"/>
+      ${solid(cap(58, 78, 46, 5.4), skin)}<path d="M62 ${46 + sg * 4.4}H77" stroke="#FFEDE0" stroke-width="2.4" stroke-linecap="round"/>
+      ${out(fingers, 5.4, PAL.skin)}</g>`;
+  // Círculo sobre la mano del muñeco y una línea hasta la lupa.
+  const hp = FR.map((J) => prj(mix3(J.W1, J.G1, 0.6))).reduce((a, q, _, arr) => [a[0] + q[0] / arr.length, a[1] + q[1] / arr.length], [0, 0]);
+  const hr = vb[2] * 0.075, tgt = [x0 + cw * 0.5, y0 + ch], d = unit(tgt[0] - hp[0], tgt[1] - hp[1]);
+  const ring = `<circle cx="${r1(hp[0])}" cy="${r1(hp[1])}" r="${r1(hr)}" fill="none" stroke="#FFF" stroke-width="${r1(s * 3.2)}" opacity=".8"/><circle cx="${r1(hp[0])}" cy="${r1(hp[1])}" r="${r1(hr)}" fill="none" stroke="${L}" stroke-width="${r1(s * 1.4)}"/>
+    <path d="M${pt2([hp[0] + d[0] * hr, hp[1] + d[1] * hr])}L${pt2(tgt)}" stroke="${L}" stroke-width="${r1(s * 1.4)}"/>`;
+  return `<g class="lupa">${ring}<g transform="translate(${r1(x0)} ${r1(y0)}) scale(${r1(s * 1000) / 1000})">
+    <defs><clipPath id="lc${uid}"><rect width="100" height="76" rx="9"/></clipPath><linearGradient id="lp${uid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${tint(PAL.skin, 0.2)}"/><stop offset="1" stop-color="${PAL.skin2}"/></linearGradient></defs>
+    <rect width="100" height="76" rx="9" fill="#FFF" stroke="${L}" stroke-width="${r1(lw)}"/>
+    <g clip-path="url(#lc${uid})">
+      ${out('M44 64V96', 12, PAL.skin)}${solid(cap(-12, 44, 59.5, 7), PAL.shorts)}
+      ${solid(cap(-12, 60, 46, 6), skin)}${hand}
+    </g>
+    <text x="9" y="17" font-size="12.5" font-weight="700" fill="${L}" font-family="inherit">Palma ${up ? 'arriba' : 'abajo'}</text></g></g>`;
 }
 
 // Caja 3D [x], [y], [z] con las tres caras visibles (arriba, frente y costado) en tonos de un mismo color.

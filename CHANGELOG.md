@@ -2,6 +2,11 @@
 
 Todos los cambios de XZ Fit, del más nuevo al más viejo.
 
+## 1.32.0 — Lupa de la palma
+
+- En los ejercicios de muñeca (extensión y flexión, isométricas y lentas, y el excéntrico) hay una lupa en la esquina con la mano vista de costado: el antebrazo apoyado en el muslo, la mano pasando la rodilla y la pesa encima de la palma (palma arriba) o colgando debajo de la mano (palma abajo), con el texto "Palma arriba" o "Palma abajo". La mano de la lupa sube y baja al mismo ritmo que la animación, y un círculo marca la mano en el dibujo grande.
+- Las isométricas de muñeca ahora se ven de cerca, como las lentas.
+
 ## 1.31.10 — Extensión de muñeca, instrucción completa
 
 - La extensión de muñeca lenta ya no dice "misma posición": ahora explica la postura completa (sentado, antebrazo en el muslo, palma hacia abajo y la mano fuera de la rodilla), así se entiende aunque no venga después de la isométrica.
