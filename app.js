@@ -2,7 +2,7 @@
 // (IndexedDB). Los identificadores internos siguen siendo "tendon-fuerte" para no perder los datos ya guardados.
 // Protocolo de tendones del video de Jeremy Ethier con Keith Baar y Coach Q; reglas en logic.js, bocetos en figures.js.
 
-const APP_VERSION = '1.30.13';
+const APP_VERSION = '1.30.14';
 const DAY_NAMES = { lu: 'Lu', ma: 'Ma', mi: 'Mi', ju: 'Ju', vi: 'Vi', sa: 'Sá', do: 'Do' };
 const SIDES = { der: 'derecha', izq: 'izquierda', ambos: 'ambos lados' };
 const REST_SECS = 90, ISO_REST = 60;
@@ -19,6 +19,15 @@ const zoneName = (id) => ZONE[id]?.name || 'General';
 const bodyPart = (id) => id.startsWith('codo') ? 'codo' : id === 'aquiles' ? 'tendón de Aquiles' : zoneName(id).toLowerCase();
 const forZones = (r) => 'por tu ' + [...new Set(r.zones.map(bodyPart))].join(' y tu ');
 const painTag = (r) => `${r.mode === 'alt' ? 'variante' : 'más liviano'} ${forZones(r)}`;
+// "Cambiamos 2 ejercicios por tu codo": los cambios del modo dolor dichos una vez, con el porqué plegado.
+function swapNote(items) {
+  const alts = [...new Map(items.filter((p) => p.r?.mode === 'alt' && !p.missing).map((p) => [p.ex.id, p])).values()];
+  if (!alts.length) return '';
+  const r = { zones: [...new Set(alts.flatMap((p) => p.r.zones))] }, n = alts.length;
+  return `<details class="note pain swap-note"><summary><span>${n === 1 ? 'Cambiamos 1 ejercicio' : `Cambiamos ${n} ejercicios`} ${forZones(r)}</span><span class="why">Ver por qué</span></summary>
+    <ul>${alts.map((p) => `<li><b>${esc(p.ex.name)}</b> en vez de ${esc(p.orig.name.toLowerCase())}</li>`).join('')}</ul>
+    <p>En los últimos días el dolor pasó de ${PAIN_MAX} o amaneció peor. Hasta que se calme va una variante que carga menos la zona; cuando baje, vuelve el ejercicio de siempre con su peso.</p></details>`;
+}
 const CALIB_TAG = '<span class="calib-tag">calibración</span>';
 const GUESS_TAG = '<span class="calib-tag">estimado</span>';
 
@@ -379,7 +388,7 @@ function renderHome() {
   } else h += `<section class="card today on">
     <p class="plan-line"><span>${esc(plan.name)}</span>${lastLine}</p>
     <p class="day-msg">${dayMsg}${deloadNote}</p>
-    ${title}${board}
+    ${title}${swapNote(doable)}${board}
     <button class="cta stick" data-action="start-workout" data-day="${day}">Empezar ${esc(plan.days[day].name.toLowerCase())}</button></section>`;
   if (S.painMode && hasZones) h += `<button class="sec quick-pain" data-action="quick-pain">Anotar cómo está el dolor ahora</button>`;
   if (!rehabFirst) h += rehab;
@@ -417,7 +426,7 @@ function renderTrain() {
   plan.days.forEach((dd, d) => {
     if (editRoutine && d !== editDay) return;
     const items = planFor(d), now = d === todayDay;
-    h += `<section class="plan-day${now ? ' now' : ''}"><h2><span class="day-name">${esc(dd.name)}</span>${now ? '<span class="sep"> · </span><span class="day-now">toca hoy</span>' : ''}</h2><ul class="plan-list">`;
+    h += `<section class="plan-day${now ? ' now' : ''}"><h2><span class="day-name">${esc(dd.name)}</span>${now ? '<span class="sep"> · </span><span class="day-now">toca hoy</span>' : ''}</h2>${editRoutine ? '' : swapNote(items)}<ul class="plan-list">`;
     h += items.map((p, i) => `<li class="ex${p.missing ? ' missing' : ''}${editRoutine ? ' editing' : ''}"${editRoutine ? '' : ` data-action="ex-detail" data-ex="${p.ex.id}"`}>
         <div class="thumb">${figureSVG(p.ex, { crop: true })}</div>
         <div class="info"><h3>${esc(p.ex.name)}</h3><p class="dose">${p.missing ? 'Falta equipo' : `${p.sets} × ${setLabel(p)}`}${p.r ? `<em>${painTag(p.r)}</em>` : ''}</p>${p.stalled && !editRoutine ? `<p class="stall">Estancado: <button class="link small" data-action="unstall" data-ex="${p.ex.id}">bajar 10 % y volver a subir</button></p>` : ''}</div>
@@ -1282,8 +1291,11 @@ function askPain(session, zones) {
   renderPain(); $('painsheet').showModal();
 }
 function renderPain() {
-  dlg('painsheet').html = `<div class="dlg pain"><div class="dlg-head"><strong>¿Cuánto dolió?</strong><span></span></div>
-    <p class="muted small">Durante el ejercicio, de 0 (nada) a 10 (máximo). Hasta 3–4 está bien.</p>
+  // Fuera de un ejercicio se pregunta por ahora; si la sesión ya está guardada (o es solo el registro), se puede dejar para después.
+  const now = P.session.type === 'dolor', later = now || S.sessions.includes(P.session);
+  const when = now ? 'Ahora mismo' : P.session.type === 'rehab' ? 'Durante la rehabilitación' : 'Durante el entreno';
+  dlg('painsheet').html = `<div class="dlg pain"><div class="dlg-head">${later ? `<button class="link" data-action="close" data-dlg="painsheet">${now ? 'Cancelar' : 'Ahora no'}</button>` : '<span></span>'}<strong>${now ? '¿Cuánto te duele ahora?' : '¿Cuánto dolió?'}</strong><span></span></div>
+    <p class="muted small">${when}, de 0 (nada) a 10 (máximo). Hasta 3–4 está bien.</p>
     ${P.zones.map((z) => `<h3 style="margin-top:14px">${esc(zoneName(z))}</h3><div class="chips scale">${Array.from({ length: 11 }, (_, n) => `<button class="chip${P.vals[z] === n ? ' on' : ''}" data-action="pain-val" data-zone="${z}" data-n="${n}">${n}</button>`).join('')}</div>`).join('')}
     <button class="cta pain" style="margin-top:18px" data-action="save-pain" ${P.zones.every((z) => P.vals[z] != null) ? '' : 'disabled'}>Guardar</button>
     ${P.zones.every((z) => P.vals[z] != null) ? '' : `<p class="faint small" style="text-align:center;margin-top:8px">Marcá el dolor de ${P.zones.length > 1 ? 'cada zona' : 'la zona'} para guardar.</p>`}</div>`;
@@ -1339,10 +1351,19 @@ function phaseStep(zone, z) {
     <p class="small muted">${days >= PHASE_DAYS ? `✓ ${PHASE_DAYS} días en esta fase.` : `${days} de ${PHASE_DAYS} días en esta fase.`}<br>${pain}</p></div>
     <div class="phase-links">${back}<button class="quiet" data-action="phase" data-zone="${zone}" data-dir="1">Avanzar igual</button></div>`;
 }
+// Anotar el dolor de ahora, sin hacer una sesión, con el último registro a la vista.
+function painNowCard() {
+  const last = S.sessions.find((s) => s.pain && Object.keys(s.pain).length);
+  const when = last && (last.date === today() ? 'hoy' : last.date === addDays(today(), -1) ? 'ayer' : `el ${fmtDate(last.date)}`);
+  return `<div class="card pain-now"><h3>¿Cuánto te duele ahora?</h3>
+    <p class="muted small">${last ? `Último registro, ${when}: ${Object.entries(last.pain).map(([z, v]) => `${esc(zoneName(z).toLowerCase())} ${v}`).join(', ')}.` : 'Anotalo cuando quieras, aunque no entrenes: cuenta para avanzar de fase.'}</p>
+    <button class="sec" data-action="quick-pain">Anotar dolor</button></div>`;
+}
 function renderTendons() {
   let h = `<h1>Dolor</h1>
     <div class="card pain"><div class="row"><div><h3>Modo dolor</h3><p class="muted small">Isométricos diarios, registro de dolor y entreno adaptado en las zonas que marques.</p></div>
     <label class="switch"><input type="checkbox" data-action="pain-mode" ${S.painMode ? 'checked' : ''} aria-label="Modo dolor"><i></i></label></div></div>
+    ${S.painMode && activeZones().length ? painNowCard() : ''}
     <h2>¿Qué te duele?</h2>`;
   // Las zonas, con las mismas casillas que el alta: la marcada despliega debajo lado, fase y ejercicio.
   h += `<div class="tiles list">${ZONES.map((zd) => {
@@ -1390,11 +1411,15 @@ function weightHistory(exId) {
   }
   return Object.entries(byDay).sort().map(([x, y]) => ({ x, y }));
 }
+// Un punto por día con el dolor más alto; n y last dicen cuántas veces se anotó y el último valor, para aclararlo al tocar.
 function painHistory(zone) {
   const byDay = {};
-  for (const s of S.sessions) if (s.pain?.[zone] != null) byDay[s.date] = Math.max(byDay[s.date] ?? 0, s.pain[zone]);
-  return Object.entries(byDay).sort().map(([x, y]) => ({ x, y }));
+  for (const s of [...S.sessions].reverse()) if (s.pain?.[zone] != null) {
+    const d = (byDay[s.date] ||= { y: 0, n: 0 }); d.y = Math.max(d.y, s.pain[zone]); d.n++; d.last = s.pain[zone];
+  }
+  return Object.entries(byDay).sort().map(([x, d]) => ({ x, ...d }));
 }
+const painTipNote = (p) => (p.n > 1 ? `el más alto de ${p.n} registros${p.last !== p.y ? `, el último fue ${p.last}` : ''}` : '');
 function renderHistory() {
   const zones = [...new Set([...activeZones(), ...S.sessions.flatMap((s) => Object.keys(s.pain || {}))])];
   if (!zones.includes(histZone)) histZone = zones[0] || '';
@@ -1411,12 +1436,13 @@ function renderHistory() {
   h += `${helpHead('Peso por ejercicio', 'ex')}<div class="card acc">${histHelp.ex ? `<div class="note acc help-note">Cada punto es el peso más alto que levantaste en ese ejercicio en un día. Si la línea sube, estás ganando fuerza. Tocá un punto para ver el número. Los días con peso bajado por dolor no cuentan.</div>` : ''}
     ${exIds.length ? `<select data-action="hist-ex" aria-label="Ejercicio">${exIds.map((e) => `<option value="${e}" ${e === histEx ? 'selected' : ''}>${esc(getEx(e)?.name || e)}</option>`).join('')}</select>` : ''}
     ${lineChart(weightHistory(histEx), { unit: 'kg', color: 'var(--acc)', empty: 'Cuando termines un entreno con pesas, acá vas a ver cómo sube cada ejercicio.' })}</div>`;
-  if (S.sessions.length) h += `<h2>Sesiones</h2><div class="card">${S.sessions.slice(0, 60).map((s) => `<details class="sess-d"><summary class="sess"><span><span class="what">${s.type === 'entreno' ? esc(PLANS[s.plan]?.days[s.day]?.name ?? `Entreno ${s.tpl}`) : s.type === 'dolor' ? 'Registro de dolor' : `Rehabilitación de la ${s.slot}`}</span><br><span class="muted small">${fmtDate(s.date)}${s.min ? `, ${s.min} min y ${s.sets} series` : ''}${s.prs?.length ? ' 🏆' : ''}${s.pain ? '. Dolor: ' + Object.entries(s.pain).map(([z, v]) => `${zoneName(z).toLowerCase()} ${v}`).join(', ') : ''}</span></span><span class="sess-n${s.type === 'entreno' ? '' : ' pain'}">${s.items.length ? `<b>${s.items.length}</b><span>${s.items.length === 1 ? 'ejercicio' : 'ejercicios'}</span>` : '<span>sin hacer</span>'}</span></summary>
+  if (S.sessions.length) h += `<h2>Sesiones</h2><div class="card">${S.sessions.slice(0, 60).map((s) => `<details class="sess-d"><summary class="sess"><span><span class="what">${s.type === 'entreno' ? esc(PLANS[s.plan]?.days[s.day]?.name ?? `Entreno ${s.tpl}`) : s.type === 'dolor' ? 'Dolor anotado' : `Rehabilitación de la ${s.slot}`}</span><br><span class="muted small">${fmtDate(s.date)}${s.min ? `, ${s.min} min y ${s.sets} series` : ''}${s.prs?.length ? ' 🏆' : ''}${s.pain ? '. Dolor: ' + Object.entries(s.pain).map(([z, v]) => `${zoneName(z).toLowerCase()} ${v}`).join(', ') : ''}</span></span><span class="sess-n${s.type === 'entreno' ? '' : ' pain'}">${s.type === 'dolor' && s.pain ? `<b>${Math.max(...Object.values(s.pain))}</b><span>de 10</span>` : s.items.length ? `<b>${s.items.length}</b><span>${s.items.length === 1 ? 'ejercicio' : 'ejercicios'}</span>` : '<span>sin hacer</span>'}</span></summary>
       <ul class="small muted">${s.items.map((i) => `<li>${esc(getEx(i.ex)?.name || i.name || i.ex)}: ${i.sets.map((x) => (x.w ? `${x.w}×` : '') + (x.reps || (x.secs ? x.secs + 's' : '✓'))).join(', ')}</li>`).join('')}</ul>
       <button class="link danger small" data-action="del-session" data-id="${s.id}">Eliminar sesión</button></details>`).join('')}</div>`;
   // Dolor por zona va al final y solo si hay zonas o registros.
-  if (zones.length) h += `${helpHead('Dolor por zona', 'pain')}<div class="card pain">${histHelp.pain ? `<div class="note pain help-note">Cada punto es el dolor más alto que anotaste ese día, de 0 a 10. La línea punteada es el ${PAIN_MAX}: hasta ahí el dolor es tolerable y podés seguir entrenando. Tocá un punto para ver el número.</div>` : ''}<select data-action="hist-zone" aria-label="Zona">${zones.map((z) => `<option value="${z}" ${z === histZone ? 'selected' : ''}>${esc(zoneName(z))}</option>`).join('')}</select>
-    ${lineChart(painHistory(histZone), { yMax: 10, limit: PAIN_MAX, unit: '/10', color: 'var(--pain)' })}</div>`;
+  if (zones.length) h += `${helpHead('Dolor por zona', 'pain')}<div class="card pain">${histHelp.pain ? `<div class="note pain help-note">Cada punto es el dolor más alto que anotaste ese día, de 0 a 10 (si anotaste varias veces, al tocarlo ves cuántas y el último valor). La línea punteada es el ${PAIN_MAX}: hasta ahí el dolor es tolerable y podés seguir entrenando. Tocá un punto para ver el número.</div>` : ''}<select data-action="hist-zone" aria-label="Zona">${zones.map((z) => `<option value="${z}" ${z === histZone ? 'selected' : ''}>${esc(zoneName(z))}</option>`).join('')}</select>
+    ${lineChart(painHistory(histZone), { yMax: 10, limit: PAIN_MAX, unit: '/10', color: 'var(--pain)', note: painTipNote })}
+    ${painHistory(histZone).length ? '<p class="chart-cap">Cada punto es el dolor más alto del día, no el último que anotaste.</p>' : ''}</div>`;
   $('view-history').innerHTML = h;
 }
 // Informe para el fisio: página HTML independiente (se puede imprimir como PDF) con las últimas 6 semanas.
@@ -1450,7 +1476,7 @@ ${custom}
 
 // Gráfico de una serie: fechas en x, valor en y; tocá un punto para ver el valor.
 // Sin puntos dibuja una línea de muestra con el aviso; con uno solo, el punto va al centro.
-function lineChart(pts, { yMax, limit, unit, color, empty = 'Sin registros todavía.' }) {
+function lineChart(pts, { yMax, limit, unit, color, note, empty = 'Sin registros todavía.' }) {
   const W_ = 320, H = 150, L = 28, Rr = 8, T = 10, B = 22, fmt = (v) => `${v}${unit === 'kg' ? ' kg' : unit}`;
   const max = yMax ?? (Math.max(0, ...pts.map((p) => p.y)) * 1.15 || 10);
   const Y = (v) => T + (1 - v / max) * (H - T - B);
@@ -1469,14 +1495,16 @@ function lineChart(pts, { yMax, limit, unit, color, empty = 'Sin registros todav
   return `<div class="chart"><svg viewBox="0 0 ${W_} ${H}" role="img" aria-label="Gráfico de ${pts.length} registros">
     ${grid(true)}${dates}
     <path class="series" d="${d}" stroke="${color}"/>
-    ${pts.map((p) => `<circle class="dot" cx="${X(p.x)}" cy="${Y(p.y)}" r="4" fill="${color}"/><circle class="hit" cx="${X(p.x)}" cy="${Y(p.y)}" r="14" data-tip="${esc(fmtDate(p.x))}|${p.y}${unit === 'kg' ? ' kg' : unit}"/>`).join('')}
+    ${pts.map((p) => `<circle class="dot" cx="${X(p.x)}" cy="${Y(p.y)}" r="4" fill="${color}"/><circle class="hit" cx="${X(p.x)}" cy="${Y(p.y)}" r="14" data-tip="${esc(fmtDate(p.x))}|${p.y}${unit === 'kg' ? ' kg' : unit}|${esc(note?.(p) || '')}"/>`).join('')}
   </svg>${pts.length === 1 ? `<p class="chart-cap">Un día anotado: ${fmt(pts[0].y)}. Desde el segundo se ve la línea.</p>` : ''}</div>`;
 }
 function showTip(el) {
-  const [date, val] = el.dataset.tip.split('|'), r = el.getBoundingClientRect(), tip = $('tip');
+  const [date, val, note] = el.dataset.tip.split('|'), r = el.getBoundingClientRect(), tip = $('tip');
   overlayHost().appendChild(tip);
-  tip.innerHTML = `<b>${esc(val)}</b> el ${esc(date)}`; tip.hidden = false;
-  tip.style.left = `${r.left + r.width / 2}px`; tip.style.top = `${r.top + r.height / 2 - 6}px`;
+  tip.innerHTML = `<b>${esc(val)}</b> el ${esc(date)}${note ? `<br><span class="tip-note">${esc(note)}</span>` : ''}`; tip.hidden = false;
+  // Centrado en el punto, pero sin salirse de la pantalla (cerca del borde se corre hacia adentro).
+  const half = tip.offsetWidth / 2, x = Math.min(Math.max(r.left + r.width / 2, half + 8), innerWidth - half - 8);
+  tip.style.left = `${x}px`; tip.style.top = `${r.top + r.height / 2 - 6}px`;
 }
 
 // Campo numérico con la unidad adentro.

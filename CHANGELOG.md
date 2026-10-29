@@ -2,6 +2,14 @@
 
 Todos los cambios de XZ Fit (antes Tendón Fuerte), del más nuevo al más viejo.
 
+## 1.30.14 — El dolor, mejor explicado
+
+- Anotar el dolor fuera de un ejercicio pregunta "¿Cuánto te duele ahora?" y se puede cancelar; después de la rehabilitación se puede dejar para después con "Ahora no".
+- La pestaña Dolor tiene su propio acceso para anotar el dolor de ahora, con el último registro a la vista.
+- Cuando el modo dolor cambia ejercicios, Hoy y Entreno lo dicen una vez ("Cambiamos 2 ejercicios por tu codo") y al tocar "Ver por qué" muestran qué va en vez de qué y por qué.
+- En Historial, el dolor anotado suelto dice "Dolor anotado" con su valor, en vez de "sin hacer".
+- El gráfico de dolor por zona aclara que cada punto es el más alto del día; al tocarlo dice cuántas veces anotaste y cuál fue el último. La etiqueta ya no se sale de la pantalla.
+
 ## 1.30.13 — La rehabilitación se guarda sola
 
 - La sesión de rehabilitación se guarda apenas terminás la última serie: si cerrás la app en "¡Listo!", ya cuenta.

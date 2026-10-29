@@ -884,6 +884,17 @@ await click('[data-tab="train"]');
 const altName = await page.evaluate(() => EXERCISES.curl_iso.name);
 const altRow = page.locator('#view-train .ex').filter({ hasText: 'variante por tu' });
 ok(await altRow.count() >= 1 && (await altRow.first().textContent()).includes(altName), `modo dolor en brote: el remo muestra "variante por tu …" con ${altName}`);
+{
+  const note = page.locator('#view-train .swap-note').first();
+  ok(/Cambiamos \d+ ejercicios? por tu codo/.test(await note.locator('summary').textContent()) && (await note.textContent()).includes('Ver por qué'), 'Entreno avisa "Cambiamos N ejercicios por tu codo (ver por qué)"');
+  await note.locator('summary').click();
+  const why = await note.innerText();
+  ok(why.includes(`${altName} en vez de`) && why.includes('amaneció peor'), 'el porqué dice qué va en vez de qué y por qué');
+  await shot('20c-cambiamos');
+  await click('[data-tab="home"]');
+  ok(await page.locator('#view-home .card.today .swap-note').count() === 1, 'Hoy también avisa los cambios del día');
+  await click('[data-tab="train"]');
+}
 await click('[data-action="edit-routine"]');
 await click('#view-train [data-action="routine-pick"]:not([data-i])');
 await page.waitForSelector('#pickersheet[open]');
@@ -950,10 +961,28 @@ ok(await page.locator('[data-action="check"]').count() === 0, 'no vuelve a pregu
 // 6b. Anotar dolor en cualquier momento
 await click('[data-tab="home"]');
 await click('[data-action="quick-pain"]');
+{
+  const t = await page.locator('#painsheet').textContent();
+  ok(t.includes("¿Cuánto te duele ahora?") && t.includes("Ahora mismo") && !t.includes("Durante"), `fuera de un ejercicio pregunta "¿Cuánto te duele ahora?" (${t.replace(/\s+/g, ' ').slice(0, 160)})`);
+  await click('#painsheet [data-action="close"]');
+  ok(!(await page.locator('#painsheet[open]').count()), 'el registro suelto se puede cancelar');
+}
+await click('[data-tab="tendons"]');
+ok(await page.locator('#view-tendons .pain-now [data-action="quick-pain"]').count() === 1, 'la pestaña Dolor tiene el acceso para anotar el dolor de ahora');
+await click('#view-tendons [data-action="quick-pain"]');
 await click('#painsheet [data-zone="codo_lat"][data-n="3"]');
 await click('#painsheet [data-zone="muneca"][data-n="1"]');
 await click('[data-action="save-pain"]');
 ok((await state()).sessions[0].type === 'dolor' && (await state()).sessions[0].pain.muneca === 1, 'anota el dolor sin hacer una sesión');
+ok((await page.locator('#view-tendons .pain-now').innerText()).includes('Último registro, hoy'), 'la tarjeta muestra el último registro');
+await shot('12b-dolor-ahora');
+await click('[data-tab="history"]');
+{
+  const row = (await page.locator('#view-history .sess').allTextContents()).find((t) => t.startsWith('Dolor anotado')) || '';
+  ok(row && !row.includes('sin hacer') && row.includes('de 10'), `el registro suelto dice "Dolor anotado" con el valor, no "sin hacer" (${row})`);
+  ok((await page.locator('#view-history').innerText()).includes('dolor más alto del día'), 'el gráfico de dolor aclara que grafica el más alto del día');
+}
+await click('[data-tab="home"]');
 await page.evaluate(() => { S.sessions = S.sessions.filter((x) => x.type !== 'dolor'); persist(); render(); });
 
 // 7. Ejercicio propio del fisio (y elegir otra opción de rehabilitación)
@@ -975,6 +1004,12 @@ await click('[data-tab="history"]');
 ok(await page.locator('#view-history .chart svg').count() >= 1, 'muestra el gráfico de dolor');
 await page.locator('#view-history .hit').first().click();
 ok(!(await page.locator('#tip').isHidden()), 'tocar un punto muestra el valor');
+await page.evaluate(() => { const y = addDays(today(), -3); S.sessions.unshift({ id: 'later', date: y, type: 'dolor', items: [], pain: { codo_lat: 2 } }); histZone = 'codo_lat'; render(); });
+{
+  const tips = await page.locator('#view-history .card.pain .hit').evaluateAll((els) => els.map((e) => e.dataset.tip));
+  ok(tips.some((t) => t.includes('|5/10|el más alto de 2 registros, el último fue 2')), `el punto aclara que es el más alto y cuál fue el último (${tips.join(' ; ')})`);
+}
+await page.evaluate(() => { S.sessions = S.sessions.filter((x) => x.id !== 'later'); persist(); render(); });
 {
   const sess = await page.locator('#view-history .sess').allTextContents();
   ok(sess.some((t) => t.startsWith('Día A')) && !sess.some((t) => t.includes('Entreno A')), 'el historial nombra el entreno con el día del plan');
