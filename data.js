@@ -136,7 +136,7 @@ const EXERCISES = {
   press_hombros: {
     name: 'Press de hombros con mancuernas', kind: 'peso', impl: 'db', ratio: 0.15, tag: ['hombro', 'codo_med'],
     cues: ['De pie o sentado en una silla sin respaldo alto.', 'Empujá hacia arriba sin arquear la espalda baja.'],
-    fig: { a: { ...STAND, E1: [113, 64], W1: [114, 42] }, b: { E1: [107, 22], W1: [108, -3] }, props: [{ t: 'db', at: 'W1' }] },
+    fig: { front: true, a: { N: [100, 45], P: [100, 88], E1: [70, 57], W1: [72, 35], E2: [130, 57], W2: [128, 35], K1: [94, 119], F1: [93, 150], K2: [106, 119], F2: [107, 150] }, b: { E1: [80, 31], W1: [79, 8], E2: [120, 31], W2: [121, 8] }, props: [{ t: 'db', at: 'W1' }, { t: 'db', at: 'W2' }] },
   },
   remo_aros: {
     name: 'Remo invertido en aros', kind: 'reps', impl: 'rings', tag: ['codo_lat', 'codo_med', 'muneca'], alt: 'remo_aros_iso',
@@ -451,8 +451,9 @@ Object.entries({
 // Cómo se ve la mancuerna (ver dumbbell() en figures.js). Sin dato: de frente 'end', de costado 'neutral'.
 Object.entries({
   end: ['iso_ext_muneca', 'ext_muneca_lenta', 'iso_flex_muneca', 'flex_muneca_lenta', 'excentrico_muneca', 'press_suelo', 'press_banco', 'rdl',
-    'press_hombros', 'puente', 'hip_thrust', 'curl_iso', 'curl_concentrado', 'elev_frontal', 'iso_gemelo_sentado'],
+    'puente', 'hip_thrust', 'curl_iso', 'curl_concentrado', 'elev_frontal', 'iso_gemelo_sentado'],
   along: ['triceps', 'pullover'],
+  side: ['press_hombros'],
 }).forEach(([g, ids]) => ids.forEach((id) => EXERCISES[id].fig.props.forEach((p) => p.t === 'db' && (p.grip = g))));
 EXERCISES.prono_lenta.fig.props[0].grip = 'roll';
 EXERCISES.prono_lenta.fig.roll = [-45, 45];   // 90° en total: 45° hacia palma abajo y 45° hacia palma arriba desde la posición vertical

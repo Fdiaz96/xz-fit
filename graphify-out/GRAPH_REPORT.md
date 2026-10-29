@@ -1,17 +1,17 @@
 # Graph Report - fix-pesa-rusa  (2026-10-29)
 
 ## Corpus Check
-- 64 files · ~124,006 words
+- 63 files · ~123,901 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 15 file(s) not represented in the graph (top: (none) 12, .woff2 1, .webmanifest 1)
 
 ## Summary
-- 857 nodes · 1751 edges · 62 communities (59 shown, 3 thin omitted)
+- 855 nodes · 1749 edges · 63 communities (60 shown, 3 thin omitted)
 - Extraction: 93% EXTRACTED · 7% INFERRED · 0% AMBIGUOUS · INFERRED: 118 edges (avg confidence: 0.88)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `50487838`
+- Built from commit: `7803af50`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -60,6 +60,7 @@
 - UX 3: "Hoy no puedo" como acción secundaria
 - Barrido de UX (2026-10-27): índice y reglas comunes
 - UX 4: el primer día no recibe al usuario con "día de descanso"
+- tile
 - guessWeight
 - UX 13: textos sin jerga ni cadenas con puntos medios
 - saveV114
@@ -120,11 +121,11 @@
 - **Plans of the 'planes de entrenamiento' roadmap built on the plan engine** — _specs_tasks_done_motor_de_planes_feature_plans_fb2, _specs_tasks_draft_plan_full_body_3_dias_feature_fb3, _specs_tasks_draft_plan_torso_pierna_4_dias_feature_tp4, _specs_tasks_draft_plan_empuje_traccion_4_dias_feature_et4, _specs_tasks_draft_plan_grupos_5_dias_feature_gr5, _specs_tasks_draft_plan_isometricos_feature_iso [INFERRED 0.95]
 - **Exportaciones via shareFile (Web Share o descarga)** — _specs_tasks_done_datos_locales_copia_feature_backup_restore, _specs_tasks_done_informe_fisio_feature_physio_report, _specs_tasks_done_recordatorios_calendario_feature_ics_calendar [INFERRED 0.95]
 
-## Communities (62 total, 3 thin omitted)
+## Communities (63 total, 3 thin omitted)
 
 ### Community 0 - "esc"
-Cohesion: 0.15
-Nodes (23): ask(), askPain(), confirmFinish(), confirmReset(), confirmWipe(), dlg(), equipName(), esc() (+15 more)
+Cohesion: 0.16
+Nodes (22): ask(), askPain(), confirmFinish(), confirmReset(), confirmWipe(), dlg(), equipName(), esc() (+14 more)
 
 ### Community 1 - "Specs de features (datos, editor, calor)"
 Cohesion: 0.05
@@ -163,8 +164,8 @@ Cohesion: 0.13
 Nodes (18): A/B templates migration recipe (withDefaults), NO_RINGS substitution, Migration of v1.0-v1.14 data in withDefaults, Step 02: Plan engine (pure rules), defEq test fixture (copy of DEFAULT().equip), resolvePlan(), routineFromTemplates(), slotOf() (+10 more)
 
 ### Community 10 - "package.json"
-Cohesion: 0.11
-Nodes (16): author, description, devDependencies, playwright@^1.64.1, directories, test, keywords, license (+8 more)
+Cohesion: 0.12
+Nodes (15): author, description, devDependencies, playwright@^1.64.1, directories, test, keywords, license (+7 more)
 
 ### Community 11 - "Arquitectura y modelo de datos"
 Cohesion: 0.17
@@ -183,8 +184,8 @@ Cohesion: 0.22
 Nodes (9): resolveSlot(), Codebase Impact Analysis: Motor de planes, Current A/B flow to replace (planFor(tpl), syncBudget, plan.next), implFor (possibility test), New flow PLANS -> routine -> resolveDay -> setsFor -> nextDay, Slot candidate exercises table, Motor de planes section of logic.js, Equipment rules (weightSteps, plateCombos, implFor) (+1 more)
 
 ### Community 15 - "setDone"
-Cohesion: 0.23
-Nodes (14): barCount(), cue(), endHold(), overlayHost(), rehabGo(), rehabSkip(), rehabTick(), retuneGuesses() (+6 more)
+Cohesion: 0.22
+Nodes (15): barCount(), cue(), endHold(), overlayHost(), rehabGo(), rehabNext(), rehabSkip(), rehabTick() (+7 more)
 
 ### Community 16 - "Bucle de entreno y release 1.15"
 Cohesion: 0.22
@@ -199,8 +200,8 @@ Cohesion: 0.14
 Nodes (13): CHANGELOG.md (XZ Fit), Pinned exercise swap in routine editor, v1.12.0 Isometric 3D illustrations with depth sorting, v1.14.0 Rename to XZ Fit, new logo, animated thumbnails, v1.15.0 Plan engine: Full body 2 days with rotation, v1.16.0 Hoy no puedo (session-only exercise swap), v1.1.0 AI-generated vector illustrations, v1.2.0 Custom machines, editable routine, custom exercises (+5 more)
 
 ### Community 19 - "renderWorkout"
-Cohesion: 0.27
-Nodes (10): bodyPart(), forZones(), loadTag(), loadText(), painTag(), platesLabel(), renderTrain(), renderWorkout() (+2 more)
+Cohesion: 0.24
+Nodes (15): bodyPart(), forZones(), homeWeek(), loadTag(), nextTrainWhen(), painTag(), planFor(), platesLabel() (+7 more)
 
 ### Community 20 - "Sincronización de rutina"
 Cohesion: 0.40
@@ -259,16 +260,16 @@ Cohesion: 0.33
 Nodes (5): Criterios de aceptación, Dónde, Problema, Propuesta, UX 1: la calibración se explica una sola vez en la sesión
 
 ### Community 37 - "getEx"
-Cohesion: 0.19
-Nodes (15): altEx(), customFig(), engineOpts(), freshRoutine(), getEx(), guessFor(), keptChanges(), missingNote() (+7 more)
+Cohesion: 0.16
+Nodes (17): altEx(), customFig(), engineOpts(), freshRoutine(), getEx(), guessFor(), keptChanges(), missingNote() (+9 more)
 
 ### Community 38 - "Render all EXERCISES via figureSVG into grid"
 Cohesion: 0.29
 Nodes (7): animaciones.html (temporary animation review page), CAM, EXERCISES, figureSVG, Render all EXERCISES via figureSVG into grid, MUSCLE_NAMES, v1.13.1 Temporary animation test page
 
 ### Community 39 - "UX 6: la pestaña Tendones solo cuando importa"
-Cohesion: 0.16
-Nodes (9): Criterios de aceptación, Dónde, Problema, Propuesta, UX 6: la pestaña Tendones solo cuando importa, Criterios de aceptación, Problema, Propuesta (+1 more)
+Cohesion: 0.33
+Nodes (5): Criterios de aceptación, Dónde, Problema, Propuesta, UX 6: la pestaña Tendones solo cuando importa
 
 ### Community 40 - "UX 2: el campo de reps no parece cargado"
 Cohesion: 0.33
@@ -285,6 +286,10 @@ Nodes (4): Barrido de UX (2026-10-27): índice y reglas comunes, Orden, Reglas p
 ### Community 43 - "UX 4: el primer día no recibe al usuario con "día de descanso""
 Cohesion: 0.33
 Nodes (5): Criterios de aceptación, Dónde, Problema, Propuesta, UX 4: el primer día no recibe al usuario con "día de descanso"
+
+### Community 44 - "tile"
+Cohesion: 0.32
+Nodes (7): tile(), weightModeFields(), Criterios de aceptación, Dónde, Problema, Propuesta, UX 8: zonas con dolor con el mismo componente que el alta
 
 ### Community 45 - "guessWeight"
 Cohesion: 0.26
@@ -303,8 +308,8 @@ Cohesion: 0.17
 Nodes (16): activePlan(), addDays(), dayIndex(), dayKey(), isDayOf(), nextDay(), parseDay(), pendingChecks() (+8 more)
 
 ### Community 49 - "renderOnb"
-Cohesion: 0.14
-Nodes (30): applyChoice(), cardDay(), choiceDay(), choiceMissing(), choicePlan(), currentChoice(), dayHint(), daysText() (+22 more)
+Cohesion: 0.12
+Nodes (32): activeZones(), applyChoice(), backupAge(), backupDue(), cardDay(), choiceDay(), choiceMissing(), choicePlan() (+24 more)
 
 ### Community 50 - "daysBetween"
 Cohesion: 0.20
@@ -323,19 +328,19 @@ Cohesion: 0.67
 Nodes (4): isoAdjust(), progress(), stepDown(), stepUp()
 
 ### Community 55 - "renderHome"
-Cohesion: 0.11
-Nodes (37): activeZones(), answerCheck(), backupAge(), backupDue(), fmtDate(), fmtDateLong(), histRecords(), histSessions() (+29 more)
+Cohesion: 0.10
+Nodes (36): answerCheck(), exOptions(), fmtAxisDate(), fmtDate(), fmtDateLong(), fmtKg(), fmtVol(), helpHead() (+28 more)
 
 ### Community 56 - "UX 10: pesos con unidad y coherentes entre inicio y Entreno"
-Cohesion: 0.33
-Nodes (5): Criterios de aceptación, Dónde, Problema, Propuesta, UX 10: pesos con unidad y coherentes entre inicio y Entreno
+Cohesion: 0.40
+Nodes (4): Criterios de aceptación, Problema, Propuesta, UX 10: pesos con unidad y coherentes entre inicio y Entreno
 
 ### Community 57 - "UX 9: el botón de fase invita a avanzar solo cuando corresponde"
 Cohesion: 0.40
 Nodes (4): Criterios de aceptación, Dónde, Problema, UX 9: el botón de fase invita a avanzar solo cuando corresponde
 
 ### Community 58 - "render"
-Cohesion: 0.12
+Cohesion: 0.13
 Nodes (28): benchSwap(), calmMotion(), coveredControls(), dayItems(), deleteExForm(), exportData(), filterPicker(), fold() (+20 more)
 
 ### Community 59 - "UX 11: editar rutina con controles claros"
@@ -351,16 +356,16 @@ Cohesion: 0.29
 Nodes (4): Pain mode (6 zones, 3 phases, 60% cap, gentle variants), v1.0.0 First version (PWA, IndexedDB, A/B full body, pain mode), v1.8.0 Rehab exercise options per zone and phase, Suggested weight (bodyweight x coefficient, 70% start, calibration)
 
 ### Community 62 - "app.js"
-Cohesion: 0.08
-Nodes (45): applyTheme(), clearLive(), closeRehab(), DAY_NAMES, db, DEFAULT(), discardLive(), endWorkout() (+37 more)
+Cohesion: 0.09
+Nodes (36): applyTheme(), clearLive(), closeRehab(), DAY_NAMES, db, DEFAULT(), discardLive(), endWorkout() (+28 more)
 
 ### Community 63 - "UX 5: explicar "al 60 %" y "a calibrar""
-Cohesion: 0.33
-Nodes (5): Criterios de aceptación, Dónde, Problema, Propuesta, UX 5: explicar "al 60 %" y "a calibrar"
+Cohesion: 0.40
+Nodes (4): Criterios de aceptación, Problema, Propuesta, UX 5: explicar "al 60 %" y "a calibrar"
 
 ## Knowledge Gaps
 - **61 isolated node(s):** `Sugerencia de pasar a 3 dias (suggestThreeDays)`, `Eliminar sesion con Deshacer`, `Tarjeta de instalacion (beforeinstallprompt / iOS)`, `Service worker sw.js (red primero, cache tendon-v<version>)`, `Tema claro/oscuro (applyTheme, tf-theme)` (+56 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 278 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 277 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
 - **3 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
@@ -375,7 +380,7 @@ _Questions this graph is uniquely positioned to answer:_
 - **Should `Specs de features (datos, editor, calor)` be split into smaller, more focused modules?**
   _Cohesion score 0.053313587560162905 - nodes in this community are weakly interconnected._
 - **Why does `getEx()` connect `getEx` to `esc`, `Pruebas e2e`, `renderWorkout`, `renderHome`, `render`, `app.js`?**
-  _High betweenness centrality (0.145) - this node is a cross-community bridge._
+  _High betweenness centrality (0.143) - this node is a cross-community bridge._
 - **Are the 2 inferred relationships involving `toast()` (e.g. with `hideToast()` and `Dónde`) actually correct?**
   _`toast()` has 2 INFERRED edges - model-reasoned connections that need verification._
 - **Should `logic.js` be split into smaller, more focused modules?**

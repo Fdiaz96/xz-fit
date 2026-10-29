@@ -2,6 +2,10 @@
 
 Todos los cambios de XZ Fit, del más nuevo al más viejo.
 
+## 1.30.21 — Press de hombros bien dibujado
+
+- El dibujo del press de hombros con mancuernas ahora se ve de frente y con las dos mancuernas: arranca con los codos abiertos y las pesas a la altura de las orejas, y termina con los brazos estirados sobre la cabeza. Antes los codos iban hacia adelante, como en una elevación frontal, y los brazos se estiraban de más.
+
 ## 1.30.20 — Sin pesas rusas, con mancuerna
 
 - Si no tenés pesas rusas, la sentadilla goblet, el swing y la sentadilla sumo se hacen con una mancuerna, y ahora la app lo dice: el nombre, las indicaciones y el dibujo muestran la mancuerna en lugar de una pesa rusa que no tenés.

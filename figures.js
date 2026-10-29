@@ -449,6 +449,7 @@ function sceneBoxes(s, front, A) {
 // antebrazo, 'along' a lo largo del antebrazo. Con dos agarres (p. ej. ['end', 'neutral']) pasa de uno al otro.
 function handleDir(grip, J, n, front) {
   if (grip === 'end') return front ? [1, 0, 0] : [0, 0, 1];   // de punta: hacia quien mira en el dibujo original
+  if (grip === 'side') return [0, 0, 1];                       // prono con los codos abiertos: mango de costado a costado
   const d = J['G' + n] ? unit3(sub3(J['G' + n], J['W' + n])) : unit3(sub3(J['W' + n], J['E' + n]));
   if (grip === 'along') return d;
   const a = [-d[1], d[0], 0], neutral = front || Math.hypot(...a) < 1e-3 ? [1, 0, 0] : unit3(a);
