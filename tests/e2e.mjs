@@ -1235,10 +1235,40 @@ ok(await page.locator('#view-home .card').count() > 0 && await page.locator('#vi
 await click('[data-tab="train"]');
 ok(await page.locator('#view-train .ex').count() >= 12, 'la rutina se arma con los datos viejos');
 
+// Ajustes: marcar Banco ofrece "Cambiar ahora", que pasa el press en el suelo a press en banco (fijado) y se deshace
+await bootSaved({});
+await click('[data-tab="settings"]');
+await page.locator('#view-settings [data-action="eq-flag"][data-k="bench"]').check({ force: true }); await page.waitForTimeout(80);
+ok(await page.locator('#toast:not([hidden]) [data-action="undo"]').textContent() === 'Cambiar ahora', 'Banco: el aviso trae el botón "Cambiar ahora"');
+await click('#toast [data-action="undo"]');
+ps = await state();
+ok(ps.routine.fb2.flat().every((it) => it.ex !== 'press_suelo') && ps.routine.fb2.flat().some((it) => it.ex === 'press_banco' && it.pinned), '"Cambiar ahora" cambia el press en el suelo por press en banco fijado');
+ok((await toastText()).startsWith('Listo: press en banco') && await page.locator('#toast [data-action="undo"]').textContent() === 'Deshacer', 'tras cambiar avisa "Listo" con Deshacer');
+await click('#toast [data-action="undo"]');
+ok((await state()).routine.fb2.flat().some((it) => it.ex === 'press_suelo'), 'Deshacer vuelve el press en el suelo');
+// Novedades en lenguaje de usuario: sin términos técnicos ni el nombre viejo
+await click('#view-settings [data-action="news"]'); await page.waitForSelector('#newssheet[open]');
+const newsTxt = await page.locator('#newssheet').textContent();
+ok(!/epley|indexeddb|pwa|wger|franpol|fitnessvolt|tend[oó]n fuerte|\.html|json|changelog|test/i.test(newsTxt) && newsTxt.includes('1.0.0'), 'Novedades sin Epley, IndexedDB, PWA, créditos técnicos ni el nombre viejo');
+await click('#newssheet [data-action="close"]');
+// Pesos: elegir una opción la deja entera arriba de la barra de pestañas
+await page.evaluate(() => window.scrollTo(0, 0));
+await page.evaluate(() => { const r = document.querySelector('#view-settings [data-action="weights-mode"][value="calib"]'); r.checked = true; r.dispatchEvent(new Event('change', { bubbles: true })); });
+await page.waitForTimeout(80);
+const barTop = (await page.locator('.tabbar').boundingBox()).y, modeBox = await page.locator('#view-settings [data-action="weights-mode"][value="calib"]').locator('xpath=ancestor::label[1]').boundingBox();
+ok(modeBox.y + modeBox.height <= barTop + 1 && modeBox.y >= 0, 'la opción elegida en Pesos no queda tapada por la barra');
+
 // Borrar todos los datos deja una rutina válida: tocar Banco en el alta no rompe el aviso del banco
 const errorsBeforeReset = errors.length;
 await click('[data-tab="settings"]');
 await click('[data-action="reset"]');
+await page.waitForSelector('#wipesheet[open]');
+ok(await page.locator('#wipesheet [data-action="wipe-backup"]').count() === 1 && await page.locator('#wipesheet .wipe-go').isDisabled(), 'borrar datos ofrece "Guardar copia antes" y no deja borrar sin escribir BORRAR');
+await page.fill('#wipe-q', 'borra');
+ok(await page.locator('#wipesheet .wipe-go').isDisabled(), 'con otra palabra sigue sin dejar borrar');
+await page.fill('#wipe-q', 'borrar');
+ok(!(await page.locator('#wipesheet .wipe-go').isDisabled()), 'escribir BORRAR (sin importar mayúsculas) habilita el botón');
+await click('#wipesheet .wipe-go');
 await page.waitForSelector('#onb[open]');
 await click('[data-action="onb-next"]');
 await page.fill('#o-weight', '70');

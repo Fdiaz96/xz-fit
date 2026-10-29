@@ -2,7 +2,7 @@
 // (IndexedDB). Los identificadores internos siguen siendo "tendon-fuerte" para no perder los datos ya guardados.
 // Protocolo de tendones del video de Jeremy Ethier con Keith Baar y Coach Q; reglas en logic.js, bocetos en figures.js.
 
-const APP_VERSION = '1.30.17';
+const APP_VERSION = '1.30.18';
 const DAY_NAMES = { lu: 'Lu', ma: 'Ma', mi: 'Mi', ju: 'Ju', vi: 'Vi', sa: 'Sá', do: 'Do' };
 const SIDES = { der: 'derecha', izq: 'izquierda', ambos: 'ambos lados' };
 const REST_SECS = 90, ISO_REST = 60;
@@ -89,14 +89,14 @@ const dlg = (id) => ({
 });
 let toastTimer;
 function overlayHost() { return [...document.querySelectorAll('dialog[open]')].pop() || document.body; }
-// undo: función opcional que muestra el botón "Deshacer" (el aviso dura más).
+// undo: función opcional que muestra el botón "Deshacer" (o el que diga label, p. ej. "Cambiar ahora"); el aviso dura más.
 // El aviso no frena los toques (pasan al botón de abajo) y dura según lo que haya que leer.
 let toastUndo = null;
-function toast(msg, undo) {
+function toast(msg, undo, label = 'Deshacer') {
   const t = $('toast'), host = overlayHost(); host.appendChild(t);
   t.querySelector('span').textContent = msg; t.hidden = false; t.style.top = t.style.bottom = '';
   t.querySelector('button')?.remove(); toastUndo = undo || null;
-  if (undo) t.insertAdjacentHTML('beforeend', '<button type="button" data-action="undo">Deshacer</button>');
+  if (undo) t.insertAdjacentHTML('beforeend', `<button type="button" data-action="undo">${esc(label)}</button>`);
   // Elige dónde pisa menos botones y campos: primero su lugar de siempre (en una hoja, el hueco de arriba si entra),
   // después arriba o abajo de todo; ante un empate queda el primero (igual deja tocar lo de abajo y dura poco).
   const sheetTop = host.matches?.('dialog.sheet') ? host.getBoundingClientRect().top - t.offsetHeight - 8 : -1;
@@ -109,7 +109,7 @@ function toast(msg, undo) {
     for (const pl of places) { place(pl); const n = coveredControls(t); if (n < min) { min = n; best = pl; } if (!n) break; }
     place(best);
   });
-  clearTimeout(toastTimer); toastTimer = setTimeout(hideToast, undo ? 5000 : Math.min(4500, 1800 + msg.length * 30));
+  clearTimeout(toastTimer); toastTimer = setTimeout(hideToast, undo ? (label === 'Deshacer' ? 5000 : 7000) : Math.min(4500, 1800 + msg.length * 30));
 }
 // Cuántos puntos del aviso caen sobre un control. El aviso no recibe toques, así que elementFromPoint ve lo de abajo.
 // Las filas del pizarrón de Hoy no cuentan: son la lista del día (se tocan para ver el detalle), no botones de acción.
@@ -199,6 +199,14 @@ const resetRoutine = () => { const plan = activePlan(S); S.routine[plan.id] = fr
 function rearmRoutine() {
   const plan = activePlan(S), stored = S.routine[plan.id];
   if (stored?.length === plan.days.length) S.routine[plan.id] = refreshUnpinned(plan, stored, S.equip, engineOpts());
+}
+// "Cambiar ahora" del aviso del banco: el press en el suelo pasa a press en banco en todos los días (queda fijo, como
+// si lo eligieras en Editar rutina) y se puede deshacer. Si el día ya tiene press en banco, ese queda como está.
+function benchSwap() {
+  const id = activePlan(S).id, before = JSON.parse(JSON.stringify(S.routine[id]));
+  S.routine[id] = before.map((day) => day.map((it) => it.ex === 'press_suelo' && !day.some((x) => x.ex === 'press_banco') ? { ...it, ex: 'press_banco', pinned: true } : it));
+  persist(); render();
+  toast('Listo: press en banco en vez de press en el suelo.', () => { S.routine[id] = before; persist(); render(); });
 }
 // En el alta los accesorios no redibujan la pantalla: la casilla "Solo peso corporal" se acomoda sola.
 const syncBwTile = () => document.querySelectorAll('[data-action="eq-bw"]').forEach((x) => (x.checked = noEquip(S.equip)));
@@ -1056,6 +1064,23 @@ function confirmReset() {
     <button class="sec" data-action="reset-routine">Volver al plan original</button></div>`;
   $('resetsheet').showModal();
 }
+// "Borrar todos los datos": ofrece guardar una copia antes y pide escribir BORRAR, así no se borra de un toque.
+let wipeQ = '';
+const wipeOk = () => wipeQ.trim().toUpperCase() === 'BORRAR';
+function confirmWipe() {
+  const n = S.sessions.length;
+  dlg('wipesheet').html = `<div class="dlg"><div class="dlg-head"><button class="link" data-action="close" data-dlg="wipesheet">Cancelar</button><strong>¿Borrar todos los datos?</strong><span></span></div>
+    <p>Se borran de este teléfono ${n ? `tus ${n === 1 ? 'sesión' : `${n} sesiones`}, ` : ''}tu rutina, tus pesos, tu equipo y tu perfil${Object.keys(S.zones).length ? ', y el registro de dolor' : ''}. No se puede deshacer.</p>
+    <div class="wipe-copy"><button class="sec" data-action="wipe-backup">Guardar copia antes</button><p class="small muted">${lastBackupText(today())}</p></div>
+    <label class="field"><span>Para confirmar, escribí BORRAR</span><input id="wipe-q" value="${esc(wipeQ)}" autocomplete="off" autocapitalize="characters" spellcheck="false" enterkeyhint="done"></label>
+    <button class="sec danger wipe-go" data-action="wipe-go" ${wipeOk() ? '' : 'disabled'}>Borrar todos los datos</button></div>`;
+  if (!$('wipesheet').open) $('wipesheet').showModal();
+}
+function wipeAll() {
+  if (!wipeOk()) return;
+  $('wipesheet').close(); wipeQ = '';
+  clearLive(); S = DEFAULT(); resetRoutine(); persist(); onbStep = 0; onbPlanSet = false; onbCare = true; onbPainCheck = false; renderOnb(); $('onb').showModal();
+}
 function saveSession(session) {
   S.sessions.unshift(session); persist(); render();
   if (session.type === 'entreno') return showSummary(session);
@@ -1659,7 +1684,7 @@ function renderSettings() {
     <p class="faint small" id="persist-status"></p></div>
   <h2>Fuentes</h2><div class="card small">
     <p class="muted">Protocolo de tendones basado en:</p><ul>${SOURCES.map((s) => `<li><a href="${s.url}" target="_blank" rel="noopener">${esc(s.title)}</a></li>`).join('')}</ul>
-    <p class="muted">Ilustraciones generadas por código para esta app (sin imágenes de terceros). XZ Fit no es un consejo médico: consultá a un profesional ante dolor agudo, hinchazón o pérdida de fuerza.</p>
+    <p class="muted">Ilustraciones dibujadas para esta app (sin imágenes de terceros). XZ Fit no es un consejo médico: consultá a un profesional ante dolor agudo, hinchazón o pérdida de fuerza.</p>
     <p class="faint">Versión ${APP_VERSION}. <button class="link" data-action="news">Ver novedades</button></p></div>
   <button class="link danger" data-action="reset">Borrar todos los datos</button>`;
   $('view-settings').innerHTML = h;
@@ -1970,7 +1995,9 @@ document.addEventListener('click', (e) => {
     'ics': () => shareFile('xz-fit.ics', icsText(S.rem, S.painMode, today()), 'text/calendar'),
     'export': exportData,
     'import': () => $('import-file').click(),
-    'reset': () => { if (confirm('¿Borrar todos los datos? No se puede deshacer.') && confirm('¿Seguro? Se pierde todo el historial.')) { clearLive(); S = DEFAULT(); resetRoutine(); persist(); onbStep = 0; onbPlanSet = false; onbCare = true; onbPainCheck = false; renderOnb(); $('onb').showModal(); } },
+    'reset': () => { wipeQ = ''; confirmWipe(); },
+    'wipe-backup': async () => { await exportData(); if ($('wipesheet').open) confirmWipe(); },
+    'wipe-go': wipeAll,
     'onb-next': onbNext,
     'edit-routine': () => { editRoutine = !editRoutine; if (editRoutine) editDay = dayIndex(activePlan(S), S.plan.pos); render(); },
     'edit-day': () => { editDay = +d.day; render(); },
@@ -2029,7 +2056,7 @@ document.addEventListener('change', (e) => {
   if (a === 'eq-rings') { S.equip.rings = el.checked; persist(); if (!$('onb').open) render(); else syncBwTile(); }
   if (a === 'eq-flag') {
     S.equip[el.dataset.k] = el.checked; persist(); if (!$('onb').open) render(); else syncBwTile();
-    if (el.checked && el.dataset.k === 'bench' && !$('onb').open && S.routine[activePlan(S).id]?.flat().some((it) => it.ex === 'press_suelo')) toast('Con banco podés cambiar el press en el suelo por press en banco: Entreno → Editar rutina.');
+    if (el.checked && el.dataset.k === 'bench' && !$('onb').open && S.routine[activePlan(S).id]?.flat().some((it) => it.ex === 'press_suelo')) toast('Con banco podés hacer press en banco en vez de press en el suelo.', benchSwap, 'Cambiar ahora');
     if (el.checked && el.dataset.k === 'bar') toast('Las dominadas quedan disponibles en Entreno → Editar rutina (cuidado con el codo).');
   }
   if (a === 'eq-plates') {
@@ -2043,13 +2070,18 @@ document.addEventListener('change', (e) => {
   }
   if (a === 'plan-sel') { PC = el.value === currentChoice().id ? currentChoice() : pickChoice(PC, el.value); renderPlans(); }
   if (a === 'onb-plan') { applyChoice(pickChoice(currentChoice(), el.value)); persist(); renderOnb(); }
-  if (a === 'weights-mode') { S.prefs.weights = el.value; persist(); $('onb').open ? renderOnb() : render(); }
+  if (a === 'weights-mode') {
+    S.prefs.weights = el.value; persist(); $('onb').open ? renderOnb() : render();
+    // La opción elegida queda entera a la vista, no debajo de la barra de pestañas.
+    if (!$('onb').open) document.querySelector(`#view-settings [data-action="weights-mode"][value="${el.value}"]`)?.closest('.tile').scrollIntoView({ block: 'nearest' });
+  }
   if (a === 'pref-toggle') { S.prefs[el.dataset.k] = el.checked; persist(); if (el.checked && el.dataset.k !== 'auto') cue('go', 'Así suena'); }
   if (a === 'hist-zone') { histZone = el.value; renderHistory(); }
   if (a === 'hist-ex') { histEx = el.value; renderHistory(); }
   if (el.id === 'import-file' && el.files[0]) { importData(el.files[0]); el.value = ''; }
 });
-document.addEventListener('input', (e) => { if (e.target.id === 'pick-q') { pickQ = e.target.value; filterPicker(); return; } if (e.target.dataset.w) { const [i, j, k] = e.target.dataset.w.split('.'); W.items[+i].rows[+j][k] = e.target.value; saveLiveSoon(); } });
+document.addEventListener('input', (e) => { if (e.target.id === 'pick-q') { pickQ = e.target.value; filterPicker(); return; }
+  if (e.target.id === 'wipe-q') { wipeQ = e.target.value; $('wipesheet').querySelector('.wipe-go').disabled = !wipeOk(); return; } if (e.target.dataset.w) { const [i, j, k] = e.target.dataset.w.split('.'); W.items[+i].rows[+j][k] = e.target.value; saveLiveSoon(); } });
 // Escape cierra los diálogos; en entreno y rehab se pregunta antes.
 // Lo plegable del entreno recuerda si quedó abierto entre redibujos; la entrada en calor abierta pasa a ser el foco.
 document.addEventListener('toggle', (e) => {

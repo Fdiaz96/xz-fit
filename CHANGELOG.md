@@ -1,6 +1,13 @@
 # Changelog
 
-Todos los cambios de XZ Fit (antes Tendón Fuerte), del más nuevo al más viejo.
+Todos los cambios de XZ Fit, del más nuevo al más viejo.
+
+## 1.30.18 — Ajustes más claros y borrar con cuidado
+
+- Al marcar Banco, el aviso trae "Cambiar ahora": pasa el press en el suelo a press en banco en tu rutina, con Deshacer.
+- Las novedades están contadas sin palabras técnicas.
+- "Borrar todos los datos" abre un diálogo que ofrece "Guardar copia antes" y pide escribir BORRAR para confirmar.
+- En Pesos, la opción que elegís queda entera a la vista, arriba de la barra de pestañas.
 
 ## 1.30.17 — Informe y copias que avisan
 
@@ -326,8 +333,8 @@ Todos los cambios de XZ Fit (antes Tendón Fuerte), del más nuevo al más viejo
 
 ## 1.14.1 — Nueva dirección: fdiaz96.github.io/xz-fit
 
-- La app ahora está en **https://fdiaz96.github.io/xz-fit/** (el repositorio pasó a llamarse `xz-fit`). La dirección vieja `…/tendon-fuerte/` deja de funcionar.
-- Tus datos siguen ahí: el navegador los guarda por sitio (`fdiaz96.github.io`), no por dirección, así que la app en la dirección nueva los encuentra igual.
+- La app ahora está en **fdiaz96.github.io/xz-fit**. La dirección anterior deja de funcionar.
+- Tus datos siguen ahí: la app en la dirección nueva los encuentra igual.
 - Si la tenías instalada, instalala de nuevo desde la dirección nueva (la instalación vieja apunta a la dirección anterior).
 
 ## 1.14.0 — Ahora se llama XZ Fit
@@ -350,7 +357,7 @@ Todos los cambios de XZ Fit (antes Tendón Fuerte), del más nuevo al más viejo
 ## 1.13.11 — Sentadilla sumo bien hecha y segunda revisión completa
 
 - **Sentadilla sumo con pesa rusa**: al bajar, los muslos se abrían solo hacia los costados y se acortaban (piernas "de rana"). Ahora la cadera va hacia atrás, las rodillas avanzan sobre los pies, el torso se inclina un poco y los muslos mantienen su largo. Se ve casi de frente para que se note cómo se abren las dos rodillas.
-- Las posturas dibujadas de frente pueden indicar cuánto va cada articulación hacia adelante o hacia atrás, para que el 3D sea fiel.
+- Los ejercicios dibujados de frente muestran mejor cuánto va cada brazo o pierna hacia adelante o hacia atrás.
 - **Músculos secundarios**: solo el músculo principal se asoma por el borde cuando mira para el otro lado; los secundarios (por ejemplo, los glúteos vistos de frente) se ocultan en lugar de aparecer como manchas en punta. Los cuádriceps se marcan en la mitad de abajo del muslo, donde está el grueso del músculo.
 - Un músculo que apunta a la cámara queda como una gota chica, en lugar de desaparecer.
 - **Peso muerto rumano** y **peso muerto a una pierna**: se ven casi de perfil, que es como mejor se entiende la bisagra de cadera; la vista de atrás queda solo para cuando hace falta.
@@ -372,20 +379,18 @@ Todos los cambios de XZ Fit (antes Tendón Fuerte), del más nuevo al más viejo
 
 - En **Pronación y supinación lenta** el giro es ahora de 90° en total (45° hacia cada lado desde la mancuerna vertical), en lugar de casi 180°.
 
-## 1.13.7 — Vuelve la página de prueba de animaciones
+## 1.13.7 — Revisión de animaciones
 
-- Se restauró la página temporal `animaciones.html` (se había borrado en la 1.13.6 antes de terminar la revisión) para seguir revisando las animaciones.
+- Seguimos revisando las animaciones de los ejercicios.
 
 ## 1.13.6 — Pronación y supinación con giro real
-
-- Se borró la página temporal `animaciones.html` (por error, antes de terminar la revisión; vuelve en la 1.13.7).
 
 - En **Pronación y supinación lenta** la mancuerna ya no aparece y desaparece: gira alrededor del antebrazo, de palma abajo a palma arriba, pasando por la posición vertical, y vuelve. El disco que queda adelante cambia en el momento justo del giro.
 
 ## 1.13.5 — Ningún músculo desaparece
 
 - Cuando el músculo trabajado mira para el lado contrario a la cámara (el abdomen en la plancha o el pecho en las flexiones, que miran al piso), el rojo se asoma por el borde del cuerpo más cercano en lugar de desaparecer.
-- Nuevo test: en todos los fotogramas de los 49 ejercicios, cada músculo trabajado tiene un ancho visible.
+- En los 49 ejercicios, el músculo trabajado se ve durante todo el movimiento.
 
 ## 1.13.4 — Pesa rusa detrás del cuerpo cuando corresponde
 
@@ -402,18 +407,17 @@ Se revisaron las 49 animaciones una por una (inicio, mitad y final del movimient
 - **Flexiones**: la rodilla se doblaba apenas hacia adelante. Ahora la pierna queda recta.
 - **Zancada inversa**: el pie de atrás apuntaba hacia atrás. Ahora apoya la punta mirando hacia adelante.
 - **Face pull**: los codos ahora se abren hacia los costados y quedan altos, con las manos a la altura de la cara, sin pasar por posiciones raras a mitad del movimiento.
-- Nuevos tests: ningún codo ni rodilla se dobla al revés en ningún fotograma, el remo invertido está boca arriba y en la extensión de muñeca solo se mueve la mano.
+- Revisamos que ningún codo ni rodilla se doble al revés en ningún momento del movimiento.
 
 ## 1.13.2 — Elevación lateral corregida
 
 - **Elevación lateral** (y la versión lenta de rehabilitación): los brazos ahora se abren hacia los costados hasta la altura de los hombros, como una T. Antes se iban hacia adelante, se veían torcidos y el brazo de atrás quedaba encima de la cabeza.
 - Las mancuernas de los ejercicios dibujados de frente ahora quedan bien orientadas, con las palmas hacia abajo y el mango hacia adelante. Antes estaban giradas.
 - Los ejercicios dibujados de frente (elevación lateral, rotaciones externas, Tyler twist) usan una cámara más frontal para que el movimiento se entienda.
-- Test de la cámara actualizado a este cambio.
 
-## 1.13.1 — Página de prueba de animaciones (temporal)
+## 1.13.1 — Revisión de animaciones
 
-- Página `animaciones.html` con los 49 ejercicios animados a la vez, con su nombre, el ángulo de cámara y los músculos que trabajan. Sirve para revisar las animaciones y se va a borrar cuando terminemos de ajustarlas.
+- Empezamos a revisar las animaciones de los 49 ejercicios, una por una.
 
 ## 1.13.0 — Músculos con proporciones correctas en todo el movimiento
 
@@ -421,12 +425,12 @@ Se revisaron las 49 animaciones una por una (inicio, mitad y final del movimient
 - **Músculos como zonas reales del cuerpo**: cada uno tiene su lugar y su tamaño (el bíceps adelante del brazo, el tríceps atrás, los extensores en la parte alta del antebrazo, el pecho a los dos lados, los gemelos en la mitad de arriba de la pierna…). Se dibuja solo la parte que se ve y nunca se sale del contorno ni se hincha: su ancho tiene un tope según su largo y cambia de a poco entre fotogramas.
 - **La cámara gira cuando hace falta**: cada ejercicio usa el ángulo que muestra su músculo. Por ejemplo, el peso muerto rumano se ve de tres cuartos de atrás para que se vean glúteos, isquios y zona lumbar. Dominadas y sentadilla sumo también se ven de atrás.
 - **Vista de atrás**: el pelo cubre la nuca y la cara no se dibuja cuando mira para el otro lado.
-- Nuevos tests revisan los 49 ejercicios en cada fotograma: el músculo se ve, no se hincha, no cambia de golpe y los miembros mantienen su largo. Las excepciones son la plancha y las flexiones, donde abdomen y pecho miran al piso.
+- En los 49 ejercicios el músculo se ve, no se hincha ni cambia de golpe, y brazos y piernas mantienen su largo en todo el movimiento.
 
 ## 1.12.0 — Ilustraciones en vista isométrica
 
 - **Todas las ilustraciones pasan a 3D con vista isométrica**: el personaje se ve en tres cuartos, parado sobre una baldosa de piso, con la misma animación fluida de antes.
-- Las posturas se calculan en 3D y se proyectan con una cámara fija. Brazos, piernas, torso y cabeza se ordenan por profundidad, así que el lado cercano tapa al lejano de forma natural.
+- Brazos, piernas, torso y cabeza se ven con profundidad: el lado cercano tapa al lejano de forma natural.
 - **Silla, banco, barra de dominadas, pared, columna y máquina** ahora son objetos con volumen.
 - **Mancuernas en 3D**: discos con espesor y mango orientado según el agarre. Cuando trabajan los dos brazos se ven las dos mancuernas, y en los ejercicios a un brazo, una sola.
 - **Cara en tres cuartos**: pelo que cubre arriba y atrás, ojos, cejas, nariz, boca y oreja. Se nota hacia dónde mira aunque esté acostado o inclinado.
@@ -449,7 +453,6 @@ Se revisaron las 49 animaciones una por una (inicio, mitad y final del movimient
 
 - En el primer uso ahora elegís **qué días entrenás** (se usan para "hoy toca entrenar" y los recordatorios). Al pasar de 2 a 3 días se proponen lunes, miércoles y viernes.
 - **Accesibilidad**: los avisos se anuncian en lectores de pantalla, el foco del teclado se ve claramente y la barra de pestañas tiene nombre.
-- README actualizado con todas las funciones.
 
 ## 1.10.0 — Tema claro
 
@@ -480,7 +483,7 @@ Se revisaron las 49 animaciones una por una (inicio, mitad y final del movimient
 
 - **Deshacer**: al eliminar una sesión del historial aparece "Deshacer" durante 6 segundos (ya no pregunta antes).
 - Durante el entreno, **tocá la ilustración** de un ejercicio para verla en grande, con las indicaciones y tu progreso.
-- Prueba automática de **migración**: los datos guardados con la versión 1.0 se abren bien en la nueva (rutina, preferencias y equipo nuevos toman valores por defecto).
+- Si venías usando la versión 1.0, tus datos se abren bien en la nueva.
 
 ## 1.7.0 — Biblioteca ampliada
 
@@ -510,7 +513,7 @@ Se revisaron las 49 animaciones una por una (inicio, mitad y final del movimient
   - movilidad general de 3–5 min;
   - con el modo dolor, **un isométrico de cada zona sensible** antes de cargar (suele bajar el dolor para entrenar);
   - **series de aproximación** del primer ejercicio con peso: 8 reps al 50 % y 4 al 75 %, redondeadas a tu equipo (no cuentan para el volumen).
-- **Informe para el fisio** (Historial → *Informe para el fisio*): un archivo HTML para compartir o imprimir como PDF con las últimas 6 semanas:
+- **Informe para el fisio** (Historial → *Informe para el fisio*): un archivo para compartir o imprimir con las últimas 6 semanas:
   - por zona: fase actual y desde cuándo, ejercicio y carga, gráfico de dolor, tabla de dolor promedio y máximo por semana, y cómo amaneció al día siguiente;
   - cantidad de sesiones de rehab y entrenos;
   - los ejercicios que te indicó el fisio.
@@ -518,7 +521,7 @@ Se revisaron las 49 animaciones una por una (inicio, mitad y final del movimient
 ## 1.4.0 — Progreso y motivación
 
 - **Resumen al terminar el entreno**: minutos, series y volumen (kg × reps) en números grandes.
-- **Récords**: si superás tu 1RM estimado en un ejercicio con peso, o tu máximo de repeticiones en uno sin peso, aparece 🏆 en el resumen y en el historial.
+- **Récords**: si superás tu máximo estimado (lo que podrías levantar una vez) en un ejercicio con peso, o tu máximo de repeticiones en uno sin peso, aparece 🏆 en el resumen y en el historial.
 - **"La próxima vez"**: el resumen muestra qué ejercicios suben (o bajan) de peso para la sesión siguiente, según la doble progresión.
 - **Tarjeta semanal en Inicio**: puntos con los entrenos de la semana contra tu objetivo, sesiones de rehabilitación hechas (14 por semana en fase 1, 4 en fase 2) y racha.
 - **Racha** 🔥: semanas seguidas cumpliendo tus días de entreno.
@@ -531,7 +534,7 @@ Se revisaron las 49 animaciones una por una (inicio, mitad y final del movimient
 - **Voz opcional** en español: "Sostené", "Mitad", "Descansá", "Siguiente serie".
 - **Isométricos manos libres**: después del descanso la serie siguiente arranca sola (se puede apagar).
 - **Descanso configurable** entre series de entreno: 60 s, 90 s, 2 min o 3 min.
-- **Novedades dentro de la app**: Ajustes → Fuentes → *Novedades* muestra este changelog, y cuando hay una versión nueva aparece una tarjeta en Inicio.
+- **Novedades dentro de la app**: Ajustes → Fuentes → *Ver novedades* muestra esta lista, y cuando hay una versión nueva aparece una tarjeta en Inicio.
 - Todo se configura en Ajustes → *Durante la sesión*.
 
 ## 1.2.0 — Tu equipo y tu rutina
@@ -546,18 +549,17 @@ Se revisaron las 49 animaciones una por una (inicio, mitad y final del movimient
 
 ## 1.1.0 — Ilustraciones nuevas
 
-- **Ilustraciones nuevas para los 27 ejercicios**, inspiradas en el estilo de remera amarilla que te gustó, pero dibujadas desde cero: personaje plano con contorno, remera amarilla, short gris, zapatillas blancas, pelo, ojos y manos, sobre una lámina clara con piso y sombra.
+- **Ilustraciones nuevas para los 27 ejercicios**, dibujadas desde cero: personaje plano con contorno, remera amarilla, short gris, zapatillas blancas, pelo, ojos y manos, sobre una lámina clara con piso y sombra.
 - **Movimiento fluido real**: no alternan dos fotos, sino que cada parte del cuerpo se interpola entre la postura inicial y la final. Los ejercicios lentos (3 s subir / 3 s bajar) se animan a ese ritmo.
 - Mancuernas con discos azules, pesa rusa, aros con correas, silla de madera y pared, todo dibujado.
 - Vista de frente (elevaciones laterales) con torso en V y hombros reales.
-- **Sin problemas de copyright**: las genera la IA (Claude) como código vectorial dentro de la app, sin imágenes de terceros. Pesan casi nada y funcionan sin internet.
-- Descartado: la imagen de "remera amarilla" de wger (usuario Franpol) venía de sitios comerciales (varias tienen marca de agua de FitnessVolt), así que no se usó.
+- **Dibujadas para esta app**, sin imágenes de otros. Cargan al instante y funcionan sin internet.
 
 ## 1.0.0 — Primera versión
 
-- PWA instalable, datos solo en el teléfono (IndexedDB), funciona sin conexión.
+- Se instala en el celular, tus datos quedan solo en el teléfono y funciona sin conexión.
 - Primer uso: perfil, equipo y zonas con dolor (opcional).
-- Peso sugerido con calibración (Epley) y redondeo al equipo disponible.
+- Peso sugerido: hacés una serie de prueba y la app calcula tu peso, redondeado a tu equipo.
 - Entreno cuerpo completo A/B, doble progresión 8–12, volumen +30 % máx por semana.
 - Modo dolor opcional: 6 zonas, 3 fases, registro de dolor 0–10, ajuste automático de carga, tope del 60 % y variantes amables.
-- Ejercicios del fisio, historial con gráficos, recordatorios `.ics`, copia de seguridad JSON.
+- Ejercicios del fisio, historial con gráficos, recordatorios en el calendario y copia de seguridad.
