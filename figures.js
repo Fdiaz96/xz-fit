@@ -58,8 +58,8 @@ function pose3D(raw, f) {
     J['Hp' + n] = add3(J.P, [0, 0, 6.5 * s]);
     for (const k of ['E', 'W', 'G', 'K', 'F', 'T']) {
       const p = get(k); if (!p) continue;
-      let z = zo[k] ?? (k === 'G' ? zo.W : null) ?? LIMB_Z[k];
-      if (front && zo[k] == null) z = Math.max(s * (100 - p[0]), z);
+      let z = zo[k + n] ?? zo[k] ?? (k === 'G' ? zo['W' + n] ?? zo.W : null) ?? LIMB_Z[k];   // z: { W2: … } vale solo para ese lado
+      if (front && zo[k] == null && zo[k + n] == null) z = Math.max(s * (100 - p[0]), z);
       J[k + n] = V(p, z * s);
     }
     if (front && J['E' + n]) {   // de frente, un brazo que se ve corto va hacia adelante
@@ -367,7 +367,10 @@ function figureSVG(ex, { animate = true, size = '', crop = false, muscles = true
   // Geometría 2D de una parte: segmento, función de ancho (con los vientres hacia el lado que mira adelante) y puntas.
   const geo = (key, J, n, extra = 0) => {
     if (key === 'to') { const s = [prj(mix3(J.N, J.P, -0.08)), prj(mix3(J.N, J.P, 0.9))], m = norm2(s); return { s, w: (t) => halfWidth(J, lin(TO_SIDE, t), lin(TO_FWD, t), m), cap: [0.28, 0.35] }; }
-    if (key === 'pv') { const s = [prj(mix3(J.N, J.P, 0.7)), prj(mix3(J.N, J.P, 1.06))], m = norm2(s); return { s, w: (t) => halfWidth(J, 10.6 + 1.6 * t, 7.6 + 0.8 * t, m), cap: [0.2, 0.7] }; }
+    if (key === 'pv') {   // pelvis: abulta hacia atrás (glúteos), de frente queda plana
+      const s = [prj(mix3(J.N, J.P, 0.7)), prj(mix3(J.N, J.P, 1.04))], m = norm2(s), bk = prjV(scl3(J.fw, -1)), fac = bk[0] * m[0] + bk[1] * m[1], glute = bump(0.72, 0.28, 2.6);
+      return { s, w: (t, sd = 0) => halfWidth(J, 10.6 + 1.6 * t, 7.4 + 0.6 * t, m) + (sd * fac > 0 ? sd * fac * glute(t) : 0), cap: [0.2, 0.42] };
+    }
     const s = seg2(key, J, n); if (!s) return null;
     const pv = prjV(front3(f, key, J, n)), m = norm2(s), fac = pv[0] * m[0] + pv[1] * m[1], P = PROF[key];
     return { s, w: (t, sd = 0) => lin(P.base, t) + extra + (sd * fac > 0 ? sd * fac * P.front(t) : -sd * fac * P.back(t)), cap: [0.9, 0.9] };
@@ -434,7 +437,9 @@ function figureSVG(ex, { animate = true, size = '', crop = false, muscles = true
   // Detalles del torso: cuello de la remera, cintura del short, pectorales y abdomen (de frente) o columna (de espaldas).
   const sp = (J, t, g, k = 1) => prj(add3(mix3(J.N, J.P, t), add3(scl3(J.fw, lin(TO_FWD, t) * Math.cos(g) * k), scl3(J.lat, lin(TO_SIDE, t) * Math.sin(g) * k))));
   const facing = dot3(A.fw, CAM.v);
-  const torsoDecor = shadeOf('pv', '1') + shadeOf('to', '1') + lightOf('to', '1') + (!detail ? '' : stroke((J) => ring(mix3(J.N, J.P, 0.72), scl3(J.lat, 11), scl3(J.fw, 7.6)), 2.2, PAL.shorts2)
+  // De espaldas o de costado-atrás: la costura del short entre los glúteos.
+  const seam = detail && facing < -0.15 ? stroke((J) => `M${pt2(prj(add3(mix3(J.N, J.P, 0.82), scl3(J.fw, -8.4))))}Q${pt2(prj(add3(mix3(J.N, J.P, 0.95), scl3(J.fw, -10.6))))} ${pt2(prj(add3(mix3(J.N, J.P, 1.06), scl3(J.fw, -7))))}`, 1.2, PAL.shorts2) : '';
+  const torsoDecor = shadeOf('pv', '1') + seam + shadeOf('to', '1') + lightOf('to', '1') + (!detail ? '' : stroke((J) => ring(mix3(J.N, J.P, 0.72), scl3(J.lat, 11), scl3(J.fw, 7.6)), 2.2, PAL.shorts2)
     + stroke((J) => ring(add3(J.N, scl3(J.up, -2.5)), scl3(J.lat, 6.4), scl3(J.fw, 4.6)), 1.5, PAL.shirt2)
     + (facing > 0.3 ? [-1, 1].map((k) => stroke((J) => `M${pt2(sp(J, 0.19, k * 0.8, 1.02))}Q${pt2(sp(J, 0.34, k * 0.42, 1.04))} ${pt2(sp(J, 0.31, k * 0.06, 1.03))}`, 1.1, PAL.shirt2, ' opacity=".7"')).join('')
       + stroke((J) => `M${pt2(sp(J, 0.4, 0, 1.02))}L${pt2(sp(J, 0.7, 0, 1.02))}M${pt2(sp(J, 0.5, -0.3, 1.02))}L${pt2(sp(J, 0.5, 0.3, 1.02))}M${pt2(sp(J, 0.6, -0.27, 1.02))}L${pt2(sp(J, 0.6, 0.27, 1.02))}`, 1, PAL.shirt2, ' opacity=".5"') : '')
@@ -522,7 +527,7 @@ function figureSVG(ex, { animate = true, size = '', crop = false, muscles = true
   let guide = '', guidePts = [];
   if (!crop && moving && fr.B) {
     let best = null;
-    for (const k of ['G1', 'W1', 'G2', 'W2', 'F2', 'K2', 'F1', 'K1', 'P']) {   // la cabeza no: la guía taparía la cara
+    for (const k of ['G1', 'W1', 'G2', 'W2', 'F2', 'K2', 'F1', 'K1', 'N', 'P']) {   // la cabeza no: la guía taparía la cara
       if (!FR.every((J) => J[k])) continue;
       const P = FR.map((J) => prj(J[k])), span = Math.max(...P.map((q) => Math.hypot(q[0] - P[0][0], q[1] - P[0][1])));
       if (span > 6 && (!best || span > best.span * 1.15)) best = { P, span, k };
@@ -547,7 +552,7 @@ function figureSVG(ex, { animate = true, size = '', crop = false, muscles = true
   }
 
   // Encuadre: miniaturas cuadradas alrededor del cuerpo; grande, 200×170 con el piso y la escena.
-  const p2 = pts3.map(prj).concat(FR.map((J) => { const c = prj(J.H); return [c[0], c[1] - HR - 4]; }));
+  const p2 = pts3.map(prj).concat(FR.map((J) => { const c = prj(J.H); return [c[0], c[1] - HR - 4]; }), FR.flatMap((J) => [[0, 13, 0], [0, -13, 0], [13, 0, 0], [-13, 0, 0]].map((o) => prj(add3(J.P, o)))));
   const fl = [[X0, -7, Z0], [X1, -7, Z0], [X0, -7, Z1], [X1, -7, Z1], [X1, 0, Z1]].map(prj);
   const bb = (ps) => [Math.min(...ps.map((q) => q[0])), Math.min(...ps.map((q) => q[1])), Math.max(...ps.map((q) => q[0])), Math.max(...ps.map((q) => q[1]))];
   let vb;
@@ -677,8 +682,8 @@ function propSVG(p, FR, ts, { path, group, animV, animate, front, dur, palm }) {
   const M = (x, y) => (front ? [A[p.at][0], 150 - y, 100 - x] : [x - 100, 150 - y, 0]);
   if (p.t === 'towel') {   // toalla enrollada entre las dos manos
     const grip = (J, k) => (J['G' + k.slice(-1)] ? mix3(J[k], J['G' + k.slice(-1)], 0.55) : J[k]);   // con mano articulada, en el puño
-    const ln = (w, extra) => path((J) => `M${pt2(prj(grip(J, p.at)))}L${pt2(prj(grip(J, p.to)))}`, `fill="none" stroke-width="${w}" stroke-linecap="round" ${extra}`);
-    return { under: ln(9, `stroke="${L}"`) + ln(6.4, 'stroke="#7FB3D5"') + ln(6.4, 'stroke="#5E97BF" stroke-dasharray="2 3"'), over: '' };
+    const ln = (w, extra, anim = '') => path((J) => `M${pt2(prj(grip(J, p.at)))}L${pt2(prj(grip(J, p.to)))}`, `fill="none" stroke-width="${w}" stroke-linecap="round" ${extra}`, anim);
+    return { under: ln(9, `stroke="${L}"`) + ln(6.4, 'stroke="#7FB3D5"') + ln(6.4, 'stroke="#5E97BF" stroke-dasharray="2 3"', animate && FR.length > 1 ? `<animate attributeName="stroke-dashoffset" values="0;10;0" dur="${dur}" repeatCount="indefinite"/>` : ''), over: '' };
   }
   if (p.t === 'band') {
     const anchor = () => prj(M(p.x, p.y));

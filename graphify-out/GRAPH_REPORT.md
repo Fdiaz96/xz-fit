@@ -1,17 +1,17 @@
 # Graph Report - fix-pesa-rusa  (2026-10-29)
 
 ## Corpus Check
-- 63 files · ~127,794 words
+- 63 files · ~128,230 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 15 file(s) not represented in the graph (top: (none) 12, .woff2 1, .webmanifest 1)
 
 ## Summary
-- 871 nodes · 1798 edges · 63 communities (60 shown, 3 thin omitted)
+- 871 nodes · 1799 edges · 63 communities (60 shown, 3 thin omitted)
 - Extraction: 93% EXTRACTED · 7% INFERRED · 0% AMBIGUOUS · INFERRED: 118 edges (avg confidence: 0.88)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `c1b0768c`
+- Built from commit: `ed2b4148`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -82,7 +82,7 @@
 
 ## God Nodes (most connected - your core abstractions)
 1. `esc()` - 45 edges
-2. `figureSVG()` - 40 edges
+2. `figureSVG()` - 41 edges
 3. `render()` - 32 edges
 4. `Training Plan Engine skill (SKILL.md)` - 30 edges
 5. `toast()` - 28 edges
@@ -141,7 +141,7 @@ Nodes (9): activePlan()/dayIndex()/weeksSince()/firstWorkout(), 'Falta equipo' m
 
 ### Community 4 - "Figuras 3D (figures.js)"
 Cohesion: 0.11
-Nodes (60): add3(), blob(), box(), CAM, CAM_YAWS, CAM_YAWS_FRONT, camCache, camera() (+52 more)
+Nodes (61): add3(), blob(), box(), bump(), CAM, CAM_YAWS, CAM_YAWS_FRONT, camCache (+53 more)
 
 ### Community 5 - "Pruebas e2e"
 Cohesion: 0.05
@@ -365,7 +365,7 @@ Nodes (4): Criterios de aceptación, Problema, Propuesta, UX 5: explicar "al 60 
 
 ## Knowledge Gaps
 - **61 isolated node(s):** `Sugerencia de pasar a 3 dias (suggestThreeDays)`, `Eliminar sesion con Deshacer`, `Tarjeta de instalacion (beforeinstallprompt / iOS)`, `Service worker sw.js (red primero, cache tendon-v<version>)`, `Tema claro/oscuro (applyTheme, tf-theme)` (+56 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 283 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 282 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
 - **3 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions

@@ -2,6 +2,14 @@
 
 Todos los cambios de XZ Fit, del más nuevo al más viejo.
 
+## 1.31.3 — Cinco dibujos revisados
+
+- **Excéntrico de muñeca**: ahora se entiende. Arranca con la mano arriba y la otra mano ayudando a subirla, y baja sola, despacio, con la palma hacia abajo. La flecha marca la bajada, que es la parte que cuenta. Se ve de cerca, como los otros ejercicios de muñeca.
+- **Tyler twist con toalla**: los brazos van estirados adelante a la altura del pecho, con la toalla entre las manos. Una muñeca sube y la otra baja, y las vueltas de la toalla se mueven como cuando se retuerce. Se ve de cerca.
+- **Remo y curl bajo una mesa**: ya no parecen iguales. En el remo los codos bajan al costado del cuerpo y el pecho sube hasta la mesa; en el curl los brazos quedan apuntando a la mesa, solo se doblan los codos y la frente llega a las manos. Se ven de costado y desde abajo, así la mesa queda arriba y no tapa el cuerpo.
+- **Flexiones en pica**: los pies apoyan en la punta con el talón apenas levantado, en lugar de quedar estirados en punta, y el ejercicio se ve de tres cuartos.
+- **La cadera del muñeco**: tiene glúteos que se marcan hacia atrás, con la costura del short cuando se lo ve de espaldas, y ya no queda cortada en el borde del dibujo cuando está arriba (pica, puente).
+
 ## 1.31.2 — Muñeca: extensión y flexión se distinguen
 
 - **Extensión y flexión de muñeca ya no se ven iguales**: en la extensión la mano va con la palma hacia abajo, por encima del mango y con los nudillos a la vista; en la flexión la palma mira hacia arriba y el mango descansa sobre ella. Los isométricos de muñeca también muestran hacia dónde va la palma.

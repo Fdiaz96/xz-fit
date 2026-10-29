@@ -317,7 +317,7 @@ Object.assign(EXERCISES, {
   pica: {
     name: 'Flexiones en pica', kind: 'reps', impl: 'bw', cat: 'empuje', tag: ['hombro', 'muneca'],
     cues: ['Manos y pies en el piso, cadera bien alta: el cuerpo forma una V invertida.', 'Doblá los codos llevando la cabeza hacia el piso, entre las manos.', 'Más difícil: con los pies en una silla.'],
-    fig: { a: { N: [120, 111], P: [92, 82], E1: [124, 128], W1: [132, 148], K1: [82, 113], F1: [72, 144], T1: [67, 150] }, b: { N: [122, 125], P: [100, 92], E1: [111.1, 138.6], K1: [86, 118] }, dur: 2.4 },
+    fig: { a: { N: [120, 111], P: [92, 82], E1: [124, 128], W1: [132, 148], K1: [82, 113], F1: [75, 146], T1: [66, 150] }, b: { N: [122, 125], P: [100, 92], E1: [111.1, 138.6], K1: [86, 118] }, dur: 2.4, cam: 35 },
   },
   flex_declinadas: {
     name: 'Flexiones con los pies en una silla', kind: 'reps', impl: 'bw', cat: 'empuje', tag: ['hombro', 'muneca'],
@@ -351,12 +351,12 @@ Object.assign(EXERCISES, {
   remo_mesa: {
     name: 'Remo invertido bajo una mesa', kind: 'reps', impl: 'bw', cat: 'tiron', tag: ['codo_lat', 'codo_med', 'muneca'],
     cues: ['Acostado debajo de una mesa firme, agarrá el borde con las manos al ancho de los hombros.', 'Con el cuerpo recto y los talones en el piso, subí el pecho hacia la mesa.', 'Bajá en 2–3 s. Más fácil: rodillas dobladas.'],
-    fig: { a: UNDER_TABLE, b: { N: [70, 112], P: [108, 130], E1: [93.6, 118.6], K1: [138, 140] }, scene: [TABLE] },
+    fig: { a: UNDER_TABLE, b: { N: [70, 112], P: [108, 130], E1: [93.6, 118.6], K1: [138, 140] }, scene: [TABLE], cam: 10, pitch: 14 },
   },
   curl_mesa: {
     name: 'Curl de bíceps bajo una mesa', kind: 'reps', impl: 'bw', cat: 'brazos', tag: ['codo_lat', 'codo_med'],
     cues: ['Como el remo bajo la mesa, pero con las palmas hacia vos.', 'Subí doblando solo los codos, con las manos que terminan cerca de la frente.', 'Más fácil: rodillas dobladas y pies más cerca.'],
-    fig: { a: UNDER_TABLE, b: { N: [70, 118], P: [108, 132], E1: [94.1, 118.3], K1: [138, 141] }, scene: [TABLE] },
+    fig: { a: UNDER_TABLE, b: { N: [84, 118], P: [121.7, 131.9], E1: [100.1, 102.6], K1: [145, 140.5] }, scene: [TABLE], cam: 10, pitch: 14 },
   },
   elev_y_piso: {
     name: 'Elevaciones en Y boca abajo', kind: 'reps', impl: 'bw', cat: 'hombro', tag: ['hombro'],
@@ -389,13 +389,13 @@ Object.assign(EXERCISES, {
   excentrico_muneca: {
     name: 'Excéntrico de muñeca', kind: 'lento', impl: 'db', load0: 2, zone: 'codo_lat',
     cues: ['Antebrazo apoyado en el muslo, palma hacia abajo.', 'Subí la mano ayudándote con la otra y bajala sola en 4 s.', 'Clásico para codo de tenista: la bajada es lo que cuenta.'],
-    fig: { a: { ...SEATED, G1: [139.7, 94.3] }, b: { G1: [139.7, 105.7] }, props: [{ t: 'db', at: 'W1' }], scene: [CHAIR_SEAT], dur: 5 },
+    fig: { a: { ...SEATED, G1: [140.2, 92.6], E2: [115, 88], W2: [128, 102], z: { E2: 4.5, W2: -5 } }, b: { G1: [140.2, 107.4], E2: [106, 99], W2: [114, 108], z: {} }, palm: 'down', props: [{ t: 'db', at: 'W1', sm: true }], scene: [CHAIR_SEAT], dur: 5, cam: 18, pitch: 36, focus: ['H', 'E1', 'G1', 'K1'] },
   },
   tyler_toalla: {
     name: 'Tyler twist con toalla', kind: 'lento', impl: 'bw', zone: 'codo_lat',
     cues: ['Toalla enrollada con las dos manos, brazos adelante.', 'Retorcé la toalla con la mano sana y dejá que la del codo afectado ceda despacio (4 s).', 'Sin Flexbar: la toalla bien enrollada funciona parecido.'],
     // Las muñecas giran en sentidos opuestos retorciendo la toalla (la del codo dolorido termina flexionada, en excéntrico).
-    fig: { front: true, a: { N: [100, 45], P: [100, 88], E1: [86, 74], W1: [80, 88], G1: [80, 82], E2: [114, 74], W2: [120, 88], G2: [120, 94], K1: [94, 119], F1: [93, 150], K2: [106, 119], F2: [107, 150], x: { W: 17, G: 24 } }, b: { G1: [80, 94], G2: [120, 82] }, props: [{ t: 'towel', at: 'W1', to: 'W2' }], dur: 5 },
+    fig: { front: true, a: { N: [100, 45], P: [100, 88], E1: [86, 55], W1: [87, 62], G1: [87, 57], E2: [114, 55], W2: [113, 62], G2: [113, 67], K1: [94, 119], F1: [93, 150], K2: [106, 119], F2: [107, 150], x: { G: 47 } }, b: { G1: [87, 67], G2: [113, 57] }, props: [{ t: 'towel', at: 'W1', to: 'W2' }], dur: 5, cam: 38, pitch: 24, focus: ['H', 'E1', 'E2', 'G1', 'G2', 'P'] },
   },
 });
 const REHAB_OPTIONS = {
