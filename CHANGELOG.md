@@ -2,6 +2,11 @@
 
 Todos los cambios de XZ Fit, del más nuevo al más viejo.
 
+## 1.32.3 — Dedos con borde sobre el mango y lupa sin costuras
+
+- Con la palma arriba, los dedos que cruzan por encima del mango tienen otra vez su borde contra el gris (sobre la palma siguen sin raya).
+- En la lupa la mano y el dedo son una sola silueta: no queda la raya donde el dedo sale de la mano, y en la muñeca el antebrazo tapa la unión (la mano termina redondeada, así no asoma una esquina al girar).
+
 ## 1.32.2 — Manos sin costuras
 
 - Las manos ya no tienen rayas negras por dentro, igual que los hombros y la ingle. En la muñeca el antebrazo se repinta sobre la base de la mano, así no queda la línea de la unión (en todos los ejercicios). En los de muñeca, el contorno de los dedos se dibuja junto con el de la palma y los rellenos tapan las uniones: no queda la raya negra en la base de los dedos.

@@ -473,7 +473,9 @@ function figureSVG(ex, { animate = true, size = '', crop = false, muscles = true
       } else {
         // Palma arriba: los dedos rodean el mango por encima y sus puntas vuelven hacia la muñeca: se ven las uñas.
         seam = outl(digits);
-        fingers = fills(digits, finger) + FY.map((y) => path((J) => circlePath(H(J).at(0.88, y * 0.97, 5.2), 0.95), `fill="#FFF3EC" stroke="${PAL.skin2}" stroke-width=".6"`)).join('');
+        const mk = `m${uid}-${pid++}`;
+        defs += `<mask id="${mk}" maskUnits="userSpaceOnUse" x="-500" y="-500" width="1400" height="1400"><rect x="-500" y="-500" width="1400" height="1400" fill="#FFF"/>${path(body, 'fill="#000"')}</mask>`;
+        fingers = `<g mask="url(#${mk})">${seam}</g>` + fills(digits, finger) + FY.map((y) => path((J) => circlePath(H(J).at(0.88, y * 0.97, 5.2), 0.95), `fill="#FFF3EC" stroke="${PAL.skin2}" stroke-width=".6"`)).join('');
       }
       marks = f.palm === 'up'
         // palma clara, con el pliegue de la base del pulgar y el de los dedos
@@ -644,16 +646,15 @@ function palmInset(palm, vb, FR, animV, uid) {
   // Ángulo de la mano respecto del antebrazo en cada fotograma (positivo: la mano sube).
   const elev = (v) => (Math.atan2(v[1], Math.hypot(v[0], v[2])) * 180) / Math.PI;
   const angs = FR.map((J) => r1(-(elev(sub3(J.G1, J.W1)) - elev(sub3(J.W1, J.E1)))));
-  const pv = [61, 46], rot = (a) => `${a} ${pv[0]} ${pv[1]}`;
+  const pv = [60, 46], rot = (a) => `${a} ${pv[0]} ${pv[1]}`;
   const spin = animV('transform', angs.map(rot), 'animateTransform', 'type="rotate" ');
   const g = (k) => `url(#l${k}${uid})`, lc = lw * 0.5, sw = `stroke="${L}" stroke-width="${r1(lc)}" stroke-linejoin="round"`;
   const lin = (k, c0, c1, c2, h = false) => `<linearGradient id="l${k}${uid}" x1="0" y1="0" x2="${h ? 1 : 0}" y2="${h ? 0 : 1}"><stop offset="0" stop-color="${c0}"/><stop offset=".5" stop-color="${c1}"/><stop offset="1" stop-color="${c2}"/></linearGradient>`;
   const defs = lin('bg', '#FFFFFF', '#F6F7F9', '#E6EAEE') + lin('sk', tint(PAL.skin, 0.28), PAL.skin, tint(PAL.skin2, -0.05)) + lin('sh', tint(PAL.skin, 0.2), PAL.skin, PAL.skin2, true)
     + lin('so', tint(PAL.shorts, 0.28), PAL.shorts, PAL.shorts2)
     + `<radialGradient id="ldb${uid}" cx=".35" cy=".3" r=".8"><stop offset="0" stop-color="${tint(PAL.db, 0.35)}"/><stop offset=".55" stop-color="${PAL.db}"/><stop offset="1" stop-color="${PAL.db2}"/></radialGradient>`
-    + `<clipPath id="lc${uid}"><rect width="100" height="84" rx="9"/></clipPath>`;
+    + `<clipPath id="lw${uid}"><circle cx="60" cy="46" r="6.5"/></clipPath><clipPath id="lc${uid}"><rect width="100" height="84" rx="9"/></clipPath>`;
   const cap = (x1, x2, y, r) => `M${x1} ${y - r}H${x2}A${r} ${r} 0 0 1 ${x2} ${y + r}H${x1}A${r} ${r} 0 0 1 ${x1} ${y - r}Z`;
-  const stroke2 = (d, w, col) => `<path d="${d}" fill="none" stroke="${L}" stroke-width="${r1(w + lc * 2)}" stroke-linecap="round"/><path d="${d}" fill="none" stroke="${col}" stroke-width="${w}" stroke-linecap="round"/>`;
   // La palma (más clara) mira al mango: arriba con la palma arriba, abajo con la palma abajo. El mango se apoya contra
   // ella, el disco grande queda detrás y los dedos lo rodean desde la punta.
   const cx = 69, cy = 46 + sg * 9;
@@ -662,11 +663,16 @@ function palmInset(palm, vb, FR, animV, uid) {
   const palmY = 46 + sg * 4.6;
   const face = `<path d="M59.5 ${palmY}H77" stroke="#FFE7D9" stroke-width="2.4" stroke-linecap="round"/>`
     + (up ? '' : `<path d="M66 ${46 - 3.4}q2 -1.6 4 0q2 -1.6 4 0" fill="none" stroke="${PAL.skin2}" stroke-width="1" stroke-linecap="round"/>`);
-  const curl = (d, w) => stroke2(d, w, PAL.skin);
-  const fingers = curl(`M78.5 ${46 + sg * 1.5}C83 ${46 + sg * 5} 79 ${cy + sg * 4.6} ${cx + 3} ${cy + sg * 4}`, 4.4);
+  const fd = `M78.5 ${46 + sg * 1.5}C83 ${46 + sg * 5} 79 ${cy + sg * 4.6} ${cx + 3} ${cy + sg * 4}`, palmD = 'M60 41L78 41.6A4.4 4.4 0 0 1 78 50.4L60 51A5 5 0 0 1 60 41Z';
   const nail = `<ellipse cx="${cx + 4.4}" cy="${cy + sg * 5.3}" rx="1.5" ry="1" fill="#FFF3EC" stroke="${PAL.skin2}" stroke-width=".6"/>`;
-  const hand = `<g transform="rotate(${rot(angs[0])})">${spin}${plate}
-      <path d="M56 41L78 41.6A4.4 4.4 0 0 1 78 50.4L56 51Z" fill="${g('sk')}" ${sw}/>${face}${bar}${fingers}${nail}</g>`;
+  // Mano y dedos como una sola silueta: primero los dos contornos y después los rellenos, así no queda raya donde el dedo
+  // sale de la mano. El mango va antes, y el borde del dedo se ve sobre él.
+  const hand = `<g transform="rotate(${rot(angs[0])})">${spin}${plate}${bar}
+      <path d="${palmD}" fill="${L}" ${sw}/><path d="${fd}" fill="none" stroke="${L}" stroke-width="${r1(4.4 + lc * 2)}" stroke-linecap="round"/>
+      <path d="${palmD}" fill="${g('sk')}"/>${face}<path d="${fd}" fill="none" stroke="${PAL.skin}" stroke-width="4.4" stroke-linecap="round"/>${nail}</g>`;
+  // Muñeca sin costura: el antebrazo se repinta (sin contorno) sobre la base de la mano.
+  const FA = 'M-30 38.2L60 41A5 5 0 0 1 60 51L-30 53.8Z';
+  const wrist = `<g clip-path="url(#lw${uid})"><path d="${FA}" fill="${g('sk')}"/></g>`;
   // Línea de la mano del muñeco a la lupa, con un margen para no tapar la mano.
   const hp = FR.map((J) => prj(mix3(J.W1, J.G1, 0.6))).reduce((a, q, _, arr) => [a[0] + q[0] / arr.length, a[1] + q[1] / arr.length], [0, 0]);
   const tgt = [x0 + cw * 0.5, y0 + ch], d = unit(tgt[0] - hp[0], tgt[1] - hp[1]), st = [hp[0] + d[0] * vb[2] * 0.08, hp[1] + d[1] * vb[2] * 0.08];
@@ -678,8 +684,8 @@ function palmInset(palm, vb, FR, animV, uid) {
       <path d="M38 62V100H50V62Z" fill="${g('sh')}" ${sw}/>
       <path d="${cap(-30, 44, 59.5, 7)}" fill="${g('sk')}" ${sw}/><path d="M-30 52.5H33V66.5H-30Z" fill="${g('so')}" ${sw}/>
       <ellipse cx="22" cy="53.4" rx="30" ry="2" fill="rgba(34,38,45,.22)"/>
-      <path d="M-30 38.2L60 41A5 5 0 0 1 60 51L-30 53.8Z" fill="${g('sk')}" ${sw}/><path d="M-4 41.2L52 43" stroke="#FFF" stroke-width="1.6" stroke-linecap="round" opacity=".45"/>
-      ${hand}
+      <path d="${FA}" fill="${g('sk')}" ${sw}/><path d="M-4 41.2L52 43" stroke="#FFF" stroke-width="1.6" stroke-linecap="round" opacity=".45"/>
+      ${hand}${wrist}
     </g></g>
     <rect width="100" height="84" rx="9" fill="none" stroke="${L}" stroke-width="${r1(lw)}"/>
     <text x="9" y="17" font-size="12.5" font-weight="700" fill="${L}" font-family="inherit">Palma ${up ? 'arriba' : 'abajo'}</text></g></g>`;
