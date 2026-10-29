@@ -2,6 +2,13 @@
 
 Todos los cambios de XZ Fit (antes Tendón Fuerte), del más nuevo al más viejo.
 
+## 1.30.11 — Editar rutina más claro
+
+- Editar rutina aclara que las series y las reps las ajusta la app: cuando llegás al tope del rango sube el peso, y en la semana de descarga baja una serie. "Nuevo ejercicio" lo dice también.
+- El selector de ejercicios ya no muestra "Exige rodilla / hombro…" si no usás el modo dolor; con el modo dolor prendido, sí.
+- "Volver al plan original" abre su propio aviso: dice que se rearman todos los días del plan, que tus pesos, historial y ejercicios propios no cambian, y se puede deshacer.
+- En "Nuevo ejercicio" podés tocar "+ Agregar máquina" y cargarla ahí mismo: vuelve al formulario con la máquina elegida, sin pasar por Ajustes.
+
 ## 1.30.10 — Encontrá el ejercicio al toque
 
 - El selector de ejercicios tiene un buscador arriba: escribí parte del nombre (sin preocuparte por tildes ni mayúsculas) y quedan solo los que coinciden.

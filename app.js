@@ -2,7 +2,7 @@
 // (IndexedDB). Los identificadores internos siguen siendo "tendon-fuerte" para no perder los datos ya guardados.
 // Protocolo de tendones del video de Jeremy Ethier con Keith Baar y Coach Q; reglas en logic.js, bocetos en figures.js.
 
-const APP_VERSION = '1.30.10';
+const APP_VERSION = '1.30.11';
 const DAY_NAMES = { lu: 'Lu', ma: 'Ma', mi: 'Mi', ju: 'Ju', vi: 'Vi', sa: 'Sá', do: 'Do' };
 const SIDES = { der: 'derecha', izq: 'izquierda', ambos: 'ambos lados' };
 const REST_SECS = 90, ISO_REST = 60;
@@ -405,7 +405,7 @@ function renderTrain() {
     <p class="muted train-sub">${esc(plan.name)}: cada ejercicio sube dentro de su rango.</p>`;
   if (!S.profile.weight) h += `<div class="note acc">Completá tu peso en Ajustes para que la app estime cuánto levantar.</div>`;
   if (S.plan.deload === weekKey(today())) h += `<div class="note acc">Semana de descarga: una serie menos y 90 % del peso. <button class="link small" data-action="deload-off">Cancelar</button></div>`;
-  if (editRoutine) h += planCard() + `<div class="note acc">Cambiá, quitá, agregá u ordená ejercicios. Si tenés una máquina que no está, cargala en Ajustes → Equipo y creá tu ejercicio.</div>`;
+  if (editRoutine) h += planCard() + `<div class="note acc">Cambiá, quitá, agregá u ordená ejercicios. Las series y las reps las ajusta la app: cuando llegás al tope del rango sube el peso, y en la semana de descarga baja una serie.</div>`;
   if (editRoutine) h += `<div class="chips day-tabs">${plan.days.map((dd, d) => `<button class="chip${d === editDay ? ' on' : ''}" data-action="edit-day" data-day="${d}">${esc(dd.name)}</button>`).join('')}</div>`;
   // Cada día como en la pizarra del inicio: el nombre en grande, el que toca subrayado en lima y con el botón lleno.
   plan.days.forEach((dd, d) => {
@@ -576,8 +576,9 @@ function openPicker(day, i) {
   const inDay = new Set(dayItems(PK.day).map((it) => it.ex));
   const row = (e) => {
     const ok = !!implFor(e, S.equip), here = inDay.has(e.id) && current?.id !== e.id;
-    const sub = here ? '✓ Ya está en este día' : ok ? (e.tag?.length ? 'Exige ' + e.tag.map((z) => zoneName(z).toLowerCase()).join(', ') : 'No carga tendones sensibles') : 'Falta: ' + missingLabel(e);
-    return `<button class="pick${current?.id === e.id ? ' on' : ''}${here ? ' here' : ''}" data-action="pick-ex" data-ex="${e.id}" data-q="${esc(fold(e.name))}" ${ok && !here ? '' : 'disabled'}><div class="thumb">${figureSVG(e, { animate: false, crop: true })}</div><span><b>${esc(e.name)}</b><br><span class="small muted">${sub}</span></span></button>`;
+    // Qué tendones exige solo importa con el modo dolor prendido; sin él, la fila queda con el nombre solo.
+    const sub = here ? '✓ Ya está en este día' : !ok ? 'Falta: ' + missingLabel(e) : !S.painMode ? '' : e.tag?.length ? 'Exige ' + e.tag.map((z) => zoneName(z).toLowerCase()).join(', ') : 'No carga tendones sensibles';
+    return `<button class="pick${current?.id === e.id ? ' on' : ''}${here ? ' here' : ''}" data-action="pick-ex" data-ex="${e.id}" data-q="${esc(fold(e.name))}" ${ok && !here ? '' : 'disabled'}><div class="thumb">${figureSVG(e, { animate: false, crop: true })}</div><span><b>${esc(e.name)}</b>${sub ? `<br><span class="small muted">${sub}</span>` : ''}</span></button>`;
   };
   // Al cambiar, primero los ejercicios del mismo hueco; esos ids no se repiten en las categorías.
   const slot = item?.slot ? SLOTS[item.slot] : null;
@@ -650,12 +651,13 @@ function renderExForm() {
   dlg('exformsheet').html = `<div class="dlg"><div class="dlg-head"><button class="link" data-action="close" data-dlg="exformsheet">Cancelar</button><strong>${c.id ? 'Editar' : 'Nuevo'} ejercicio</strong><button class="link" data-action="exform-save">Guardar</button></div>
     <label class="field"><span>Nombre</span><input id="x-name" value="${esc(c.name)}" placeholder="Ej.: Prensa de piernas"></label>
     <label class="field"><span>Con qué se hace</span><select id="x-impl">${implOptions().map(([v, n]) => `<option value="${esc(v)}" ${c.impl === v ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select></label>
-    <p class="faint small">¿Tu máquina no aparece? Agregala en Ajustes → Equipo → Máquinas.</p>
+    <button class="link small xf-mach" data-action="xf-mach">+ Agregar máquina</button>
     <span class="small muted">Cómo se registra</span><div class="chips" style="margin:4px 0 8px">${[['peso', 'Kilos × reps'], ['reps', 'Solo reps'], ['tiempo', 'Segundos']].map(([k, n]) => `<button class="chip${c.kind === k ? ' on' : ''}" data-action="xf-kind" data-v="${k}">${n}</button>`).join('')}</div>
     ${c.kind === 'peso' ? `<label class="field"><span>Peso para empezar (kg, opcional: se ajusta con la primera serie)</span><input id="x-start" type="number" inputmode="decimal" step="0.5" value="${esc(c.start || '')}"></label>` : ''}
     <label class="field"><span>Grupo</span><select id="x-cat">${Object.entries(CATS).map(([k, n]) => `<option value="${k}" ${c.cat === k ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
     <span class="small muted">Tendones que exige (para el modo dolor)</span><div class="chips" style="margin-top:4px">${ZONES.map((z) => `<button class="chip pain${c.tag.includes(z.id) ? ' on' : ''}" data-action="xf-tag" data-v="${z.id}">${esc(z.name)}</button>`).join('')}</div>
     <label class="field"><span>Nota o indicaciones</span><textarea id="x-note" rows="2">${esc(c.note)}</textarea></label>
+    <p class="faint small">Las series y las reps las arma la app según cómo se registra, igual que en el resto de la rutina.</p>
     ${c.id ? '<button class="link danger" data-action="exform-del">Eliminar ejercicio</button>' : ''}</div>`;
 }
 function readExForm() { XF.name = $('x-name').value; XF.impl = $('x-impl').value; XF.cat = $('x-cat').value; XF.note = $('x-note').value; if ($('x-start')) XF.start = $('x-start').value; }
@@ -678,14 +680,17 @@ function deleteExForm() {
 }
 
 // Máquinas propias: nombre y rango de peso (mínimo, máximo, salto)
-function openMachine(id) {
+// fromEx: se abrió desde "Nuevo ejercicio"; al guardar, la máquina queda elegida en el formulario.
+let machFromEx = false;
+function openMachine(id, fromEx = false) {
+  machFromEx = fromEx;
   const m = S.equip.machines.find((x) => x.id === id) || { id: '', name: '', min: 5, max: 100, step: 5 };
   dlg('machsheet').html = `<div class="dlg"><div class="dlg-head"><button class="link" data-action="close" data-dlg="machsheet">Cancelar</button><strong>${m.id ? 'Editar' : 'Nueva'} máquina</strong><button class="link" data-action="mach-save" data-id="${m.id}">Guardar</button></div>
     <label class="field"><span>Nombre</span><input id="m-name" value="${esc(m.name)}" placeholder="Ej.: Polea, Prensa, Barra con discos"></label>
     <div class="grid2" style="grid-template-columns:1fr 1fr 1fr"><label class="field"><span>Mínimo (kg)</span><input id="m-min" type="number" inputmode="decimal" step="0.5" value="${m.min}"></label>
     <label class="field"><span>Máximo (kg)</span><input id="m-max" type="number" inputmode="decimal" step="0.5" value="${m.max}"></label>
     <label class="field"><span>Salto (kg)</span><input id="m-step" type="number" inputmode="decimal" step="0.25" value="${m.step}"></label></div>
-    <p class="faint small">La app redondea los pesos sugeridos a estos saltos. Después creá tus ejercicios con esta máquina desde Entreno → Editar rutina.</p>
+    <p class="faint small">La app redondea los pesos sugeridos a estos saltos.${fromEx ? '' : ' Después creá tus ejercicios con esta máquina desde Entreno → Editar rutina.'}</p>
     ${m.id ? `<button class="link danger" data-action="mach-del" data-id="${m.id}">Eliminar máquina</button>` : ''}</div>`;
   if (!$('machsheet').open) $('machsheet').showModal();
 }
@@ -696,7 +701,9 @@ function saveMachine(id) {
   if (!(m.step > 0) || !(m.max >= m.min) || m.min < 0) return toast('Revisá el rango: mínimo ≤ máximo y salto mayor a 0.');
   const i = S.equip.machines.findIndex((x) => x.id === m.id);
   i >= 0 ? (S.equip.machines[i] = m) : S.equip.machines.push(m);
-  persist(); $('machsheet').close(); $('onb').open ? renderOnb() : render();
+  persist(); $('machsheet').close();
+  if (machFromEx && XF && $('exformsheet').open) { XF.impl = 'm:' + m.id; renderExForm(); return toast(`Máquina agregada: ${m.name}.`); }
+  $('onb').open ? renderOnb() : render();
   toast(i >= 0 ? 'Máquina actualizada.' : 'Máquina agregada. Creá tu ejercicio en Entreno → Editar rutina.');
 }
 
@@ -985,6 +992,17 @@ function confirmFinish(left) {
     <button class="cta" data-action="close" data-dlg="finsheet">Seguir entrenando</button>
     <button class="sec" data-action="finish-anyway">Terminar igual</button></div>`;
   $('finsheet').showModal();
+}
+// "Volver al plan original": diálogo propio que dice qué se rearma (todos los días del plan) y qué queda.
+function confirmReset() {
+  const plan = activePlan(S), names = plan.days.map((dd) => dd.name);
+  const and = (xs) => (xs.length > 1 ? `${xs.slice(0, -1).join(', ')} y ${xs.at(-1)}` : xs[0]);
+  dlg('resetsheet').html = `<div class="dlg"><div class="dlg-head"><button class="link" data-action="close" data-dlg="resetsheet">Cancelar</button><strong>¿Volver al plan original?</strong><span></span></div>
+    <p>Se rearman ${names.length > 1 ? `los ${names.length} días` : 'el día'} de ${esc(plan.name)} (${esc(and(names))}) según tu equipo: se pierden los ejercicios que cambiaste, agregaste o reordenaste en ${names.length > 1 ? 'todos' : 'él'}.</p>
+    <p class="muted small">Tus pesos, tu historial y tus ejercicios propios (en Mis ejercicios) no cambian. Los otros planes quedan como estaban.</p>
+    <button class="cta" data-action="close" data-dlg="resetsheet">Mantener mis cambios</button>
+    <button class="sec" data-action="reset-routine">Volver al plan original</button></div>`;
+  $('resetsheet').showModal();
 }
 function saveSession(session) {
   S.sessions.unshift(session); persist(); render();
@@ -1724,10 +1742,11 @@ document.addEventListener('click', (e) => {
       toast(`Quitaste ${getEx(items[+d.i].ex)?.name.toLowerCase() || 'el ejercicio'}.`, () => routineSet(day, items));
     },
     'routine-pick': () => openPicker(d.day, d.i),
-    'routine-reset': () => {
-      if (!confirm('¿Volver al plan original? Se arma de nuevo según tu equipo. Tus ejercicios propios siguen en Mis ejercicios.')) return;
-      resetRoutine();
-      persist(); render();
+    'routine-reset': confirmReset,
+    'reset-routine': () => {
+      const plan = activePlan(S), before = structuredClone(S.routine[plan.id]);
+      $('resetsheet').close(); resetRoutine(); persist(); render();
+      toast(`Volviste al plan original en los ${plan.days.length} días.`, () => { S.routine[plan.id] = before; persist(); render(); });
     },
     'pick-ex': () => pickExercise(d.ex),
     'exform': () => openExForm(d.id),
@@ -1736,6 +1755,7 @@ document.addEventListener('click', (e) => {
     'exform-save': saveExForm,
     'exform-del': deleteExForm,
     'mach-edit': () => openMachine(d.id),
+    'xf-mach': () => { readExForm(); openMachine('', true); },
     'mach-save': () => saveMachine(d.id),
     'mach-del': () => {
       if (!confirm('¿Eliminar la máquina? Los ejercicios que la usan quedan como "falta equipo".')) return;

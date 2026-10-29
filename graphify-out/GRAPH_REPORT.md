@@ -1,17 +1,17 @@
 # Graph Report - TendonApp  (2026-10-29)
 
 ## Corpus Check
-- 63 files · ~114,839 words
+- 63 files · ~115,468 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 14 file(s) not represented in the graph (top: (none) 11, .woff2 1, .webmanifest 1)
 
 ## Summary
-- 809 nodes · 1589 edges · 61 communities (58 shown, 3 thin omitted)
-- Extraction: 93% EXTRACTED · 7% INFERRED · 0% AMBIGUOUS · INFERRED: 113 edges (avg confidence: 0.89)
+- 810 nodes · 1593 edges · 63 communities (60 shown, 3 thin omitted)
+- Extraction: 93% EXTRACTED · 7% INFERRED · 0% AMBIGUOUS · INFERRED: 114 edges (avg confidence: 0.89)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `1e900eee`
+- Built from commit: `ac0ee0fd`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -73,13 +73,15 @@
 - isoAdjust
 - zoneName
 - renderRehab
+- renderHistory
 - render
-- getEx
+- esc
 - Feedback de uso (agentes como usuarios)
 - v1.0.0 First version (PWA, IndexedDB, A/B full body, pain mode)
+- today
 
 ## God Nodes (most connected - your core abstractions)
-1. `esc()` - 32 edges
+1. `esc()` - 33 edges
 2. `Training Plan Engine skill (SKILL.md)` - 30 edges
 3. `figureSVG()` - 28 edges
 4. `render()` - 27 edges
@@ -119,11 +121,11 @@
 - **Plans of the 'planes de entrenamiento' roadmap built on the plan engine** — _specs_tasks_done_motor_de_planes_feature_plans_fb2, _specs_tasks_draft_plan_full_body_3_dias_feature_fb3, _specs_tasks_draft_plan_torso_pierna_4_dias_feature_tp4, _specs_tasks_draft_plan_empuje_traccion_4_dias_feature_et4, _specs_tasks_draft_plan_grupos_5_dias_feature_gr5, _specs_tasks_draft_plan_isometricos_feature_iso [INFERRED 0.95]
 - **Exportaciones via shareFile (Web Share o descarga)** — _specs_tasks_done_datos_locales_copia_feature_backup_restore, _specs_tasks_done_informe_fisio_feature_physio_report, _specs_tasks_done_recordatorios_calendario_feature_ics_calendar [INFERRED 0.95]
 
-## Communities (61 total, 3 thin omitted)
+## Communities (63 total, 3 thin omitted)
 
 ### Community 0 - "app.js"
 Cohesion: 0.08
-Nodes (36): choiceDay(), coveredControls(), DAY_NAMES, db, DEFAULT(), engineOpts(), EQUIP_NAMES, exportData() (+28 more)
+Nodes (43): altEx(), choiceDay(), customFig(), DAY_NAMES, dayItems(), db, DEFAULT(), engineOpts() (+35 more)
 
 ### Community 1 - "Specs de features (datos, editor, calor)"
 Cohesion: 0.05
@@ -306,8 +308,8 @@ Cohesion: 0.19
 Nodes (15): activePlan(), addDays(), dayIndex(), dayKey(), isDayOf(), nextDay(), parseDay(), pendingChecks() (+7 more)
 
 ### Community 49 - "renderOnb"
-Cohesion: 0.13
-Nodes (31): applyChoice(), choicePlan(), confirmFinish(), currentChoice(), daysText(), dlg(), equipFields(), equipName() (+23 more)
+Cohesion: 0.18
+Nodes (19): choiceMissing(), choicePlan(), currentChoice(), daysText(), equipFields(), hasPainTab(), openPlans(), pickChoice() (+11 more)
 
 ### Community 50 - "daysBetween"
 Cohesion: 0.13
@@ -322,28 +324,32 @@ Cohesion: 0.38
 Nodes (7): equipUsed(), implFor(), possible(), refreshUnpinned(), resolveDay(), resolvePlan(), resolveSlot()
 
 ### Community 53 - "tile"
-Cohesion: 0.40
-Nodes (4): Criterios de aceptación, Problema, Propuesta, UX 8: zonas con dolor con el mismo componente que el alta
+Cohesion: 0.38
+Nodes (6): tile(), Criterios de aceptación, Dónde, Problema, Propuesta, UX 8: zonas con dolor con el mismo componente que el alta
 
 ### Community 54 - "isoAdjust"
 Cohesion: 0.67
 Nodes (4): isoAdjust(), progress(), stepDown(), stepUp()
 
 ### Community 55 - "zoneName"
-Cohesion: 0.11
-Nodes (38): activeZones(), bodyPart(), fmtDate(), fmtDateLong(), fmtKg(), forZones(), helpHead(), homeWeek() (+30 more)
+Cohesion: 0.14
+Nodes (26): bodyPart(), fmtDateLong(), fmtKg(), forZones(), homeWeek(), lentoDoneRecently(), loadTag(), loadText() (+18 more)
 
 ### Community 56 - "renderRehab"
 Cohesion: 0.31
 Nodes (9): calmMotion(), keepAwake(), rehabGo(), rehabSkip(), rehabTick(), renderRehab(), resumeWorkout(), slotNow() (+1 more)
 
-### Community 58 - "render"
-Cohesion: 0.17
-Nodes (27): answerCheck(), applyTheme(), askPain(), choiceMissing(), clearLive(), deleteExForm(), discardLive(), endWorkout() (+19 more)
+### Community 57 - "renderHistory"
+Cohesion: 0.39
+Nodes (8): activeZones(), fmtDate(), helpHead(), lineChart(), painHistory(), renderHistory(), reportHTML(), weightHistory()
 
-### Community 59 - "getEx"
-Cohesion: 0.17
-Nodes (16): altEx(), customFig(), dayItems(), filterPicker(), fold(), getEx(), guessFor(), missingLabel() (+8 more)
+### Community 58 - "render"
+Cohesion: 0.15
+Nodes (28): answerCheck(), applyTheme(), askPain(), clearLive(), coveredControls(), deleteExForm(), discardLive(), endWorkout() (+20 more)
+
+### Community 59 - "esc"
+Cohesion: 0.19
+Nodes (17): confirmFinish(), confirmReset(), dlg(), equipName(), esc(), implOptions(), mdLite(), openCustom() (+9 more)
 
 ### Community 60 - "Feedback de uso (agentes como usuarios)"
 Cohesion: 0.20
@@ -352,6 +358,10 @@ Nodes (9): Feedback de uso (agentes como usuarios), Pantalla: Ajustes, Pantalla:
 ### Community 61 - "v1.0.0 First version (PWA, IndexedDB, A/B full body, pain mode)"
 Cohesion: 0.29
 Nodes (4): Pain mode (6 zones, 3 phases, 60% cap, gentle variants), v1.0.0 First version (PWA, IndexedDB, A/B full body, pain mode), v1.8.0 Rehab exercise options per zone and phase, Suggested weight (bodyweight x coefficient, 70% start, calibration)
+
+### Community 62 - "today"
+Cohesion: 0.33
+Nodes (6): applyChoice(), exportData(), newZone(), rehabDone(), shareFile(), today()
 
 ## Knowledge Gaps
 - **61 isolated node(s):** `Sugerencia de pasar a 3 dias (suggestThreeDays)`, `Eliminar sesion con Deshacer`, `Tarjeta de instalacion (beforeinstallprompt / iOS)`, `Service worker sw.js (red primero, cache tendon-v<version>)`, `Tema claro/oscuro (applyTheme, tf-theme)` (+56 more)
@@ -368,8 +378,8 @@ _Questions this graph is uniquely positioned to answer:_
 - **What connects `Sugerencia de pasar a 3 dias (suggestThreeDays)`, `Eliminar sesion con Deshacer`, `Tarjeta de instalacion (beforeinstallprompt / iOS)` to the rest of the system?**
   _61 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `app.js` be split into smaller, more focused modules?**
-  _Cohesion score 0.08108108108108109 - nodes in this community are weakly interconnected._
-- **Why does `getEx()` connect `getEx` to `app.js`, `renderOnb`, `Pruebas e2e`, `zoneName`?**
+  _Cohesion score 0.08350951374207188 - nodes in this community are weakly interconnected._
+- **Why does `getEx()` connect `app.js` to `renderHistory`, `esc`, `Pruebas e2e`, `zoneName`?**
   _High betweenness centrality (0.140) - this node is a cross-community bridge._
 - **Are the 2 inferred relationships involving `toast()` (e.g. with `hideToast()` and `Dónde`) actually correct?**
   _`toast()` has 2 INFERRED edges - model-reasoned connections that need verification._
