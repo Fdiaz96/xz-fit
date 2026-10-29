@@ -2,6 +2,12 @@
 
 Todos los cambios de XZ Fit, del más nuevo al más viejo.
 
+## 1.32.1 — Palma clara en la vista grande y lupa con volumen
+
+- En los ejercicios de muñeca la cámara mira más desde arriba, así se ve la cara de la mano. Con la palma abajo se ve el dorso con los nudillos y los dedos quedan escondidos debajo del mango (antes se dibujaban encima y la mano parecía igual que con la palma arriba). Con la palma arriba se ve la palma con el mango apoyado y las uñas en las puntas de los dedos que lo rodean.
+- La lupa ya no es plana: degradados con la luz de arriba, sombra del antebrazo sobre el muslo, el disco como un cilindro con brillo y la escena más grande. La palma, más clara, mira siempre al mango, y el disco grande queda del lado de la palma: arriba con la palma arriba y abajo con la palma abajo.
+- Se sacó el círculo que marcaba la mano en el dibujo grande (la tapaba); queda la línea con un punto que la une a la lupa.
+
 ## 1.32.0 — Lupa de la palma
 
 - En los ejercicios de muñeca (extensión y flexión, isométricas y lentas, y el excéntrico) hay una lupa en la esquina con la mano vista de costado: el antebrazo apoyado en el muslo, la mano pasando la rodilla y la pesa encima de la palma (palma arriba) o colgando debajo de la mano (palma abajo), con el texto "Palma arriba" o "Palma abajo". La mano de la lupa sube y baja al mismo ritmo que la animación, y un círculo marca la mano en el dibujo grande.

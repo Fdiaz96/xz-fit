@@ -437,7 +437,7 @@ function figureSVG(ex, { animate = true, size = '', crop = false, muscles = true
     // así se ve de un vistazo si la palma mira arriba (palma clara, dedos cerrándose por encima del mango) o abajo
     // (dorso con nudillos, dedos bajando por delante del mango).
     const lines = (fn, w, col, extra = '') => stroke(fn, w, col, extra);
-    let marks = '', fingers = '', body = fist;
+    let marks = '', fingers = '', back = '', body = fist;
     if (f.palm && A['G' + n] && detail) {
       const grip = (f.props || []).find((q) => q.t === 'db')?.grip;
       // Ejes: d de la muñeca a la punta, h a lo ancho (a lo largo del mango), s hacia el lado de la palma.
@@ -455,23 +455,32 @@ function figureSVG(ex, { animate = true, size = '', crop = false, muscles = true
       const thumbL = (J) => { const { at, th } = H(J); return blob([at(0.12, th * 3, 0.6), at(0.38, th * 3.9, 2), at(0.56, th * 3, 4.4)], false); };
       body = (J) => { const { at } = H(J); return blob([at(-0.06, 0, 0), at(0, 2.7, 0), at(0.35, 3.3, 0), at(0.66, 3.2, 0), at(0.7, 0, 0), at(0.66, -3.2, 0), at(0.35, -3.3, 0), at(0, -2.7, 0)]); };
       // Como un solo bloque: primero el contorno de todos los dedos, después los rellenos y las rayas entre dedos.
+      const bundle = (digits, sep) => digits.map(([fn, w]) => lines(fn, w + 2.2, L)).join('') + digits.map(([fn, w]) => lines(fn, w, shade(n, 'skin'))).join('')
+        + lines((J) => [-1.6, 0, 1.6].map((y) => sep(J, y)).join(''), 0.7, PAL.skin2);
       const digits = [[thumbL, 2.6], ...FY.map((y) => [(J) => finger(J, y), 2.3])];
-      fingers = digits.map(([fn, w]) => lines(fn, w + 2.2, L)).join('') + digits.map(([fn, w]) => lines(fn, w, shade(n, 'skin'))).join('')
-        + lines((J) => [-1.6, 0, 1.6].map((y) => finger(J, y)).join(''), 0.7, PAL.skin2);
-      // Palma abajo: los nudillos quedan arriba, sobre los dedos.
-      if (f.palm === 'down') fingers += FY.map((y) => path((J) => circlePath(H(J).at(0.66, y, -0.6), 1.05), `fill="${PAL.skin2}" opacity=".85"`)).join('');
+      if (f.palm === 'down') {
+        // Palma abajo: los dedos se cierran por debajo del mango y quedan detrás de él (back va antes que la pesa); arriba
+        // se ve el dorso y el primer tramo de los dedos, que termina en la fila de nudillos doblados, con brillo.
+        const top = (J, y) => { const { at } = H(J); return blob([at(0.6, y, 0), at(0.88, y * 1.02, 0.5), at(0.97, y, 1.8)], false); };
+        back = bundle(digits, finger);
+        fingers = bundle(FY.map((y) => [(J) => top(J, y), 2.3]), top)
+          + FY.map((y) => path((J) => circlePath(H(J).at(0.64, y, -0.5), 1.25), `fill="${PAL.skin2}"`)).join('');
+      } else {
+        // Palma arriba: los dedos rodean el mango por encima y sus puntas vuelven hacia la muñeca: se ven las uñas.
+        fingers = bundle(digits, finger) + FY.map((y) => path((J) => circlePath(H(J).at(0.88, y * 0.97, 5.2), 0.95), `fill="#FFF3EC" stroke="${PAL.skin2}" stroke-width=".6"`)).join('');
+      }
       marks = f.palm === 'up'
         // palma clara, con el pliegue de la base del pulgar y el de los dedos
         ? path((J) => { const { at } = H(J); return blob([at(0.04, 2.1, 0), at(0.34, 2.6, 0), at(0.6, 2.5, 0), at(0.62, -2.5, 0), at(0.34, -2.6, 0), at(0.04, -2.1, 0)]); }, `fill="#F9DECB"`)
           + lines((J) => { const { at, th } = H(J); return `M${pt2(at(0.08, th * 1.6, 0))}Q${pt2(at(0.32, th * 0.6, 0))} ${pt2(at(0.58, th * 1.8, 0))}M${pt2(at(0.5, -2.4, 0))}Q${pt2(at(0.46, 0, 0))} ${pt2(at(0.5, 2.4, 0))}`; }, 0.9, PAL.skin2)
         // dorso: un nudillo por dedo y los tendones hacia la muñeca
-        : lines((J) => { const { at } = H(J); return [-1.6, 0, 1.6].map((y) => `M${pt2(at(0.1, y * 0.7, 0))}L${pt2(at(0.48, y, 0))}`).join(''); }, 0.8, PAL.skin2, ' opacity=".6"');
+        : lines((J) => { const { at } = H(J); return [-1.6, 0, 1.6].map((y) => `M${pt2(at(0.1, y * 0.7, 0))}L${pt2(at(0.48, y, 0))}`).join(''); }, 0.9, PAL.skin2, ' opacity=".9"');
     } else if (A['G' + n] && detail) {
       // Puño cerrado sobre la toalla: dedos separados y la fila de nudillos.
       const ax = (J) => { const w = prj(J['W' + n]), g = prj(J['G' + n]), len = Math.hypot(g[0] - w[0], g[1] - w[1]), d = unit(g[0] - w[0], g[1] - w[1]), p = [-d[1], d[0]]; return { len, at: (x, y) => [w[0] + d[0] * x + p[0] * y, w[1] + d[1] * x + p[1] * y] }; };
       marks = lines((J) => { const { at, len } = ax(J); return [-1.7, 0, 1.7].map((s) => `M${pt2(at(0.5 * len, s * 0.9))}L${pt2(at(1.05 * len, s))}`).join('') + `M${pt2(at(0.45 * len, -3.4))}Q${pt2(at(0.4 * len, 0))} ${pt2(at(0.45 * len, 3.4))}`; }, 0.9, PAL.skin2);
     }
-    return { body: group([[body, shade(n, 'skin')], ...(detail && (!f.palm || !A['G' + n]) ? [[thumb, shade(n, 'skin')]] : [])]).replace(`stroke-width="${OW}"`, 'stroke-width="2.2"').replace(`stroke-width="${OW}"`, 'stroke-width="2.2"') + marks, fingers };
+    return { body: group([[body, shade(n, 'skin')], ...(detail && (!f.palm || !A['G' + n]) ? [[thumb, shade(n, 'skin')]] : [])]).replace(`stroke-width="${OW}"`, 'stroke-width="2.2"').replace(`stroke-width="${OW}"`, 'stroke-width="2.2"') + marks, fingers, back };
   };
   const torso = limb('to', '1'), pelvis = limb('pv', '1');
   // Torso, short y mangas se definen una vez: se usan en su grupo y para tapar el contorno en las uniones.
@@ -534,7 +543,7 @@ function figureSVG(ex, { animate = true, size = '', crop = false, muscles = true
   const arm = (n) => {
     const ps = propsOf(n).filter((p) => !p.own);
     const h = hand(n);
-    return group(armParts(n), armDecor(n), musOn(['ua', 'fa'], n), joinPatch([outer('ua', n, -0.08, 0.6, 0.9)], ['S' + n], 12, coreFill)) + ps.map((p) => p.under).join('') + h.body + ps.map((p) => p.mid || '').join('') + h.fingers + ps.map((p) => p.over).join('');
+    return group(armParts(n), armDecor(n), musOn(['ua', 'fa'], n), joinPatch([outer('ua', n, -0.08, 0.6, 0.9)], ['S' + n], 12, coreFill)) + h.back + ps.map((p) => p.under).join('') + h.body + ps.map((p) => p.mid || '').join('') + h.fingers + ps.map((p) => p.over).join('');
   };
 
   // Grupos ordenados por profundidad (promedio de los fotogramas).
@@ -612,44 +621,59 @@ function figureSVG(ex, { animate = true, size = '', crop = false, muscles = true
     if (w / h > 200 / 170) h = (w * 170) / 200; else w = (h * 200) / 170;
     vb = [(x0 + x1) / 2 - w / 2, (y0 + y1) / 2 - h / 2, w, h];
   }
-  const lupa = detail && f.palm && FR[0].G1 ? palmInset(f.palm, vb, FR, animV, uid) : '';
+  const lupa = detail && f.palm && !f.noLupa && FR[0].G1 ? palmInset(f.palm, vb, FR, animV, uid) : '';
   return `<svg class="fig ${size}" viewBox="${vb.map(r1).join(' ')}" role="img" aria-label="Ilustración: ${ex.name}"><defs>${defs}</defs>
     ${floor}${shadow}${scene.map((s) => s.svg).join('')}${groups.map((g) => g.svg).join('')}${guide}${lupa}</svg>`;
 }
 
-// Lupa de la mano en los ejercicios de muñeca: desde la isométrica la palma se ve chica, así que en una esquina va la
-// mano de costado (antebrazo sobre el muslo, mano pasando la rodilla) con la pesa encima de la palma (palma arriba) o
-// colgando debajo de la mano (palma abajo), girando en la muñeca al ritmo de la animación, y un círculo marca la mano.
+// Lupa de la mano en los ejercicios de muñeca: desde arriba la palma se ve chica, así que en una esquina va la mano de
+// costado (antebrazo sobre el muslo, mano pasando la rodilla) con la pesa encima de la palma (palma arriba) o colgando
+// debajo de la mano (palma abajo), girando en la muñeca al ritmo de la animación. Con volumen como el resto del dibujo:
+// degradados con la luz de arriba, sombra de apoyo del antebrazo y el disco como un cilindro. Una línea la une a la mano.
 function palmInset(palm, vb, FR, animV, uid) {
   const up = palm === 'up', sg = up ? -1 : 1, L = PAL.line;
-  const cw = vb[2] * 0.37, ch = cw * 0.76, m = vb[2] * 0.03, x0 = vb[0] + vb[2] - cw - m, y0 = vb[1] + m, s = cw / 100, lw = 2.2 / s;
+  const cw = vb[2] * 0.37, ch = cw * 0.84, m = vb[2] * 0.03, x0 = vb[0] + vb[2] - cw - m, y0 = vb[1] + m, s = cw / 100, lw = 1.5 / s;
   // Ángulo de la mano respecto del antebrazo en cada fotograma (positivo: la mano sube).
   const elev = (v) => (Math.atan2(v[1], Math.hypot(v[0], v[2])) * 180) / Math.PI;
   const angs = FR.map((J) => r1(-(elev(sub3(J.G1, J.W1)) - elev(sub3(J.W1, J.E1)))));
-  const pv = [62, 46], rot = (a) => `${a} ${pv[0]} ${pv[1]}`;
+  const pv = [61, 46], rot = (a) => `${a} ${pv[0]} ${pv[1]}`;
   const spin = animV('transform', angs.map(rot), 'animateTransform', 'type="rotate" ');
-  const out = (d, w, col) => `<path d="${d}" fill="none" stroke="${L}" stroke-width="${r1(w + lw * 2)}" stroke-linecap="round"/><path d="${d}" fill="none" stroke="${col}" stroke-width="${w}" stroke-linecap="round"/>`;
-  const solid = (d, col) => `<path d="${d}" fill="${col}" stroke="${L}" stroke-width="${r1(lw)}" stroke-linejoin="round"/>`;
+  const g = (k) => `url(#l${k}${uid})`, lc = lw * 0.5, sw = `stroke="${L}" stroke-width="${r1(lc)}" stroke-linejoin="round"`;
+  const lin = (k, c0, c1, c2, h = false) => `<linearGradient id="l${k}${uid}" x1="0" y1="0" x2="${h ? 1 : 0}" y2="${h ? 0 : 1}"><stop offset="0" stop-color="${c0}"/><stop offset=".5" stop-color="${c1}"/><stop offset="1" stop-color="${c2}"/></linearGradient>`;
+  const defs = lin('bg', '#FFFFFF', '#F6F7F9', '#E6EAEE') + lin('sk', tint(PAL.skin, 0.28), PAL.skin, tint(PAL.skin2, -0.05)) + lin('sh', tint(PAL.skin, 0.2), PAL.skin, PAL.skin2, true)
+    + lin('so', tint(PAL.shorts, 0.28), PAL.shorts, PAL.shorts2)
+    + `<radialGradient id="ldb${uid}" cx=".35" cy=".3" r=".8"><stop offset="0" stop-color="${tint(PAL.db, 0.35)}"/><stop offset=".55" stop-color="${PAL.db}"/><stop offset="1" stop-color="${PAL.db2}"/></radialGradient>`
+    + `<clipPath id="lc${uid}"><rect width="100" height="84" rx="9"/></clipPath>`;
   const cap = (x1, x2, y, r) => `M${x1} ${y - r}H${x2}A${r} ${r} 0 0 1 ${x2} ${y + r}H${x1}A${r} ${r} 0 0 1 ${x1} ${y - r}Z`;
-  const skin = `url(#lp${uid})`, cy = 46 + sg * 11.5;   // centro del mango: del lado de la palma
-  // Dedos: de la punta de la mano rodean el mango por el lado de afuera.
-  const fingers = `M77 ${46 + sg * 3}Q83 ${cy + sg}76 ${cy + sg * 6}`;
-  const hand = `<g transform="rotate(${rot(angs[0])})">${spin}
-      <circle cx="72" cy="${cy}" r="9" fill="${PAL.db}" stroke="${L}" stroke-width="${r1(lw)}"/><circle cx="72" cy="${cy}" r="3.2" fill="${PAL.db2}"/>
-      ${solid(cap(58, 78, 46, 5.4), skin)}<path d="M62 ${46 + sg * 4.4}H77" stroke="#FFEDE0" stroke-width="2.4" stroke-linecap="round"/>
-      ${out(fingers, 5.4, PAL.skin)}</g>`;
-  // Círculo sobre la mano del muñeco y una línea hasta la lupa.
+  const stroke2 = (d, w, col) => `<path d="${d}" fill="none" stroke="${L}" stroke-width="${r1(w + lc * 2)}" stroke-linecap="round"/><path d="${d}" fill="none" stroke="${col}" stroke-width="${w}" stroke-linecap="round"/>`;
+  // La palma (más clara) mira al mango: arriba con la palma arriba, abajo con la palma abajo. El mango se apoya contra
+  // ella, el disco grande queda detrás y los dedos lo rodean desde la punta.
+  const cx = 69, cy = 46 + sg * 9;
+  const plate = `<circle cx="${cx + 3.4}" cy="${cy - 2.6}" r="14" fill="${PAL.db2}" ${sw}/><circle cx="${cx}" cy="${cy}" r="14" fill="${g('db')}" ${sw}/><circle cx="${cx}" cy="${cy}" r="9.5" fill="none" stroke="${PAL.db2}" stroke-width="1.2" opacity=".6"/>`;
+  const bar = `<circle cx="${cx}" cy="${cy}" r="3.2" fill="${PAL.bar}" stroke="${L}" stroke-width="${r1(lc * 0.8)}"/><circle cx="${cx - 1}" cy="${cy - 1}" r="1" fill="#FFF" opacity=".75"/>`;
+  const palmY = 46 + sg * 4.6;
+  const face = `<path d="M59.5 ${palmY}H77" stroke="#FFE7D9" stroke-width="2.4" stroke-linecap="round"/>`
+    + (up ? '' : `<path d="M66 ${46 - 3.4}q2 -1.6 4 0q2 -1.6 4 0" fill="none" stroke="${PAL.skin2}" stroke-width="1" stroke-linecap="round"/>`);
+  const curl = (d, w) => stroke2(d, w, PAL.skin);
+  const fingers = curl(`M78.5 ${46 + sg * 1.5}C83 ${46 + sg * 5} 79 ${cy + sg * 4.6} ${cx + 3} ${cy + sg * 4}`, 4.4);
+  const nail = `<ellipse cx="${cx + 4.4}" cy="${cy + sg * 5.3}" rx="1.5" ry="1" fill="#FFF3EC" stroke="${PAL.skin2}" stroke-width=".6"/>`;
+  const hand = `<g transform="rotate(${rot(angs[0])})">${spin}${plate}
+      <path d="M56 41L78 41.6A4.4 4.4 0 0 1 78 50.4L56 51Z" fill="${g('sk')}" ${sw}/>${face}${bar}${fingers}${nail}</g>`;
+  // Línea de la mano del muñeco a la lupa, con un margen para no tapar la mano.
   const hp = FR.map((J) => prj(mix3(J.W1, J.G1, 0.6))).reduce((a, q, _, arr) => [a[0] + q[0] / arr.length, a[1] + q[1] / arr.length], [0, 0]);
-  const hr = vb[2] * 0.075, tgt = [x0 + cw * 0.5, y0 + ch], d = unit(tgt[0] - hp[0], tgt[1] - hp[1]);
-  const ring = `<circle cx="${r1(hp[0])}" cy="${r1(hp[1])}" r="${r1(hr)}" fill="none" stroke="#FFF" stroke-width="${r1(s * 3.2)}" opacity=".8"/><circle cx="${r1(hp[0])}" cy="${r1(hp[1])}" r="${r1(hr)}" fill="none" stroke="${L}" stroke-width="${r1(s * 1.4)}"/>
-    <path d="M${pt2([hp[0] + d[0] * hr, hp[1] + d[1] * hr])}L${pt2(tgt)}" stroke="${L}" stroke-width="${r1(s * 1.4)}"/>`;
-  return `<g class="lupa">${ring}<g transform="translate(${r1(x0)} ${r1(y0)}) scale(${r1(s * 1000) / 1000})">
-    <defs><clipPath id="lc${uid}"><rect width="100" height="76" rx="9"/></clipPath><linearGradient id="lp${uid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${tint(PAL.skin, 0.2)}"/><stop offset="1" stop-color="${PAL.skin2}"/></linearGradient></defs>
-    <rect width="100" height="76" rx="9" fill="#FFF" stroke="${L}" stroke-width="${r1(lw)}"/>
-    <g clip-path="url(#lc${uid})">
-      ${out('M44 64V96', 12, PAL.skin)}${solid(cap(-12, 44, 59.5, 7), PAL.shorts)}
-      ${solid(cap(-12, 60, 46, 6), skin)}${hand}
-    </g>
+  const tgt = [x0 + cw * 0.5, y0 + ch], d = unit(tgt[0] - hp[0], tgt[1] - hp[1]), st = [hp[0] + d[0] * vb[2] * 0.08, hp[1] + d[1] * vb[2] * 0.08];
+  const lead = `M${pt2(st)}L${pt2(tgt)}`;
+  const link = `<path d="${lead}" stroke="#FFF" stroke-width="${r1(s * 3.4)}" stroke-linecap="round" opacity=".8"/><path d="${lead}" stroke="${L}" stroke-width="${r1(s * 1.4)}"/><circle cx="${r1(st[0])}" cy="${r1(st[1])}" r="${r1(s * 2.4)}" fill="${L}" stroke="#FFF" stroke-width="${r1(s)}"/>`;
+  return `<g class="lupa">${link}<g transform="translate(${r1(x0)} ${r1(y0)}) scale(${r1(s * 1000) / 1000})"><defs>${defs}</defs>
+    <rect width="100" height="84" rx="9" fill="${g('bg')}"/>
+    <g clip-path="url(#lc${uid})"><g transform="translate(44 55.5) scale(1.2) translate(-61 -46)">
+      <path d="M38 62V100H50V62Z" fill="${g('sh')}" ${sw}/>
+      <path d="${cap(-30, 44, 59.5, 7)}" fill="${g('sk')}" ${sw}/><path d="M-30 52.5H33V66.5H-30Z" fill="${g('so')}" ${sw}/>
+      <ellipse cx="22" cy="53.4" rx="30" ry="2" fill="rgba(34,38,45,.22)"/>
+      <path d="M-30 38.2L60 41A5 5 0 0 1 60 51L-30 53.8Z" fill="${g('sk')}" ${sw}/><path d="M-4 41.2L52 43" stroke="#FFF" stroke-width="1.6" stroke-linecap="round" opacity=".45"/>
+      ${hand}
+    </g></g>
+    <rect width="100" height="84" rx="9" fill="none" stroke="${L}" stroke-width="${r1(lw)}"/>
     <text x="9" y="17" font-size="12.5" font-weight="700" fill="${L}" font-family="inherit">Palma ${up ? 'arriba' : 'abajo'}</text></g></g>`;
 }
 
