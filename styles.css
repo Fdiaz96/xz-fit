@@ -464,6 +464,16 @@ select + .chart { margin-top: 14px; }
 #rest strong { font-family: 'Oswald'; font-size: 28px; flex: 1; text-align: center; }
 #rest button { background: rgba(0, 0, 0, .15); padding: 8px 12px; border-radius: 10px; font-weight: 700; }
 dialog #rest { bottom: calc(16px + var(--safe-b)); }
+/* Cronómetro de una serie por tiempo: la misma barra, oscura con borde de acento, para no confundirla con el descanso. */
+#rest.hold { background: var(--card2); color: var(--text); box-shadow: inset 0 0 0 2px var(--acc), 0 8px 24px rgba(0, 0, 0, .35); }
+#rest.hold strong { color: var(--acc-fg); }
+#rest.hold button { background: var(--acc); color: var(--acc-ink); }
+/* Con la barra abierta, el final del entreno deja su alto libre: "Terminar entreno" y la última serie no quedan tapados. */
+dialog:has(> #rest:not([hidden])) > .dlg { padding-bottom: calc(100px + var(--safe-b)); }
+.set .hold-go { height: 48px; border-radius: 12px; box-shadow: inset 0 0 0 2px var(--line); display: grid; place-items: center; }
+.set .hold-go svg { width: 22px; height: 22px; fill: var(--acc-fg); }
+.set.next .hold-go { box-shadow: inset 0 0 0 2px var(--acc); }
+:root[data-theme="light"] .set.next .hold-go, :root[data-theme="light"] #rest.hold { box-shadow: inset 0 0 0 2px #9BCB00; }
 #toast button { float: right; margin: -4px -4px 0 10px; color: var(--acc-fg); font-weight: 700; padding: 4px 6px; }
 .thumb[data-action] { cursor: zoom-in; }
 /* Avisos abajo, sobre la barra de pestañas (o sobre el descanso); en las hojas que suben desde abajo, arriba del borde */

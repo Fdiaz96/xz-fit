@@ -539,6 +539,46 @@ await click('#view-home .week-strip.home button.now');
 ok((await page.locator('#view-home .week-peek').textContent()).includes('hiciste Día A'), 'tocar hoy en la tira dice qué se hizo');
 const nextPlanned = page.locator('#view-home .week-strip.home button.plan').first();
 if (await nextPlanned.count()) { await nextPlanned.click(); ok(/Día [AB], \d+ ejercicios/.test(await page.locator('#view-home .week-peek').textContent()), 'tocar un día que viene dice qué toca y cuántos ejercicios'); }
+// Descanso y cronómetros del entreno: duración según ejercicio, serie siguiente a la vista, cronómetro de la plancha
+{
+  await page.evaluate(() => startWorkout(0));
+  await page.waitForSelector('#wsheet[open]');
+  const ix = await page.evaluate(() => { W.warm.forEach((x) => (x.done = true)); W.items.forEach((it) => { it.calib = it.guess = it.pick = false; }); renderWorkout();
+    return { comp: W.items.findIndex((it) => it.ex.rtype === 'compuesto'), lat: W.items.findIndex((it) => it.ex.id === 'lateral'), plank: W.items.findIndex((it) => it.ex.id === 'plancha') }; });
+  await click(`#wsheet [data-action="set-done"][data-i="${ix.comp}"][data-j="0"]`);
+  ok((await page.locator('#rest-time').textContent()) === '1:30', 'un compuesto descansa lo elegido en Ajustes (1:30)');
+  // La barra no tapa la serie siguiente y el final del entreno deja su alto libre.
+  const nextBox = await page.locator('#wsheet .set.next').boundingBox(), restBox = await page.locator('#rest').boundingBox();
+  ok(nextBox.y + nextBox.height <= restBox.y, 'la serie siguiente queda a la vista, arriba de la barra de descanso');
+  await page.evaluate(() => { const sc = document.querySelector('#wsheet .dlg'); sc.scrollTop = sc.scrollHeight; });
+  ok(!overlaps(await page.locator('#wsheet .dlg > .cta').boundingBox(), await page.locator('#rest').boundingBox()), 'con el descanso abierto, "Terminar entreno" no queda tapado');
+  if (ix.lat >= 0) {
+    // Con la serie que sigue fuera de pantalla, tildar la lleva a la vista.
+    await page.evaluate((i) => { W.items.forEach((it, k) => { if (k < i) it.rows.forEach((r) => (r.done = true)); }); renderWorkout(); document.querySelector('#wsheet .dlg').scrollTop = 0; }, ix.lat);
+    await click(`#wsheet [data-action="set-done"][data-i="${ix.lat}"][data-j="0"]`);
+    ok((await page.locator('#rest-time').textContent()) === '1:00', 'elevaciones laterales descansan 1 min');
+    await page.waitForTimeout(700);
+    const nb = await page.locator('#wsheet .set.next').boundingBox(), rb = await page.locator('#rest').boundingBox();
+    ok(nb.y > 60 && nb.y + nb.height <= rb.y, 'al tildar, la serie siguiente sube a la vista entre el encabezado y la barra');
+  }
+  if (ix.plank >= 0) {
+    await page.evaluate(() => { W.items.forEach((it) => { if (it.ex.id !== 'plancha') it.rows.forEach((r) => (r.done = true)); }); renderWorkout(); });
+    ok(await page.locator(`#wsheet [data-action="hold"][data-i="${ix.plank}"]`).count() === 2, 'la plancha tiene un cronómetro en cada serie');
+    await click(`#wsheet [data-action="hold"][data-i="${ix.plank}"][data-j="0"]`);
+    ok((await page.locator('#rest-label').textContent()) === 'Preparate' && await page.locator('#rest.hold').count() === 1, 'el cronómetro arranca con unos segundos para acomodarse');
+    await page.evaluate(() => { hold.start = Date.now() - 20000; });
+    await page.waitForFunction(() => document.querySelector('#rest-label').textContent === 'Sostené', null, { timeout: 7000 });
+    await page.evaluate(() => { hold.start = Date.now() - 20000; });
+    await click('#rest [data-action="hold-stop"]');
+    const pr = await page.evaluate((i) => W.items[i].rows[0], ix.plank);
+    ok(pr.done && pr.secs >= 20 && pr.secs < 25, `"Listo" anota los segundos sostenidos (${pr.secs} s) y tilda la serie`);
+    ok((await page.locator('#rest-label').textContent()) === 'Descanso' && (await page.locator('#rest-time').textContent()) === '0:45', 'después de la plancha descansa 45 s');
+    await click(`#wsheet [data-action="set-done"][data-i="${ix.plank}"][data-j="1"]`);
+    ok(await page.locator('#rest').isHidden(), 'con la última serie del entreno no arranca el descanso');
+  }
+  await click('#wsheet [data-action="cancel-workout"]');
+  await page.waitForTimeout(150);
+}
 ok((await page.locator('#view-home .today.rest .rest-title').textContent()) === 'Hoy ya entrenaste' && (await page.locator('#view-home .today.rest .rest-sum').textContent()).includes('2 series'), 'después de entrenar, Hoy dice "Hoy ya entrenaste" con un resumen chico');
 await shot('05a-inicio-ya-entrenaste');
 ok(await page.locator('#view-home .today .cta[data-action="start-workout"]').count() === 0 && (await page.locator('#view-home .today button.sec[data-action="start-workout"]').textContent()) === 'Entrenar igual' && await page.locator('#view-home .today .next-list:not([open])').count() === 1, 'ya entrenado: sin botón grande, "Entrenar igual" secundario y la lista plegada');

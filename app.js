@@ -2,7 +2,7 @@
 // (IndexedDB). Los identificadores internos siguen siendo "tendon-fuerte" para no perder los datos ya guardados.
 // Protocolo de tendones del video de Jeremy Ethier con Keith Baar y Coach Q; reglas en logic.js, bocetos en figures.js.
 
-const APP_VERSION = '1.30.6';
+const APP_VERSION = '1.30.7';
 const DAY_NAMES = { lu: 'Lu', ma: 'Ma', mi: 'Mi', ju: 'Ju', vi: 'Vi', sa: 'Sá', do: 'Do' };
 const SIDES = { der: 'derecha', izq: 'izquierda', ambos: 'ambos lados' };
 const REST_SECS = 90, ISO_REST = 60;
@@ -778,7 +778,8 @@ function renderWorkout() {
       <span class="n">${j + 1}</span>
       ${weighted ? `<input type="number" inputmode="decimal" step="0.5" min="0" value="${r.w}" data-w="${i}.${j}.w" aria-label="Kilos">` : '<span></span>'}
       <input type="number" inputmode="numeric" min="0" value="${timed ? r.secs : r.reps}" placeholder="≈${hasRepRange(it.ex) ? repCenter(it.range) : it.secs}" data-w="${i}.${j}.${timed ? 'secs' : 'reps'}" aria-label="${timed ? 'Segundos' : 'Repeticiones'}">
-      ${k === 'peso' ? `<select data-w="${i}.${j}.rir" aria-label="Repeticiones en reserva"><option value="">–</option>${[0, 1, 2, 3, 4].map((n) => `<option ${String(r.rir) === String(n) ? 'selected' : ''}>${n}</option>`).join('')}</select>` : '<span></span>'}
+      ${k === 'peso' ? `<select data-w="${i}.${j}.rir" aria-label="Repeticiones en reserva"><option value="">–</option>${[0, 1, 2, 3, 4].map((n) => `<option ${String(r.rir) === String(n) ? 'selected' : ''}>${n}</option>`).join('')}</select>`
+        : timed && !r.done ? `<button class="hold-go" data-action="hold" data-i="${i}" data-j="${j}" aria-label="Cronómetro de la serie ${j + 1}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z"/></svg></button>` : '<span></span>'}
       <button class="ok" data-action="set-done" data-i="${i}" data-j="${j}" aria-label="Serie hecha">✓</button></div>`).join('');
     const state = it.rows.every((r) => r.done) ? ' done' : i === cur ? ' now' : '';
     return `<section class="card wex${it.r || it.maint ? ' pain' : ''}${state}"><div class="ex">
@@ -839,7 +840,21 @@ function setDone(i, j) {
     if (n) toast(`Con esta serie ajustamos el peso de ${n === 1 ? '1 ejercicio' : `${n} ejercicios`} que siguen.`);
   }
   renderWorkout();
-  if (r.done && it.rows.some((x) => !x.done)) startRest(k === 'iso' ? ISO_REST : S.prefs.rest || REST_SECS);
+  // Descansa mientras quede alguna serie del entreno (también al pasar al ejercicio siguiente), lo que pide este ejercicio.
+  // Con la última serie hecha no hay nada que esperar: se corta el descanso que viniera corriendo.
+  if (r.done) W.items.some((x) => x.rows.some((y) => !y.done)) ? startRest(restSecs(it.ex, S.prefs.rest || REST_SECS)) : stopRest();
+  if (r.done) showNextSet();
+}
+// Lleva la serie que sigue a la vista, entre el encabezado y la barra de descanso, si quedó tapada o fuera de pantalla.
+function showNextSet() {
+  const sc = $('wsheet').querySelector('.dlg'), set = sc?.querySelector('.set.next');
+  if (!set) return;
+  const head = sc.querySelector('.dlg-head').getBoundingClientRect().bottom + 8, bar = $('rest');
+  const foot = (bar.hidden ? innerHeight : bar.getBoundingClientRect().top) - 12, r = set.getBoundingClientRect();
+  if (r.top >= head && r.bottom <= foot) return;
+  // Con lugar, deja ver también el nombre del ejercicio; si no, la serie queda justo arriba de la barra.
+  const card = set.closest('.wex').getBoundingClientRect(), dy = card.top < r.top && r.bottom - card.top <= foot - head ? card.top - head : r.bottom - foot;
+  sc.scrollBy({ top: dy, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
 }
 // Re-estima los ejercicios del entreno que siguen sin peso propio ni series hechas; respeta el peso que la persona ya cambió.
 // Devuelve cuántos cambiaron.
@@ -943,23 +958,53 @@ function showSummary(s) {
   $('sumsheet').showModal();
 }
 
-// Descanso entre series
-let restTimer = null;
-function startRest(secs) {
-  stopRest();
+// Descanso entre series. La misma barra hace de cronómetro en las series por tiempo (plancha, isométricos).
+let restTimer = null, hold = null;
+// Cuenta regresiva en la barra: label, botón (texto y acción) y qué hacer al llegar a 0.
+function barCount(secs, label, btn, action, onEnd, mode = '') {
+  clearInterval(restTimer);
   const el = $('rest'), end = Date.now() + secs * 1000;
-  overlayHost().appendChild(el); el.hidden = false;
+  overlayHost().appendChild(el); el.hidden = false; el.className = mode;
+  $('rest-label').textContent = label;
+  const b = el.querySelector('button'); b.textContent = btn; b.dataset.action = action;
   let last = secs;
   const tick = () => {
     const left = Math.max(0, Math.round((end - Date.now()) / 1000));
     $('rest-time').textContent = `${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}`;
     if (left !== last && left > 0 && left <= 3) cue('tick');
     last = left;
-    if (!left) { stopRest(); cue('go', 'Siguiente serie'); }
+    if (!left) onEnd();
   };
   tick(); restTimer = setInterval(tick, 250);
 }
-function stopRest() { clearInterval(restTimer); restTimer = null; $('rest').hidden = true; }
+function startRest(secs) {
+  stopRest();
+  barCount(secs, 'Descanso', 'Saltar', 'skip-rest', () => { stopRest(); cue('go', 'Siguiente serie'); });
+}
+function stopRest() { clearInterval(restTimer); restTimer = null; hold = null; $('rest').hidden = true; }
+// Cronómetro de una serie por tiempo: 5 s para acomodarse y después el tiempo de la serie. Al terminar (o con "Listo")
+// la serie queda hecha con los segundos sostenidos y arranca el descanso.
+const HOLD_PREP = 5;
+function startHold(i, j) {
+  stopRest();
+  const it = W.items[i], r = it.rows[j], secs = Number(r.secs) > 0 ? Number(r.secs) : it.secs;
+  hold = { i, j, secs };
+  cue('go', 'Preparate');
+  barCount(HOLD_PREP, 'Preparate', 'Cancelar', 'skip-rest', () => {
+    hold.start = Date.now(); cue('go', 'Ya');
+    barCount(secs, 'Sostené', 'Listo', 'hold-stop', () => endHold(secs), 'hold');
+  }, 'hold');
+}
+function endHold(secs) {
+  const h = hold; if (!h || !W) return stopRest();
+  if (secs == null) secs = h.start ? Math.max(1, Math.round((Date.now() - h.start) / 1000)) : 0;
+  stopRest();
+  if (!secs) return;
+  cue('done', 'Listo');
+  const r = W.items[h.i].rows[h.j];
+  r.secs = secs; r.done = false;
+  setDone(h.i, h.j);
+}
 
 // ——— Sonidos, voz y pantalla prendida ———
 let audioCtx = null;
@@ -1535,6 +1580,8 @@ document.addEventListener('click', (e) => {
     'swap-today': () => openSwapToday(+d.i),
     'swap-why': () => swapToday(+d.i, d.off),
     'skip-rest': stopRest,
+    'hold': () => startHold(+d.i, +d.j),
+    'hold-stop': () => endHold(),
     'ex-detail': () => openExercise(d.ex),
     'recalibrate': () => { if (confirm(weightMode() === 'calib' ? '¿Borrar el peso de trabajo y volver a calibrar?' : '¿Borrar el peso de trabajo de este ejercicio?')) { delete S.lifts[d.ex]; persist(); $('exsheet').close(); render(); } },
     'close': () => $(d.dlg).close(),

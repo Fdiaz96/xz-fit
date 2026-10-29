@@ -2,6 +2,13 @@
 
 Todos los cambios de XZ Fit (antes Tendón Fuerte), del más nuevo al más viejo.
 
+## 1.30.7 — Descansos a medida y cronómetro para la plancha
+
+- El descanso dura según el ejercicio: los compuestos usan el que elegiste en Ajustes; elevaciones, curl, tríceps e isométricos, 1 minuto; la plancha y el core, 45 segundos.
+- Ahora también descansás al pasar de un ejercicio al siguiente, y con la última serie del entreno ya no arranca ningún descanso.
+- Al tildar una serie, si la que sigue quedó tapada o fuera de pantalla, la pantalla se mueve sola para mostrarla. La barra de descanso ya no tapa la última serie ni "Terminar entreno".
+- La plancha (y cada ejercicio por tiempo) tiene un ▶ en cada serie: te da 5 segundos para acomodarte, cuenta el tiempo y al terminar tilda la serie. Con "Listo" la cortás antes y anota los segundos que sostuviste.
+
 ## 1.30.6 — El entreno no se pierde
 
 - El entreno en curso se guarda solo con cada serie que tildás, cada peso o rep que escribís y cada cambio. Si recargás la página o el teléfono cierra la app, al volver Hoy te muestra "Seguir entreno" con cuántas series llevás y lo retomás tal como quedó.

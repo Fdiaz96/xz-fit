@@ -395,6 +395,12 @@ function weekPlan(state, today) {
     return { k, date, day, train: train.includes(k), done: done.length > 0, today: date === today, past: date < today };
   });
 }
+// Descanso tras una serie según el ejercicio: los compuestos (y los ejercicios nuevos con peso) usan el elegido en Ajustes;
+// aislamiento, deltoides, piernas sin peso e isométricos, 1 min; la plancha y el core, 45 s. Nunca más que el elegido.
+function restSecs(ex, base) {
+  const own = ex.kind === 'tiempo' || ex.cat === 'core' ? 45 : ex.rtype === 'compuesto' || (ex.kind === 'peso' && !ex.rtype) ? base : 60;
+  return Math.min(base, own);
+}
 // Duración estimada de un entreno: unos 40 s por serie, el descanso entre series y 5 min de entrada en calor, redondeada a 5 min.
 function workoutMinutes(sets, rest) {
   if (!sets) return 0;

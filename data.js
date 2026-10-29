@@ -446,7 +446,7 @@ Object.entries({
   deltoides: ['lateral', 'face_pull', 'pajaros', 'rot_ext_banda', 'elev_y_piso', 'elev_t_piso'],
   // Sin peso, las piernas necesitan más repeticiones para llegar cerca del fallo.
   piernas_sin_peso: ['sentadilla_bw', 'zancada_bw', 'puente_bw', 'puente_1pierna'],
-}).forEach(([type, ids]) => ids.forEach((id) => (EXERCISES[id].reps = [...REP_RANGE[type]])));
+}).forEach(([type, ids]) => ids.forEach((id) => { EXERCISES[id].reps = [...REP_RANGE[type]]; EXERCISES[id].rtype = type; }));
 
 // Cómo se ve la mancuerna (ver dumbbell() en figures.js). Sin dato: de frente 'end', de costado 'neutral'.
 Object.entries({

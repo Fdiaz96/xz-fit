@@ -175,6 +175,8 @@ eq(L(`weekPlan({ ...wp, sessions: [] }, '2026-10-21').map((x) => x.day)`), [null
 eq(L(`weekPlan({ ...wp, plan: { id: 'tp4', pos: 2 }, sessions: [{ date: '${T}', type: 'entreno', plan: 'tp4', day: 1 }] }, '${T}').map((x) => x.day)`), [null, 1, null, 2, 3, null, null], 'semana: con el entreno de hoy hecho, lo próximo arranca el jueves');
 eq(L('workoutMinutes(18, 90)'), 45, 'duración: 18 series con 90 s de descanso, unos 45 min');
 eq(L('workoutMinutes(0, 90)'), 0, 'duración: sin series no hay estimación');
+eq(['goblet', 'lateral', 'curl_martillo', 'plancha', 'dead_bug', 'curl_iso'].map((id) => L(`restSecs(EXERCISES.${id}, 90)`)), [90, 60, 60, 45, 45, 60], 'descanso según ejercicio: compuesto el elegido, aislamiento e isométrico 1 min, core 45 s');
+eq(L("[restSecs(EXERCISES.goblet, 180), restSecs({ kind: 'peso' }, 120), restSecs(EXERCISES.lateral, 45)]"), [180, 120, 45], 'descanso: un ejercicio nuevo con peso usa el elegido y nunca pasa del elegido');
 ctx.wk = { painMode: true, profile: { days: 2 }, zones: { codo_lat: { phase: 1 } }, sessions: [
   { date: '2026-10-19', type: 'entreno' }, { date: '2026-10-20', type: 'rehab' }, { date: '2026-10-20', type: 'rehab' },
   { date: '2026-10-13', type: 'entreno' }, { date: '2026-10-15', type: 'entreno' }, { date: '2026-10-07', type: 'entreno' }, { date: '2026-10-09', type: 'entreno' }] };
