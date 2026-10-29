@@ -391,7 +391,7 @@ Object.assign(EXERCISES, {
   excentrico_muneca: {
     name: 'Excéntrico de muñeca', kind: 'lento', impl: 'db', load0: 2, zone: 'codo_lat',
     cues: ['Antebrazo apoyado en el muslo, palma hacia abajo.', 'Subí la mano ayudándote con la otra y bajala sola en 4 s.', 'Clásico para codo de tenista: la bajada es lo que cuenta.'],
-    fig: { a: { ...SEATED, G1: [140.2, 92.6], E2: [115, 88], W2: [128, 102], z: { E2: 4.5, W2: -5 } }, b: { G1: [140.2, 107.4], E2: [104, 90], W2: [118, 96], z: { E2: 3, W2: -4 } }, palm: 'down', props: [{ t: 'db', at: 'W1', sm: true }], scene: [CHAIR_SEAT], dur: 5, cam: 18, pitch: 36, focus: ['H', 'E1', 'G1', 'K1'] },
+    fig: { a: { ...SEATED, G1: [140.2, 92.6], E2: [96, 92], W2: [94, 113], z: { E2: 3, W2: 5 } }, b: { G1: [140.2, 107.4] }, palm: 'down', props: [{ t: 'db', at: 'W1', sm: true }], scene: [CHAIR_SEAT], dur: 5, cam: 18, pitch: 36, focus: ['H', 'E1', 'G1', 'K1'] },
   },
   tyler_toalla: {
     name: 'Tyler twist con toalla', kind: 'lento', impl: 'bw', zone: 'codo_lat',
