@@ -45,7 +45,8 @@ const buildV114 = (o) => page.evaluate((o) => {
 }, o);
 const saveV114 = async (o) => { const old = await buildV114(o); await putData(old); return old; };
 const bootSaved = async (o = {}) => { await wipeDb(); const saved = await saveV114(o); await page.reload(); await page.waitForTimeout(400); return saved; };
-const homeTitle = () => page.locator('#view-home .card:has([data-action="start-workout"]) h3').textContent();
+// Título del día sin la duración estimada ("Día A · 6 ejercicios · ~45 min" → "Día A · 6 ejercicios").
+const homeTitle = async () => (await page.locator('#view-home .card:has([data-action="start-workout"]) h3').textContent()).replace(/ · ~\d+ min/, '');
 const daySets = () => page.evaluate(() => planFor(dayIndex(activePlan(S), S.plan.pos)).filter((p) => !p.missing).map((p) => p.sets));
 const dayIds = (st, d) => st.routine.fb2[d].map((it) => it.ex);
 const pinnedNotice = async () => (await toastText()).includes('ya no se puede');
@@ -116,7 +117,11 @@ await bootSaved({ profile: { days: 3 } });
 ok((await homeTitle()).trim() === 'Día A · 6 ejercicios', 'inicio con el equipo por defecto: "Día A · 6 ejercicios"');
 const homeText = await page.locator('#view-home').textContent();
 ok(!homeText.includes('Entreno A') && !homeText.includes('Cuerpo completo') && homeText.includes('Full body 2 días'), 'el inicio ya no dice "Entreno A" ni "Cuerpo completo" y nombra el plan');
-ok(await page.locator('#view-home .week .dots i').count() === 2, 'con 3 días en el perfil y fb2, la tarjeta semanal tiene 2 entrenos de objetivo');
+ok((await page.locator('#view-home .week-meta').textContent()).includes('0 de 2 entrenos'), 'con 3 días en el perfil y fb2, la tarjeta semanal tiene 2 entrenos de objetivo');
+ok(/ · ~\d+ min$/.test((await page.locator('#view-home .today h3').textContent()).trim()), 'el título del día suma la duración estimada ("~45 min")');
+ok(await page.locator('#view-home .week-strip.home button').count() === 7 && await page.locator('#view-home .week-strip.home button.now').count() === 1, 'la tira de la semana tiene Lu–Do con hoy marcado');
+ok(await page.locator('#view-home .board .chev').count() === await page.locator('#view-home .board li').count(), 'cada ejercicio de Hoy lleva un › de que se toca');
+ok(await page.evaluate(() => stripLegend(PLANS.tp4).includes('<b>TA</b> Torso A') && stripLegend(PLANS.fb2) === ''), 'las siglas de la tira llevan leyenda ("TA Torso A"), salvo los días "Día A/B"');
 ok(await page.locator('#view-home [data-action="start-workout"][data-day="0"]').count() === 1, 'el botón de empezar lleva el día del plan');
 await bootSaved({ equip: { db: null, kb: [12, 20], rings: true } });
 ok((await homeTitle()).trim() === 'Día A · 6 ejercicios', 'sin mancuernas el hueco lateral pasa a peso corporal: siguen 6');
@@ -528,7 +533,12 @@ ok((await page.locator('#sumsheet').textContent()).includes('series') && s.sessi
 ok((await page.locator('#sumsheet').textContent()).includes('kg levantados') && !(await page.locator('#sumsheet').textContent()).includes('1minutos'), 'el resumen habla de kg levantados y pluraliza los minutos');
 await shot('18-resumen');
 await click('#sumsheet [data-action="close"]');
-ok((await page.locator('#view-home .week .dots i.on').count()) === 1, 'Inicio muestra 1 entreno hecho esta semana');
+ok((await page.locator('#view-home .week-strip.home button.done').count()) === 1 && (await page.locator('#view-home .week-strip.home button.done.now b').textContent()) === 'A', 'Inicio tilda el entreno de hoy en la tira con su sigla');
+ok(!(await page.locator('#view-home .plan-line').textContent()).includes('Último'), 'con el entreno de hoy, no repite "Último: hoy"');
+await click('#view-home .week-strip.home button.now');
+ok((await page.locator('#view-home .week-peek').textContent()).includes('hiciste Día A'), 'tocar hoy en la tira dice qué se hizo');
+const nextPlanned = page.locator('#view-home .week-strip.home button.plan').first();
+if (await nextPlanned.count()) { await nextPlanned.click(); ok(/Día [AB], \d+ ejercicios/.test(await page.locator('#view-home .week-peek').textContent()), 'tocar un día que viene dice qué toca y cuántos ejercicios'); }
 ok((await page.locator('#view-home .today.rest .rest-title').textContent()) === 'Hoy ya entrenaste' && (await page.locator('#view-home .today.rest .rest-sum').textContent()).includes('2 series'), 'después de entrenar, Hoy dice "Hoy ya entrenaste" con un resumen chico');
 await shot('05a-inicio-ya-entrenaste');
 ok(await page.locator('#view-home .today .cta[data-action="start-workout"]').count() === 0 && (await page.locator('#view-home .today button.sec[data-action="start-workout"]').textContent()) === 'Entrenar igual' && await page.locator('#view-home .today .next-list:not([open])').count() === 1, 'ya entrenado: sin botón grande, "Entrenar igual" secundario y la lista plegada');
@@ -647,8 +657,7 @@ await closeSummary();
 // Pesos automáticos (por defecto): sin serie de calibración; la primera serie anotada fija ese peso y ajusta a los demás
 await bootSaved({});
 ok(await page.evaluate(() => S.prefs.weights) === 'auto', 'quien no eligió queda con pesos automáticos');
-const autoTags = await page.locator('#view-home .board .load .calib-tag').allTextContents();
-ok(autoTags.length >= 3 && autoTags.every((x) => x === 'estimado'), 'inicio: los pesos sin datos dicen "estimado", no "calibración"');
+ok(await page.locator('#view-home .board .load.guess').count() >= 3 && await page.locator('#view-home .board .calib-tag').count() === 0 && ((await page.locator('#view-home .today').textContent()).includes('≈ son estimados') || await page.locator('#view-home .board-note').count() === 1), 'inicio: los pesos sin datos llevan ≈ y "estimado" se explica una vez, sin "calibración"');
 await openDay(0);
 ok((await page.locator('#wsheet .calib-intro').textContent()).includes('Pesos estimados') && !(await page.locator('#wsheet').textContent()).includes('calibramos'), 'el entreno explica los pesos estimados, sin calibración');
 const guessW = () => page.evaluate(() => Object.fromEntries(W.items.filter((it) => it.guess && it.ex.ratio).map((it) => [it.ex.id, it.w])));

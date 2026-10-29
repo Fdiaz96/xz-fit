@@ -379,6 +379,27 @@ function streak(state, today) {
   for (wk = addDays(wk, -7); (per[wk] || 0) >= state.profile.days; wk = addDays(wk, -7)) n++;
   return n;
 }
+// La semana actual de lunes a domingo, para la tira del inicio. Los días con entreno guardado muestran lo que se hizo;
+// los que faltan (hoy incluido si todavía no entrenó) siguen la rotación desde el día que toca. day: índice del día del plan o null.
+const WEEK_KEYS = ['lu', 'ma', 'mi', 'ju', 'vi', 'sa', 'do'];
+function weekPlan(state, today) {
+  const plan = activePlan(state), mon = weekKey(today), train = state.rem?.train || [];
+  let pos = dayIndex(plan, state.plan?.pos);
+  return WEEK_KEYS.map((k, i) => {
+    const date = addDays(mon, i), done = state.sessions.filter((s) => s.type === 'entreno' && s.date === date);
+    let day = null;
+    if (done.length) {
+      const s = done[0];
+      day = isDayOf(plan, s.day) && (!s.plan || s.plan === plan.id) ? s.day : null;
+    } else if (date >= today && train.includes(k)) { day = pos; pos = nextDay(plan, pos); }
+    return { k, date, day, train: train.includes(k), done: done.length > 0, today: date === today, past: date < today };
+  });
+}
+// Duración estimada de un entreno: unos 40 s por serie, el descanso entre series y 5 min de entrada en calor, redondeada a 5 min.
+function workoutMinutes(sets, rest) {
+  if (!sets) return 0;
+  return Math.max(10, Math.round((sets * 40 + (sets - 1) * rest + 300) / 300) * 5);
+}
 // Resumen de un entreno: series, volumen (kg × reps) y duración en minutos.
 function sessionSummary(session, ms) {
   const sets = session.items.reduce((n, i) => n + i.sets.length, 0);

@@ -2,6 +2,15 @@
 
 Todos los cambios de XZ Fit (antes Tendón Fuerte), del más nuevo al más viejo.
 
+## 1.30.5 — La semana a la vista en Hoy
+
+- Arriba de Hoy hay una tira de lunes a domingo: cada día de entreno con la sigla de lo que toca, lo que ya hiciste tildado en verde y hoy marcado. Tocá un día para ver qué toca ("Viernes: Pierna B, 5 ejercicios") o qué hiciste.
+- El entreno del día dice cuánto dura más o menos ("7 ejercicios · ~50 min") y el título grande tiene más aire.
+- Los pesos estimados llevan un ≈ y se explican una sola vez debajo de la lista, en vez de una etiqueta en cada ejercicio.
+- Cada ejercicio de Hoy y de Entreno muestra un › de que se toca para ver la ficha.
+- "Último: …" ya no aparece cuando el último entreno fue hoy.
+- Las siglas de los días ("TA", "PB"…) tienen su leyenda con el nombre completo en el alta, en Cambiar plan y en Ajustes.
+
 ## 1.30.4 — Hoy sabe si ya entrenaste o descansás
 
 - Después de entrenar, Hoy dice "Hoy ya entrenaste" con un resumen chico de lo que hiciste, en vez de volver a empujarte al próximo entreno.

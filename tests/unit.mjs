@@ -167,6 +167,14 @@ ok(!L('stalled(stC, "rdl")'), 'si subió el peso, no está estancado');
 eq(L(`weekdayKey('${T}')`), 'ma', 'el 20/10/2026 es martes');
 
 // Semana, racha y resumen
+// Tira de la semana (inicio): T es martes 20/10; tp4 entrena Lu/Ma/Ju/Vi. El lunes hizo Torso A (día 0) y ahora toca Pierna A.
+ctx.wp = { plan: { id: 'tp4', pos: 1 }, rem: { train: ['lu', 'ma', 'ju', 'vi'] }, sessions: [{ date: '2026-10-19', type: 'entreno', plan: 'tp4', day: 0 }] };
+eq(L(`weekPlan(wp, '${T}').map((x) => x.day)`), [0, 1, null, 2, 3, null, null], 'semana: lunes hecho (TA), hoy PA y sigue la rotación TB, PB');
+eq(L(`weekPlan(wp, '${T}').map((x) => +x.done + +x.today * 2)`), [1, 2, 0, 0, 0, 0, 0], 'semana: el lunes tildado y hoy marcado');
+eq(L(`weekPlan({ ...wp, sessions: [] }, '2026-10-21').map((x) => x.day)`), [null, null, null, 1, 2, null, null], 'semana: los días que pasaron sin entreno quedan vacíos y lo que falta sigue desde el que toca');
+eq(L(`weekPlan({ ...wp, plan: { id: 'tp4', pos: 2 }, sessions: [{ date: '${T}', type: 'entreno', plan: 'tp4', day: 1 }] }, '${T}').map((x) => x.day)`), [null, 1, null, 2, 3, null, null], 'semana: con el entreno de hoy hecho, lo próximo arranca el jueves');
+eq(L('workoutMinutes(18, 90)'), 45, 'duración: 18 series con 90 s de descanso, unos 45 min');
+eq(L('workoutMinutes(0, 90)'), 0, 'duración: sin series no hay estimación');
 ctx.wk = { painMode: true, profile: { days: 2 }, zones: { codo_lat: { phase: 1 } }, sessions: [
   { date: '2026-10-19', type: 'entreno' }, { date: '2026-10-20', type: 'rehab' }, { date: '2026-10-20', type: 'rehab' },
   { date: '2026-10-13', type: 'entreno' }, { date: '2026-10-15', type: 'entreno' }, { date: '2026-10-07', type: 'entreno' }, { date: '2026-10-09', type: 'entreno' }] };

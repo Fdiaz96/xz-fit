@@ -2,7 +2,7 @@
 // (IndexedDB). Los identificadores internos siguen siendo "tendon-fuerte" para no perder los datos ya guardados.
 // Protocolo de tendones del video de Jeremy Ethier con Keith Baar y Coach Q; reglas en logic.js, bocetos en figures.js.
 
-const APP_VERSION = '1.30.4';
+const APP_VERSION = '1.30.5';
 const DAY_NAMES = { lu: 'Lu', ma: 'Ma', mi: 'Mi', ju: 'Ju', vi: 'Vi', sa: 'Sá', do: 'Do' };
 const SIDES = { der: 'derecha', izq: 'izquierda', ambos: 'ambos lados' };
 const REST_SECS = 90, ISO_REST = 60;
@@ -297,10 +297,9 @@ function renderHome() {
   const hasZones = activeZones().length > 0;
   const ws = weekStats(S, t), st = streak(S, t);
   const date = parseDay(t).toLocaleDateString('es', { weekday: 'long', day: 'numeric' }).replace(',', '');
-  const dots = (n, of) => Array.from({ length: Math.max(of, n) }, (_, i) => `<i class="${i < n ? 'on' : ''}"></i>`).join('');
-  let h = `<header class="home-head"><div><p class="greet">${S.profile.name ? `Hola, ${esc(S.profile.name)}` : 'Hola'}</p><h1>${date[0].toUpperCase() + date.slice(1)}</h1></div>
-    <div class="week"><div class="dots" aria-hidden="true">${dots(ws.train, ws.target)}</div><span>${ws.train} de ${ws.target} entrenos esta semana</span>
-      ${ws.rehabTarget ? `<span class="rehab-n">${ws.rehab} de ${ws.rehabTarget} sesiones de rehabilitación</span>` : ''}${st ? `<span>Racha de ${st} ${st === 1 ? 'semana' : 'semanas'}</span>` : ''}</div></header>`;
+  let h = `<header class="home-head"><p class="greet">${S.profile.name ? `Hola, ${esc(S.profile.name)}` : 'Hola'}</p><h1>${date[0].toUpperCase() + date.slice(1)}</h1></header>
+    <div class="home-week">${homeWeek(t)}<p class="week-meta"><span>${ws.train} de ${ws.target} entrenos esta semana</span>${st ? `<span>Racha de ${st} ${st === 1 ? 'semana' : 'semanas'}</span>` : ''}
+      ${ws.rehabTarget ? `<span class="rehab-n">${ws.rehab} de ${ws.rehabTarget} sesiones de rehabilitación</span>` : ''}</p></div>`;
   for (const zone of checks) {
     h += `<div class="card ask pain"><h3>¿Cómo amaneció tu ${esc(zoneName(zone).toLowerCase())}?</h3><p class="muted small">Comparado con ayer. Si está peor, bajamos la carga.</p>
       <div class="btns">${['mejor', 'igual', 'peor'].map((v) => `<button class="sec" data-action="check" data-zone="${zone}" data-val="${v}">${v[0].toUpperCase() + v.slice(1)}</button>`).join('')}</div></div>`;
@@ -335,13 +334,17 @@ function renderHome() {
   // Sin entrenos guardados, el día no importa: el primero siempre se presenta en positivo.
   const first = !last;
   const firstHint = doable.some((p) => p.calib) ? ' Con la primera serie de cada ejercicio calibramos tus pesos.'
-    : doable.some((p) => p.guess) ? ' Los pesos son estimados: con tu primera serie ajustamos el resto.'
+    : doable.some((p) => p.guess) ? ' Los pesos con ≈ son estimados: con tu primera serie ajustamos el resto.'
     : doable.some((p) => p.pick) ? ' Elegís vos los pesos de cada ejercicio.' : '';
   const dayMsg = first ? `Tu primer entreno.${firstHint}` : 'Hoy toca entrenar';
   // El peso con su unidad, igual que en Entreno; si todavía no es un peso de trabajo, la etiqueta va debajo.
-  const load = (p) => p.ex.kind !== 'peso' ? '' : `<span class="load">${loadText(p)}${loadTag(p)}</span>`;
-  const board = `<ol class="board">${doable.map((p) => `<li><button data-action="ex-detail" data-ex="${p.ex.id}"><span class="name">${esc(p.ex.name)}${p.r ? `<em>${painTag(p.r)}</em>` : ''}</span><span class="dose">${p.sets} × ${setLabel(p)}</span>${load(p)}</button></li>`).join('')}</ol>`;
-  const title = `<h3><span class="day-name">${esc(plan.days[day].name)}</span><span class="sep"> · </span><span class="day-count">${doable.length} ejercicios</span></h3>`;
+  // "Estimado" se explica una sola vez debajo de la lista; cada peso estimado lleva solo un ≈ delante.
+  const load = (p) => p.ex.kind !== 'peso' ? '' : p.guess && !p.calib ? `<span class="load guess"><i aria-label="estimado">≈</i>${loadText(p)}</span>` : `<span class="load">${loadText(p)}${loadTag(p)}</span>`;
+  const guessNote = !first && doable.some((p) => p.guess && !p.calib && p.ex.kind === 'peso') ? `<p class="board-note">≈ Peso estimado: sale de tu perfil y de lo que levantás en otros ejercicios. Con tu primera serie lo ajustamos.</p>` : '';
+  const board = `<ol class="board">${doable.map((p) => `<li><button data-action="ex-detail" data-ex="${p.ex.id}"><span class="name">${esc(p.ex.name)}${p.r ? `<em>${painTag(p.r)}</em>` : ''}</span><span class="dose">${p.sets} × ${setLabel(p)}</span>${load(p)}<span class="chev" aria-hidden="true">›</span></button></li>`).join('')}</ol>${guessNote}`;
+  const mins = workoutMinutes(doable.reduce((n, p) => n + p.sets, 0), S.prefs.rest || REST_SECS);
+  const title = `<h3><span class="day-name">${esc(plan.days[day].name)}</span><span class="sep"> · </span><span class="day-count">${doable.length} ejercicios${mins ? ` · ~${mins} min` : ''}</span></h3>`;
+  const lastLine = last && last.date !== t ? `<span>Último: ${fmtDate(last.date)}</span>` : '';
   const deloadNote = S.plan.deload === weekKey(t) ? ' Semana de descarga.' : '';
   if (!first && (doneToday || !trainDay)) {
     // Ya entrenó o hoy no es día del plan: el estado va en grande y lo próximo queda en segundo plano, sin empujar a entrenar.
@@ -350,14 +353,14 @@ function renderHome() {
     const names = [...new Set(done.map((s) => activePlan(S).days[s.day]?.name ?? `Entreno ${s.tpl}`))].join(' y ');
     const sum = doneToday ? `${esc(names)}: ${sets} ${sets === 1 ? 'serie' : 'series'}${min ? ` en ${min} ${min === 1 ? 'minuto' : 'minutos'}` : ''}.` : 'Descansar también es parte del plan.';
     h += `<section class="card today rest">
-    <p class="plan-line"><span>${esc(plan.name)}</span>${last ? `<span>Último: ${fmtDate(last.date)}</span>` : ''}</p>
+    <p class="plan-line"><span>${esc(plan.name)}</span>${lastLine}</p>
     <h2 class="rest-title">${doneToday ? 'Hoy ya entrenaste' : 'Hoy descansás'}</h2>
     <p class="rest-sum">${sum}${deloadNote}</p>
     <div class="next"><p class="next-when">Próximo${when ? `, ${when}` : ''}</p>${title}
       <details class="next-list"><summary>Ver ejercicios</summary>${board}</details></div>
     <button class="sec next-go" data-action="start-workout" data-day="${day}">${doneToday ? 'Entrenar igual' : 'Empezar igual'}</button></section>`;
   } else h += `<section class="card today on">
-    <p class="plan-line"><span>${esc(plan.name)}</span>${last ? `<span>Último: ${fmtDate(last.date)}</span>` : ''}</p>
+    <p class="plan-line"><span>${esc(plan.name)}</span>${lastLine}</p>
     <p class="day-msg">${dayMsg}${deloadNote}</p>
     ${title}${board}
     <button class="cta stick" data-action="start-workout" data-day="${day}">Empezar ${esc(plan.days[day].name.toLowerCase())}</button></section>`;
@@ -429,6 +432,31 @@ function weekStrip(plan, days, action) {
   }).join('');
   return action ? `<div class="week-strip edit">${cells}</div>` : `<div class="week-strip" role="img" aria-label="${esc(`Entrenás ${daysText(days)}`)}">${cells}</div>`;
 }
+// Qué quiere decir cada sigla de la tira ("TA Torso A"). Con días "Día A/B/C" la sigla ya se entiende sola.
+function stripLegend(plan) {
+  if (plan.days.every((d) => d.name === `Día ${d.short}`)) return '';
+  return `<p class="strip-legend">${plan.days.map((d) => `<span><b>${esc(d.short)}</b> ${esc(d.name)}</span>`).join('')}</p>`;
+}
+// La semana actual en el inicio: cada día con la sigla de lo hecho o de lo que toca, hoy marcado y lo hecho tildado.
+// Tocar un día muestra debajo qué toca (o qué se hizo) con el nombre completo.
+let homePeek = '';   // fecha del día tocado en la tira del inicio
+function homeWeek(t) {
+  const plan = activePlan(S), days = weekPlan(S, t);
+  const longDay = (date) => { const n = parseDay(date).toLocaleDateString('es', { weekday: 'long' }); return n[0].toUpperCase() + n.slice(1); };
+  const what = (x) => {
+    const name = x.day !== null ? plan.days[x.day].name : '';
+    if (x.done) return name ? `hiciste ${name}` : 'entrenaste';
+    if (x.day !== null) { const n = planFor(x.day).filter((p) => !p.missing).length; return `${x.today ? 'toca ' : ''}${name}, ${n} ${n === 1 ? 'ejercicio' : 'ejercicios'}`; }
+    return x.train && x.past ? 'no entrenaste' : 'descanso';
+  };
+  const cells = days.map((x) => {
+    const sigla = x.day !== null ? plan.days[x.day].short : x.done ? '✓' : '';
+    const cls = [x.done ? 'done' : x.day !== null ? 'plan' : x.train && x.past ? 'missed' : 'rest', x.today ? 'now' : '', homePeek === x.date ? 'peek' : ''].filter(Boolean).join(' ');
+    return `<button class="${cls}" data-action="week-day" data-v="${x.date}" aria-pressed="${homePeek === x.date}" aria-label="${esc(`${x.today ? 'Hoy, ' : ''}${longDay(x.date)}: ${what(x)}`)}"><small>${x.today ? 'Hoy' : DAY_NAMES[x.k]}</small><b>${esc(sigla)}</b></button>`;
+  }).join('');
+  const peek = days.find((x) => x.date === homePeek);
+  return `<div class="week-strip home">${cells}</div>${peek ? `<p class="week-peek" role="status"><b>${peek.today ? 'Hoy' : longDay(peek.date)}</b>: ${esc(what(peek))}.</p>` : ''}`;
+}
 // Elección de plan en curso: { id, days }. id es un plan de la lista o 'custom' (a tu medida: los días deciden el plan).
 const MAX_DAYS = 6;   // el séptimo día siempre es de descanso
 const choicePlan = (c) => PLANS[c.id === 'custom' ? PLAN_BY_DAYS[c.days.length] || 'fb2' : c.id];
@@ -459,7 +487,7 @@ function applyChoice(c, restart = false) {
 function planCard() {
   const plan = activePlan(S);
   return `<div class="plan-card"><div class="row"><div><span class="small muted">Tu plan${S.plan.custom ? ', a tu medida' : ''}</span><h3>${esc(plan.name)}</h3></div><button class="sec" data-action="plan-open">Cambiar plan</button></div>
-    ${weekStrip(plan, S.rem.train)}
+    ${weekStrip(plan, S.rem.train)}${stripLegend(plan)}
     <p class="small muted">Rota ${esc(plan.days.map((d) => d.name).join(', '))}. Si faltás un día, seguís con el que toca. Los días los cambiás en Cambiar plan.</p></div>`;
 }
 // Los ejercicios de cada día del plan: la versión guardada (con los cambios del usuario) si existe; si no, la que se armaría hoy.
@@ -479,7 +507,7 @@ const missingNote = (saved) => {
 function planOptions(c, { action, dayAction, cur = null, tag = {} }) {
   const days = (p) => {
     const miss = choiceMissing(c);
-    return `${weekStrip(p, c.days, dayAction)}<p class="small ${miss ? 'warn' : 'muted'} day-hint">${esc(miss) || 'Tocá los días para elegir cuáles entrenás.'}</p>`;
+    return `${weekStrip(p, c.days, dayAction)}${stripLegend(p)}<p class="small ${miss ? 'warn' : 'muted'} day-hint">${esc(miss) || 'Tocá los días para elegir cuáles entrenás.'}</p>`;
   };
   const opt = (p) => {
     const on = c.id === p.id, ex = planExercises(p);
@@ -1230,7 +1258,7 @@ function renderSettings() {
     <label class="field"><span>Nombre <i class="opt">(opcional)</i></span><input data-set="profile.name" value="${esc(p.name)}"></label>
     <span class="small muted">Sexo</span><div class="chips" style="margin:4px 0 8px">${[['h', 'Hombre'], ['m', 'Mujer'], ['x', 'Prefiero no decir']].map(([k, v]) => `<button class="chip${p.sex === k ? ' on' : ''}" data-action="set-sex" data-v="${k}">${v}</button>`).join('')}</div>
     <div class="grid3">${unitField('Peso', `data-set="profile.weight" inputmode="decimal" value="${esc(p.weight)}"`, 'kg')}${unitField('Altura <i class="opt">(opcional)</i>', `data-set="profile.height" inputmode="numeric" value="${esc(p.height)}"`, 'cm')}${unitField('Edad <i class="opt">(opcional)</i>', `data-set="profile.age" inputmode="numeric" value="${esc(p.age)}"`, 'años')}</div>
-    <span class="small muted">Días de entreno: ${esc(activePlan(S).name)}</span>${weekStrip(activePlan(S), S.rem.train)}
+    <span class="small muted">Días de entreno: ${esc(activePlan(S).name)}</span>${weekStrip(activePlan(S), S.rem.train)}${stripLegend(activePlan(S))}
     <button class="sec" style="width:100%" data-action="plan-open">Cambiar plan o días</button>
     <span class="small muted" style="display:block;margin-top:12px">Experiencia</span><div class="chips" style="margin-top:4px">${EXPERIENCE.map((x) => `<button class="chip${p.exp === x.id ? ' on' : ''}" data-action="set-exp" data-v="${x.id}">${x.name}</button>`).join('')}</div>
     <p class="faint small">Con sexo, peso, edad y experiencia estimamos tu peso inicial. La altura casi no cambia el cálculo.</p></div>
@@ -1498,6 +1526,7 @@ document.addEventListener('click', (e) => {
     'warm': () => { W.warm[+d.i].done = !W.warm[+d.i].done; renderWorkout(); },
     'hist-help': () => { histHelp[d.k] = !histHelp[d.k]; renderHistory(); },
     'report': () => shareFile(`informe-xz-fit-${today()}.html`, reportHTML(), 'text/html'),
+    'week-day': () => { homePeek = homePeek === d.v ? '' : d.v; renderHome(); },
     'news-seen': () => { S.seenVersion = APP_VERSION; persist(); render(); },
     'pain-val': () => { P.vals[d.zone] = +d.n; renderPain(); },
     'save-pain': savePain,
