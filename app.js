@@ -2,7 +2,7 @@
 // (IndexedDB). Los identificadores internos siguen siendo "tendon-fuerte" para no perder los datos ya guardados.
 // Protocolo de tendones del video de Jeremy Ethier con Keith Baar y Coach Q; reglas en logic.js, bocetos en figures.js.
 
-const APP_VERSION = '1.32.4';
+const APP_VERSION = '1.32.5';
 const DAY_NAMES = { lu: 'Lu', ma: 'Ma', mi: 'Mi', ju: 'Ju', vi: 'Vi', sa: 'Sá', do: 'Do' };
 const SIDES = { der: 'derecha', izq: 'izquierda', ambos: 'ambos lados' };
 const REST_SECS = 90, ISO_REST = 60;
@@ -402,11 +402,11 @@ function renderHome() {
     const when = nextTrainWhen(t), done = S.sessions.filter((s) => s.type === 'entreno' && s.date === t);
     const sets = done.reduce((n, s) => n + (s.sets || 0), 0), min = done.reduce((n, s) => n + (s.min || 0), 0);
     const names = [...new Set(done.map((s) => activePlan(S).days[s.day]?.name ?? `Entreno ${s.tpl}`))].join(' y ');
-    const sum = doneToday ? `${esc(names)}: ${sets} ${sets === 1 ? 'serie' : 'series'}${min ? ` en ${min} ${min === 1 ? 'minuto' : 'minutos'}` : ''}.` : 'Descansar también es parte del plan.';
+    const sum = doneToday ? `${esc(names)}: ${sets} ${sets === 1 ? 'serie' : 'series'}${min ? ` en ${min} ${min === 1 ? 'minuto' : 'minutos'}` : ''}.` : '';
     h += `<section class="card today rest">
     <p class="plan-line"><span>${esc(plan.name)}</span>${lastLine}</p>
     <h2 class="rest-title">${doneToday ? 'Hoy ya entrenaste' : 'Hoy descansás'}</h2>
-    <p class="rest-sum">${sum}${deloadNote}</p>
+    ${sum || deloadNote ? `<p class="rest-sum">${sum}${deloadNote}</p>` : ''}
     <div class="next"><p class="next-when">Próximo${when ? `, ${when}` : ''}</p>${title}
       <details class="next-list"><summary>Ver ejercicios</summary>${board}</details></div>
     <button class="sec next-go" data-action="start-workout" data-day="${day}">${doneToday ? 'Entrenar igual' : 'Empezar igual'}</button></section>`;
@@ -431,7 +431,7 @@ function renderHome() {
       <div class="btns"><button class="cta" data-action="level-up" data-v="${lvl.next}">Cambiar experiencia</button></div>
       <button class="link" data-action="level-no">Ahora no</button></div>`;
   }
-  if (backupDue(t)) h += `<div class="card ask backup-ask"><h3>¿Guardás una copia?</h3><p class="muted small">Tus datos viven solo en este teléfono. ${lastBackupText(t)} Guardala en Drive, el correo o WhatsApp.</p><div class="btns"><button class="cta" data-action="export">Guardar copia</button></div><button class="link" data-action="backup-no">Ahora no</button></div>`;
+  if (backupDue(t)) h += `<div class="card ask backup-ask"><h3>¿Guardás una copia?</h3><p class="muted small">Tus datos quedan solo en este teléfono. ${lastBackupText(t)} Guardala en Drive, el correo o WhatsApp.</p><div class="btns"><button class="cta" data-action="export">Guardar copia</button></div><button class="link" data-action="backup-no">Ahora no</button></div>`;
   if (S.onboarded && S.seenVersion !== APP_VERSION && S.seenVersion !== '') h += `<div class="card ask"><div class="row"><h3>Novedades de la versión ${APP_VERSION}</h3><button class="link" data-action="news-seen" aria-label="Cerrar">✕</button></div><button class="link" data-action="news">Ver qué cambió</button></div>`;
   h += installCard();
   $('view-home').innerHTML = h;
@@ -1702,7 +1702,7 @@ function renderSettings() {
     <button class="sec" style="width:100%" data-action="ics">📅 Agregar al calendario</button>
     ${S.painMode ? '' : '<p class="faint small">Los isométricos se incluyen solo con el modo dolor activado.</p>'}</div>
   <h2>Copia de seguridad</h2><div class="card">
-    <p class="muted small">Tus datos viven solo en este teléfono. Guardá una copia de vez en cuando (Drive, correo, WhatsApp).</p>
+    <p class="muted small">Tus datos quedan solo en este teléfono. Guardá una copia de vez en cuando (Drive, correo, WhatsApp).</p>
     <div class="btns"><button class="sec" data-action="export">Guardar copia</button><button class="sec" data-action="import">Restaurar copia</button></div>
     <p class="small backup-last${backupAge(today()) > BACKUP_EVERY && S.sessions.length ? ' due' : ''}">${lastBackupText(today())}</p>
     <input type="file" id="import-file" accept=".json,application/json" hidden>

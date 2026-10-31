@@ -2,6 +2,11 @@
 
 Todos los cambios de XZ Fit, del más nuevo al más viejo.
 
+## 1.32.5 — Textos más directos
+
+- El día de descanso, el inicio ya no muestra "Descansar también es parte del plan.": queda "Hoy descansás" y el próximo entreno.
+- En Ajustes y en el aviso de copia dice "Tus datos quedan solo en este teléfono.", igual que en la bienvenida.
+
 ## 1.32.4 — Sin raya entre la mano y los dedos con la palma abajo
 
 - En la extensión de muñeca (palma abajo), la fila de nudillos sigue en los dedos que rodean el mango sin una raya negra en el medio; donde el mango pasa por delante, el borde se mantiene.
