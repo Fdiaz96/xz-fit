@@ -178,11 +178,11 @@ const repCenter = ([lo, hi]) => Math.round((lo + hi) / 2);
 // Para quien recién empieza, el rango se achica a 4 repeticiones alrededor del mismo centro (6–12 → 7–11): mismo peso, meta más clara.
 const noviceRange = (range) => { const c = repCenter(range); return [Math.max(range[0], c - 2), Math.min(range[1], c + 2)]; };
 // Peso sugerido la primera vez (serie de calibración al centro del rango: 10 repeticiones con 8–12).
-const startWeight = (profile, ex, steps, range = [REPS_MIN, REPS_MAX]) => roundDown(steps, START_FACTOR * weightForReps(estimate1RM(profile, ex), repCenter(range)));
+const startWeight = (profile, ex, steps, range = [REPS_MIN, REPS_MAX], extra = 0) => roundDown(steps, START_FACTOR * weightForReps(estimate1RM(profile, ex), repCenter(range) + extra));
 // Después de la serie de calibración: reps hechas + reps en reserva → 1RM estimado → peso de trabajo (centro del rango dejando 2).
-function calibrate(w, reps, rir, steps, range = [REPS_MIN, REPS_MAX]) {
+function calibrate(w, reps, rir, steps, range = [REPS_MIN, REPS_MAX], target = TARGET_RIR) {
   const e1rm = epley1RM(w, reps + (Number(rir) || 0));
-  return { e1rm: Math.round(e1rm * 10) / 10, w: roundDown(steps, weightForReps(e1rm, repCenter(range) + TARGET_RIR)) };
+  return { e1rm: Math.round(e1rm * 10) / 10, w: roundDown(steps, weightForReps(e1rm, repCenter(range) + target)) };
 }
 // Cuánto más fuerte (o más débil) es la persona que lo que estima su perfil: la mediana de 1RM anotado / estimado
 // en los ejercicios con datos. 0 si todavía no levantó nada; acotado para que un dato raro no dispare los pesos.
@@ -196,9 +196,9 @@ function strengthScale(profile, lifts, getEx) {
   return Math.min(3, Math.max(0.3, med));
 }
 // Peso sugerido sin datos propios del ejercicio: con escala, como una calibración (centro del rango dejando 2); sin escala, el 70 %.
-const guessWeight = (profile, ex, steps, range, scale) => (scale
-  ? roundDown(steps, weightForReps(estimate1RM(profile, ex) * scale, repCenter(range ?? [REPS_MIN, REPS_MAX]) + TARGET_RIR))
-  : startWeight(profile, ex, steps, range));
+const guessWeight = (profile, ex, steps, range, scale, target = TARGET_RIR) => (scale
+  ? roundDown(steps, weightForReps(estimate1RM(profile, ex) * scale, repCenter(range ?? [REPS_MIN, REPS_MAX]) + target))
+  : startWeight(profile, ex, steps, range, target - TARGET_RIR));
 // ¿El ejercicio se mide en repeticiones dentro de un rango (con peso o con el propio cuerpo)? Los de tiempo no tienen rango.
 const hasRepRange = (ex) => ex.kind === 'peso' || ex.kind === 'reps';
 // Ejercicios con peso de la sesión cuyo peso no cambió (y que tienen rango): a esos se les dice en qué repeticiones suben.
@@ -433,6 +433,14 @@ function restSecs(ex, base) {
   const own = ex.kind === 'tiempo' || ex.cat === 'core' ? 45 : ex.rtype === 'compuesto' || (ex.kind === 'peso' && !ex.rtype) ? base : 60;
   return Math.min(base, own);
 }
+// Condiciones de salud del perfil (CONDITIONS): se combinan tomando lo más exigente. Sin condiciones, todo queda como siempre.
+function condRules(conds) {
+  const list = CONDITIONS.filter((c) => (conds || []).includes(c.id));
+  return { rest: Math.max(0, ...list.map((c) => c.rest)), minReps: Math.max(0, ...list.map((c) => c.minReps)),
+    rir: Math.max(TARGET_RIR, ...list.map((c) => c.rir)), tips: list.flatMap((c) => c.tips), names: list.map((c) => c.name) };
+}
+// Sube el rango de reps hasta el piso de la condición (con más reps, el peso sugerido baja): 6–12 con piso 12 → 12–17.
+const condRange = ([lo, hi], min) => (min > lo ? [min, Math.max(hi, min + 5)] : [lo, hi]);
 // Duración estimada de un entreno: unos 40 s por serie, el descanso entre series y 5 min de entrada en calor, redondeada a 5 min.
 function workoutMinutes(sets, rest) {
   if (!sets) return 0;

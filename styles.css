@@ -363,6 +363,12 @@ button.add-ex { width: 100%; }
 .calib-intro p { margin: 0; font-size: 14px; line-height: 1.45; }
 .calib-intro p + p { margin-top: 6px; }
 .calib-intro .calib-tag { display: inline-block; vertical-align: 1px; }
+/* Cuidados por condición de salud: el mismo pliegue, con el filo naranja de lo que hay que cuidar */
+.care { box-shadow: inset 4px 0 0 var(--pain); }
+.care h3 { margin: 0 0 6px; }
+.care-list { margin: 10px 0 6px; padding-left: 18px; font-size: 14px; line-height: 1.45; }
+.care-list li + li { margin-top: 6px; }
+.care p { margin: 0; }
 
 /* Series */
 .sets { margin-top: 12px; }

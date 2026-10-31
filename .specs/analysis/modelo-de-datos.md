@@ -7,7 +7,7 @@ Todo el estado vive en un objeto `S` (`app.js`), guardado completo en IndexedDB 
 ```js
 {
   v: 1, onboarded: false, painMode: false, hidePainTip: false, hideInstall?: true, seenVersion: '',
-  profile: { name, sex: 'h'|'m'|'x', weight, height, age, exp: 'novato'|'medio'|'avanzado', days: 2|3 },
+  profile: { name, sex: 'h'|'m'|'x', weight, height, age, exp: 'novato'|'medio'|'avanzado', days: 2|3, conds: [conditionId…] },   // conds: CONDITIONS de data.js (v1.32)
   equip: {
     db: { min, max, step, plates?: { on, bar, items: [{ kg, n }] } } | null,   // mancuernas (null = no tiene)
     kb: [kg…],                                                                // pesas rusas

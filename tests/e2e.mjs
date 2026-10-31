@@ -1364,6 +1364,31 @@ const kbView = await page.evaluate(() => {
 });
 ok(kbView.sin.impl === 'db' && kbView.sin.name === 'Swing con mancuerna' && kbView.sin.cue.startsWith('Mancuerna') && kbView.sin.prop === 'db', 'sin pesas rusas, goblet y swing se muestran con mancuerna');
 ok(kbView.con.impl === 'kb' && kbView.con.name === 'Swing con pesa rusa' && kbView.con.prop === 'kb', 'con pesas rusas siguen con pesa rusa');
+// Condiciones de salud: descanso mínimo, reps más altas (pesos más livianos) y cuidados
+{
+  await bootSaved({ profile: { exp: 'medio' }, sessions: [{ ago: 20 }] });
+  const goblet0 = await page.evaluate(() => planFor(0).find((p) => p.ex.id === 'goblet'));
+  ok(await page.locator('#view-home .care').count() === 0, 'sin condiciones no hay tarjeta de cuidados');
+  await click('[data-tab="settings"]');
+  await page.locator('#view-settings [data-action="cond-toggle"][value="marfan"]').check({ force: true }); await page.waitForTimeout(80);
+  ok((await state()).profile.conds.includes('marfan'), 'marcar Marfan en Ajustes lo guarda en el perfil');
+  ok(await page.locator('#view-settings [data-k="rest"][data-v="60"]').isDisabled() && await page.locator('#view-settings [data-k="rest"][data-v="90"]').isDisabled() && !(await page.locator('#view-settings [data-k="rest"][data-v="120"]').isDisabled()), 'con Marfan, 60 s y 90 s de descanso quedan desactivados');
+  ok((await page.locator('#view-settings').textContent()).includes('Por tu condición descansás al menos 2 min'), 'Ajustes explica el descanso mínimo');
+  const goblet1 = await page.evaluate(() => planFor(0).find((p) => p.ex.id === 'goblet'));
+  ok(goblet1.range[0] >= 12 && goblet1.w <= goblet0.w, `con Marfan la goblet va a 12 reps o más y no más pesada (${goblet0.range.join('–')} ${goblet0.w} kg → ${goblet1.range.join('–')} ${goblet1.w} kg)`);
+  await click('[data-tab="home"]');
+  ok(await page.locator('#view-home .care').count() === 1 && (await page.locator('#view-home .care summary').textContent()).includes('Descanso de 2 min'), 'Hoy muestra los cuidados por la condición');
+  await page.evaluate(() => startWorkout(0)); await page.waitForSelector('#wsheet[open]');
+  ok(await page.locator('#wsheet .care').count() === 1, 'el entreno arranca con los cuidados plegados');
+  const li = await page.evaluate(() => { W.warm.forEach((x) => (x.done = true)); W.items.forEach((it) => { it.calib = it.guess = it.pick = false; }); renderWorkout(); return W.items.findIndex((it) => it.ex.id === 'lateral' || it.ex.cat === 'core'); });
+  await click(`#wsheet [data-action="set-done"][data-i="${Math.max(0, li)}"][data-j="0"]`);
+  ok((await page.locator('#rest-time').textContent()) === '2:00', 'con Marfan hasta un aislamiento descansa 2 min');
+  await page.evaluate(() => endWorkout());
+  // Embarazo: los ejercicios boca arriba llevan aviso
+  await page.evaluate(() => { S.profile.conds = ['embarazo']; S.equip.bench = true; S.routine.fb2[0][1] = { slot: S.routine.fb2[0][1].slot, ex: 'press_banco', pinned: true }; persist(); render(); });
+  ok((await page.locator('#view-home .board').textContent()).includes('boca arriba'), 'con embarazo, el press en banco avisa en Hoy que es boca arriba');
+  await page.evaluate(() => { S.profile.conds = []; persist(); render(); });
+}
 ok(nativeDialogs === 0, `ninguna pregunta nativa del navegador (confirm/alert): ${nativeDialogs}`);
 ok(errors.length === 0, `sin errores de JavaScript${errors.length ? ': ' + errors.join(' | ') : ''}`);
 await browser.close();

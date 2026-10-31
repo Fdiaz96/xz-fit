@@ -57,6 +57,14 @@ Referencia rápida de las reglas que implementa `logic.js`. Todas son funciones 
 - `phaseReady`: ≥ 10 días en la fase, ≥ 5 registros (fase 1) o ≥ 3 (fase 2) en 7 días, todos ≤ 3 y ningún "peor".
 - `pendingChecks`: zonas con dolor registrado ayer y sin respuesta hoy.
 
+## Condiciones de salud
+
+- `condRules(profile.conds)`: combina las `CONDITIONS` marcadas tomando el descanso mínimo, el piso de reps y el RIR más altos, y junta los cuidados. Sin condiciones queda `{ rest: 0, minReps: 0, rir: TARGET_RIR }`.
+- `condRange([lo, hi], min)`: sube el rango hasta el piso (6–12 con 12 → 12–17). Se aplica antes de `noviceRange`.
+- `calibrate` y `guessWeight` (y `startWeight`) reciben el RIR objetivo; con más RIR, el peso sugerido baja.
+- Descanso: `max(restSecs(ex, prefs.rest), rules.rest)`, también en los isométricos de rehabilitación.
+- Detalle y fuentes en `condiciones-de-salud.md`.
+
 ## Otras
 
 - `warmupSets`: 8 reps al 50 % y 4 al 75 % del primer ejercicio con peso, sin repetir ni igualar el peso de trabajo.

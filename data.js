@@ -413,6 +413,9 @@ Object.entries({
   dominadas: 'tiron', rdl: 'bisagra', swing: 'bisagra', puente: 'bisagra', lateral: 'hombro', rot_ext_banda: 'hombro', face_pull: 'hombro',
   curl_martillo: 'brazos', triceps: 'brazos', plancha: 'core',
 }).forEach(([id, c]) => (EXERCISES[id].cat = c));
+// Ejercicios acostados boca arriba (o con la espalda apoyada): en el embarazo, desde el 2.º trimestre, llevan un aviso.
+['press_suelo', 'press_banco', 'puente', 'hip_thrust', 'pullover', 'press_frances', 'dead_bug', 'puente_bw', 'puente_1pierna', 'remo_mesa', 'curl_mesa']
+  .forEach((id) => (EXERCISES[id].supine = true));
 for (const [id, ex] of Object.entries(EXERCISES)) {
   ex.id = id;
   if (typeof ex.fig === 'string') ex.fig = { ...EXERCISES[ex.fig].fig, dur: ex.dur ?? EXERCISES[ex.fig].fig.dur };
@@ -675,6 +678,24 @@ const EXPERIENCE = [
   { id: 'novato', name: 'Menos de 6 meses', mult: 1 },
   { id: 'medio', name: '6 meses a 2 años', mult: 1.5 },
   { id: 'avanzado', name: 'Más de 2 años', mult: 2 },
+];
+
+// Condiciones de salud que cambian el entreno: descanso mínimo entre series (s), piso del rango de reps (más reps = menos peso),
+// reps en reserva al sugerir el peso (lejos del fallo) y cuidados que se muestran. Con varias, manda lo más exigente de cada una.
+// Fuentes y criterio en .specs/analysis/condiciones-de-salud.md.
+const CONDITIONS = [
+  { id: 'marfan', name: 'Síndrome de Marfan', hint: 'O aorta dilatada.', rest: 120, minReps: 12, rir: 4,
+    tips: ['Pesos livianos: tenés que llegar a 12–15 repeticiones sin apretar los dientes.', 'No aguantes el aire: soltalo al hacer fuerza.', 'Nada de cargas máximas ni series hasta no poder más.'] },
+  { id: 'eds', name: 'Ehlers-Danlos o hiperlaxitud', hint: 'Articulaciones que se pasan de rango.', rest: 90, minReps: 10, rir: 3,
+    tips: ['Movete en el recorrido que controlás, sin trabar codos ni rodillas al final.', 'Si una molestia no se te pasa en 2 horas, la próxima vez bajá el peso.'] },
+  { id: 'hta', name: 'Presión alta', hint: 'Hipertensión, con o sin medicación.', rest: 120, minReps: 10, rir: 3,
+    tips: ['Soltá el aire al hacer fuerza y tomalo al volver. No lo aguantes.', 'Pará si te duele la cabeza, te mareás o ves borroso.'] },
+  { id: 'soplo', name: 'Soplo o problema de válvula', hint: 'Del corazón.', rest: 90, minReps: 10, rir: 3,
+    tips: ['Confirmá con tu cardiólogo qué esfuerzo podés hacer.', 'Pará si sentís mareo, falta de aire, palpitaciones o dolor de pecho.', 'No aguantes el aire al hacer fuerza.'] },
+  { id: 'tiroides', name: 'Tiroides', hint: 'Hipo o hipertiroidismo.', rest: 90, minReps: 0, rir: 3,
+    tips: ['Entrená fuerte solo con los valores controlados por tu médico.', 'Si el corazón se te acelera de más, descansá hasta que baje.', 'Tomá agua y evitá entrenar con mucho calor.'] },
+  { id: 'embarazo', name: 'Embarazo', hint: 'Sin complicaciones y con el visto bueno médico.', rest: 120, minReps: 10, rir: 3,
+    tips: ['Tenés que poder hablar mientras hacés la serie.', 'Respirá parejo, sin aguantar el aire.', 'Desde el 4.º mes evitá estar boca arriba: hacé esos ejercicios inclinada o cambialos.', 'Pará si sentís mareo, dolor, contracciones o pérdida de líquido.'] },
 ];
 
 const SOURCES = [

@@ -2,7 +2,7 @@
 // (IndexedDB). Los identificadores internos siguen siendo "tendon-fuerte" para no perder los datos ya guardados.
 // Protocolo de tendones del video de Jeremy Ethier con Keith Baar y Coach Q; reglas en logic.js, bocetos en figures.js.
 
-const APP_VERSION = '1.31.0';
+const APP_VERSION = '1.32.0';
 const DAY_NAMES = { lu: 'Lu', ma: 'Ma', mi: 'Mi', ju: 'Ju', vi: 'Vi', sa: 'Sá', do: 'Do' };
 const SIDES = { der: 'derecha', izq: 'izquierda', ambos: 'ambos lados' };
 const REST_SECS = 90, ISO_REST = 60;
@@ -34,7 +34,7 @@ const GUESS_TAG = '<span class="calib-tag">estimado</span>';
 // ——— Estado y guardado ———
 const DEFAULT = () => ({
   v: 1, onboarded: false, painMode: false, hidePainTip: false,
-  profile: { name: '', sex: 'h', weight: '', height: '', age: '', exp: 'novato', days: 2 },
+  profile: { name: '', sex: 'h', weight: '', height: '', age: '', exp: 'novato', days: 2, conds: [] },
   equip: { db: { min: 2, max: 24, step: 2 }, kb: [], rings: false, bench: false, bar: false, band: false, machines: [] },
   equipBak: null,   // el equipo que había antes de elegir "Solo peso corporal", para devolverlo al destildarlo
   routine: {}, exlib: [],
@@ -247,7 +247,25 @@ const WEIGHT_MODES = [
 const weightMode = () => (WEIGHT_MODES.some(([k]) => k === S.prefs.weights) ? S.prefs.weights : 'auto');
 const weightModeFields = () => `<div class="tiles one">${WEIGHT_MODES.map(([k, n, hint]) => tile(`name="wmode" data-action="weights-mode" value="${k}"`, weightMode() === k, n, hint, 'radio')).join('')}</div>`;
 // Peso estimado de un ejercicio sin datos propios, ajustado por lo que ya se levantó en los otros.
-const guessFor = (ex, steps, range) => guessWeight(S.profile, ex, steps, range, strengthScale(S.profile, S.lifts, getEx));
+const guessFor = (ex, steps, range) => guessWeight(S.profile, ex, steps, range, strengthScale(S.profile, S.lifts, getEx), conds().rir);
+// Lo que piden las condiciones de salud del perfil (descanso mínimo, piso de reps, reps en reserva y cuidados).
+const conds = () => condRules(S.profile.conds);
+// Descanso tras una serie: el del ejercicio, nunca menos que el mínimo de la condición.
+const restFor = (ex) => Math.max(restSecs(ex, S.prefs.rest || REST_SECS), conds().rest);
+const isoRest = () => Math.max(ISO_REST, conds().rest);
+const restLabel = (n) => (n < 120 ? n + ' s' : n / 60 + ' min');
+// Ejercicio boca arriba con embarazo marcado: lleva aviso.
+const supineWarn = (ex) => !!ex.supine && (S.profile.conds || []).includes('embarazo');
+// Cuidados por la condición, plegados: arriba del entreno y en Hoy.
+function careCard(attrs = '') {
+  const c = conds();
+  if (!c.names.length) return '';
+  const gist = [c.rest ? `descanso de ${restLabel(c.rest)}` : '', c.minReps ? `${c.minReps} reps o más` : '', 'lejos del fallo'].filter(Boolean).join(', ');
+  return `<details class="card care fold" ${attrs}><summary><div><h3>Cuidados por tu condición</h3><span class="muted small">${gist[0].toUpperCase() + gist.slice(1)}</span></div></summary>
+    <ul class="care-list">${c.tips.map((t) => `<li>${esc(t)}</li>`).join('')}</ul><p class="faint small">Adaptado a: ${esc(c.names.join(', '))}. No reemplaza lo que te indique tu médico.</p></details>`;
+}
+// Casillas de condiciones de salud (perfil y alta).
+const condFields = () => `<div class="tiles list">${CONDITIONS.map((c) => tile(`data-action="cond-toggle" value="${c.id}"`, (S.profile.conds || []).includes(c.id), esc(c.name), esc(c.hint))).join('')}</div>`;
 // Etiqueta debajo del peso cuando todavía no es un peso de trabajo.
 const loadTag = (p) => (p.calib ? CALIB_TAG : p.guess ? GUESS_TAG : '');
 const loadText = (p) => (p.w ? fmtKg(p.w) : p.pick ? 'a elegir' : 'sin peso');
@@ -262,7 +280,7 @@ function planItem(day, it, equip = S.equip) {
   const ex = r?.mode === 'alt' ? altEx(orig) : orig;
   const impl = implFor(ex, equip);
   const steps = weightSteps(equip, impl);
-  const slot = daySlot(spec, it.slot), range = S.profile.exp === 'novato' ? noviceRange(repRange(ex, slot)) : repRange(ex, slot);
+  const slot = daySlot(spec, it.slot), base = condRange(repRange(ex, slot), conds().minReps), range = S.profile.exp === 'novato' ? noviceRange(base) : base;
   const item = { ex, orig, r, impl, steps, slot: it.slot, sets: setsFor(slot?.sets ?? DEFAULT_SETS, weeks, deload), range, missing: !impl, deload };
   if (ex.kind === 'peso') {
     const lift = S.lifts[ex.id], mode = weightMode();
@@ -381,8 +399,8 @@ function renderHome() {
   // "Estimado" se explica una sola vez debajo de la lista; cada peso estimado lleva solo un ≈ delante.
   const load = (p) => p.ex.kind !== 'peso' ? '' : p.guess && !p.calib ? `<span class="load guess"><i aria-label="estimado">≈</i>${loadText(p)}</span>` : `<span class="load">${loadText(p)}${loadTag(p)}</span>`;
   const guessNote = !first && doable.some((p) => p.guess && !p.calib && p.ex.kind === 'peso') ? `<p class="board-note">≈ Peso estimado: sale de tu perfil y de lo que levantás en otros ejercicios. Con tu primera serie lo ajustamos.</p>` : '';
-  const board = `<ol class="board">${doable.map((p) => `<li><button data-action="ex-detail" data-ex="${p.ex.id}"><span class="name">${esc(p.ex.name)}${p.r ? `<em>${painTag(p.r)}</em>` : ''}</span><span class="dose">${p.sets} × ${setLabel(p)}</span>${load(p)}<span class="chev" aria-hidden="true">›</span></button></li>`).join('')}</ol>${guessNote}`;
-  const mins = workoutMinutes(doable.reduce((n, p) => n + p.sets, 0), S.prefs.rest || REST_SECS);
+  const board = `<ol class="board">${doable.map((p) => `<li><button data-action="ex-detail" data-ex="${p.ex.id}"><span class="name">${esc(p.ex.name)}${p.r ? `<em>${painTag(p.r)}</em>` : supineWarn(p.ex) ? '<em>boca arriba: desde el 4.º mes, inclinada</em>' : ''}</span><span class="dose">${p.sets} × ${setLabel(p)}</span>${load(p)}<span class="chev" aria-hidden="true">›</span></button></li>`).join('')}</ol>${guessNote}`;
+  const mins = workoutMinutes(doable.reduce((n, p) => n + p.sets, 0), Math.max(S.prefs.rest || REST_SECS, conds().rest));
   const title = `<h3><span class="day-name">${esc(plan.days[day].name)}</span><span class="sep"> · </span><span class="day-count">${doable.length} ejercicios${mins ? ` · ~${mins} min` : ''}</span></h3>`;
   const lastLine = last && last.date !== t ? `<span>Último: ${fmtDate(last.date)}</span>` : '';
   const deloadNote = S.plan.deload === weekKey(t) ? ' Semana de descarga.' : '';
@@ -415,6 +433,7 @@ function renderHome() {
     <p class="day-msg">${dayMsg}${deloadNote}</p>
     ${title}${swapNote(doable)}${board}
     <button class="cta stick" data-action="start-workout" data-day="${day}">Empezar ${esc(plan.days[day].name.toLowerCase())}</button></section>`;
+  h += careCard();
   if (S.painMode && hasZones) h += `<button class="sec quick-pain" data-action="quick-pain">Anotar cómo está el dolor ahora</button>`;
   if (!rehabFirst) h += rehab;
   // Avisos y decisiones pendientes, debajo del entreno.
@@ -874,6 +893,7 @@ function renderWorkout() {
     if (it.r?.mode === 'cap') notes.push(`<div class="note pain">Más liviano ${forZones(it.r)}: ${fmtKg(it.w)}${it.w < it.base ? ` en vez de ${fmtKg(it.base)}` : ', el peso más bajo que tenés'}.</div>`);
     if (it.r?.mode === 'alt') notes.push(`<div class="note pain">Variante ${forZones(it.r)}: hoy va ${esc(it.ex.name.toLowerCase())} en vez de ${esc(it.orig.name.toLowerCase())}.</div>`);
     if (it.maint) notes.push(`<div class="note pain">Mantenimiento de ${esc(zoneName(it.maint).toLowerCase())} (fase 3).</div>`);
+    if (supineWarn(it.ex)) notes.push(`<div class="note">Boca arriba: desde el 4.º mes hacelo con la espalda inclinada (almohadones o banco inclinado) o cambialo por hoy.</div>`);
     if (it.from) notes.push(`<div class="note">Solo por hoy: en vez de ${esc(getEx(it.from).name.toLowerCase())}.</div>`);
     const rirOpen = k === 'peso' && W.rirHelp === i;
     const head = `<div class="set head"><span>Serie</span><span>${weighted ? 'kg' : ''}</span><span>${timed ? 'seg' : 'reps'}</span>${k === 'peso' ? `<button class="rir-help" data-action="rir-help" data-i="${i}" aria-expanded="${rirOpen}">RIR <b aria-hidden="true">?</b><span class="sr">: qué es</span></button>` : '<span></span>'}<span></span></div>`
@@ -907,7 +927,7 @@ function renderWorkout() {
     : W.guessIntro && W.items.some((it) => it.pick) ? intro('Elegís vos los pesos', 'Anotá el peso que uses en cada serie', `
     <p>Anotá el peso que uses en cada serie. La próxima vez cada ejercicio arranca con el último que usaste.</p>`) : '';
   dlg('wsheet').html = `<div class="dlg"><div class="dlg-head w-head"><button class="link danger" data-action="cancel-workout">Salir</button><div class="w-title"><strong>${esc(W.dayName)}</strong><span class="w-count">${done} de ${total} series</span></div><button class="link" data-action="finish-workout">Terminar</button>
-      <div class="w-track" role="progressbar" aria-label="Series hechas" aria-valuemin="0" aria-valuemax="${total}" aria-valuenow="${done}">${track}</div></div>${warm}${calib}${body}
+      <div class="w-track" role="progressbar" aria-label="Series hechas" aria-valuemin="0" aria-valuemax="${total}" aria-valuenow="${done}">${track}</div></div>${careCard(`data-fold="careOpen" ${W.careOpen ? 'open' : ''}`)}${warm}${calib}${body}
     <button class="cta" data-action="finish-workout">Terminar entreno</button></div>`;
   saveLive();   // cada tilde, cambio o paso de la entrada en calor redibuja: queda guardado al instante
 }
@@ -927,7 +947,7 @@ function setDone(i, j) {
   r.done = !r.done;
   if (r.done && it.calib && j === 0 && k === 'peso') {
     if (r.rir === '') { r.done = false; return toast('Elegí cuántas reps te quedaban (RIR).'); }
-    const c = calibrate(Number(r.w), Number(r.reps), Number(r.rir), it.steps, it.range);
+    const c = calibrate(Number(r.w), Number(r.reps), Number(r.rir), it.steps, it.range, conds().rir);
     S.lifts[it.ex.id] = { w: c.w, e1rm: c.e1rm };
     it.calib = false; it.calibrated = true; it.base = c.w;
     it.w = it.r ? painCap(c.w, it.steps) : c.w;
@@ -953,7 +973,7 @@ function setDone(i, j) {
   if (r.done && auto && !said && !W.autoSaid) { W.autoSaid = true; toast(`Anotamos ${auto}, lo sugerido. Si hiciste otra cosa, cambialo en la serie.`); }
   // Descansa mientras quede alguna serie del entreno (también al pasar al ejercicio siguiente), lo que pide este ejercicio.
   // Con la última serie hecha no hay nada que esperar: se corta el descanso que viniera corriendo.
-  if (r.done) W.items.some((x) => x.rows.some((y) => !y.done)) ? startRest(restSecs(it.ex, S.prefs.rest || REST_SECS)) : stopRest();
+  if (r.done) W.items.some((x) => x.rows.some((y) => !y.done)) ? startRest(restFor(it.ex)) : stopRest();
   if (r.done) showNextSet();
 }
 // Lleva la serie que sigue a la vista, entre el encabezado y la barra de descanso, si quedó tapada o fuera de pantalla.
@@ -1243,7 +1263,7 @@ function renderRehab() {
   let main = '';
   if (it) {
     const iso = it.ex.kind === 'iso';
-    const total = R.state === 'rest' ? ISO_REST : it.secs;
+    const total = R.state === 'rest' ? isoRest() : it.secs;
     const left = R.left ?? total;
     const C = 2 * Math.PI * 100;
     main = `<p class="small">Ejercicio ${R.idx + 1} de ${R.items.length} para tu ${esc(zoneName(it.zone).toLowerCase())}</p><p class="muted small">${esc(PHASES[S.zones[it.zone].phase].name)}</p>
@@ -1285,7 +1305,7 @@ function rehabTick() {
   const left = Math.max(0, Math.ceil((R.end - Date.now()) / 1000));
   if (left !== R.left) {
     R.left = left;
-    const total = R.state === 'rest' ? ISO_REST : R.items[R.idx].secs, bar = $('rsheet').querySelector('.timer .bar');
+    const total = R.state === 'rest' ? isoRest() : R.items[R.idx].secs, bar = $('rsheet').querySelector('.timer .bar');
     if ($('r-left')) $('r-left').textContent = left;
     if (bar) bar.style.strokeDashoffset = 2 * Math.PI * 100 * (1 - left / total);
     if (left > 0 && left <= 3) cue('tick');
@@ -1303,7 +1323,7 @@ function rehabTick() {
     }
     it.held.push(held); it.done++;
     if (it.done >= it.sets) { R.state = 'listo'; R.idx++; cue('done', R.items[R.idx] ? 'Listo. Siguiente ejercicio' : 'Terminaste'); }
-    else { R.state = 'rest'; R.end = Date.now() + ISO_REST * 1000; R.timer = setInterval(rehabTick, 250); cue('done', 'Descansá'); }
+    else { R.state = 'rest'; R.end = Date.now() + isoRest() * 1000; R.timer = setInterval(rehabTick, 250); cue('done', 'Descansá'); }
   } else if (R.state === 'rest') {
     R.state = 'listo';
     if (S.prefs.auto) return rehabGo();   // manos libres: la serie siguiente arranca sola
@@ -1685,6 +1705,8 @@ function renderSettings() {
     <button class="sec" style="width:100%" data-action="plan-open">Cambiar plan o días</button>
     <span class="small muted" style="display:block;margin-top:12px">Experiencia</span><div class="chips" style="margin-top:4px">${EXPERIENCE.map((x) => `<button class="chip${p.exp === x.id ? ' on' : ''}" data-action="set-exp" data-v="${x.id}">${x.name}</button>`).join('')}</div>
     <p class="faint small">Con sexo, peso, edad y experiencia estimamos tu peso inicial. La altura casi no cambia el cálculo.</p></div>
+  <h2>Salud</h2><div class="card"><p class="muted small">Opcional. Si tenés alguna de estas condiciones, la app alarga el descanso, baja los pesos para que no llegues al fallo y te recuerda los cuidados.</p>${condFields()}
+    <p class="faint small">No reemplaza lo que te indique tu médico: consultalo antes de entrenar.</p></div>
   <h2>Pesos</h2>${weightModeFields()}
   <h2>Equipo</h2>${equipFields()}
   ${hasPainTab() ? '' : `<h2>Dolor</h2><div class="card pain"><h3>¿Te duele algo?</h3><p class="muted small">Marcá la zona y activá el modo dolor: suma ejercicios para el tendón y cuida esa zona en el entreno.</p><button class="sec" style="width:100%;margin-top:10px" data-action="go-pain">Marcar qué me duele</button></div>`}
@@ -1693,7 +1715,7 @@ function renderSettings() {
     <label class="row tap"><div><h3>Sonidos</h3><p class="muted small">Pitidos al empezar, en los últimos 3 s y al terminar.</p></div><span class="switch acc"><input type="checkbox" data-action="pref-toggle" data-k="sound" ${S.prefs.sound ? 'checked' : ''} aria-label="Sonidos"><i></i></span></label>
     <label class="row tap"><div><h3>Voz</h3><p class="muted small">"Sostené", "Descansá", "Siguiente serie".</p></div><span class="switch acc"><input type="checkbox" data-action="pref-toggle" data-k="voice" ${S.prefs.voice ? 'checked' : ''} aria-label="Voz"><i></i></span></label>
     <label class="row tap"><div><h3>Isométricos manos libres</h3><p class="muted small">Después del descanso, la serie siguiente arranca sola.</p></div><span class="switch acc"><input type="checkbox" data-action="pref-toggle" data-k="auto" ${S.prefs.auto ? 'checked' : ''} aria-label="Manos libres"><i></i></span></label>
-    <span class="small muted">Descanso entre series de entreno</span><div class="chips" style="margin-top:4px">${[60, 90, 120, 180].map((n) => `<button class="chip${S.prefs.rest === n ? ' on' : ''}" data-action="pref" data-k="rest" data-v="${n}">${n < 120 ? n + ' s' : n / 60 + ' min'}</button>`).join('')}</div>
+    <span class="small muted">Descanso entre series de entreno</span><div class="chips" style="margin-top:4px">${[60, 90, 120, 180].map((n) => `<button class="chip${Math.max(S.prefs.rest || REST_SECS, conds().rest) === n ? ' on' : ''}" data-action="pref" data-k="rest" data-v="${n}"${n < conds().rest ? ' disabled' : ''}>${restLabel(n)}</button>`).join('')}</div>${conds().rest > (S.prefs.rest || REST_SECS) ? `<p class="faint small">Por tu condición descansás al menos ${restLabel(conds().rest)} entre series.</p>` : ''}
     <p class="faint small">La pantalla queda prendida mientras entrenás.</p></div>
   <h2>Recordatorios</h2><div class="card">
     <p class="muted small">Se agregan a tu calendario: es la forma más confiable de recibir avisos sin servidor.</p>
@@ -1829,6 +1851,7 @@ function renderOnb() {
     <span class="small muted">Sexo</span><div class="chips" style="margin:4px 0 8px">${[['h', 'Hombre'], ['m', 'Mujer'], ['x', 'Prefiero no decir']].map(([k, v]) => `<button class="chip${p.sex === k ? ' on' : ''}" data-action="set-sex" data-v="${k}">${v}</button>`).join('')}</div>
     <div class="grid3">${unitField('Peso', `id="o-weight" data-set="profile.weight" inputmode="decimal" value="${esc(p.weight)}"`, 'kg')}${unitField('Altura <i class="opt">(opcional)</i>', `data-set="profile.height" inputmode="numeric" value="${esc(p.height)}"`, 'cm')}${unitField('Edad <i class="opt">(opcional)</i>', `data-set="profile.age" inputmode="numeric" value="${esc(p.age)}"`, 'años')}</div>
     <span class="small muted">¿Cuánto hace que entrenás con pesas?</span><div class="chips" style="margin:4px 0 16px">${EXPERIENCE.map((x) => `<button class="chip${p.exp === x.id ? ' on' : ''}" data-action="set-exp" data-v="${x.id}">${x.name}</button>`).join('')}</div>
+    <span class="small muted">¿Tenés alguna condición de salud? <i class="opt">(opcional)</i></span>${condFields()}<p class="faint small" style="margin-bottom:16px">Alarga el descanso y baja los pesos. No reemplaza a tu médico.</p>
     <span class="small muted">¿Cómo querés los pesos?</span>${weightModeFields()}<p class="faint small">Lo cambiás cuando quieras en Ajustes.</p>`;
   if (onbStep === 2) body = `<h1>Tu equipo</h1><p class="muted small">Marcá lo que tenés. La rutina usa solo eso y redondea los pesos a lo que podés cargar. Sin nada, también se puede.</p>${equipFields()}`;
   if (onbStep === 3) {
@@ -2070,6 +2093,10 @@ document.addEventListener('change', (e) => {
   const a = el.dataset.action;
   if (a === 'onb-care') onbCare = el.checked;
   if (a === 'pain-mode') { S.painMode = el.checked; persist(); render(); toast(el.checked ? 'Modo dolor activado.' : 'Modo dolor apagado: el entreno usa los pesos completos.'); }
+  if (a === 'cond-toggle') {
+    const list = (S.profile.conds || []).filter((c) => c !== el.value);
+    S.profile.conds = el.checked ? [...list, el.value] : list; persist(); $('onb').open ? renderOnb() : render();
+  }
   if (a === 'zone-toggle') {
     const zone = el.dataset.zone, name = zoneName(zone).toLowerCase();
     if (el.checked) S.zones[zone] = $('onb').open ? newZone(zone, null, null) : newZone(zone);

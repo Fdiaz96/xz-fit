@@ -2,6 +2,15 @@
 
 Todos los cambios de XZ Fit, del más nuevo al más viejo.
 
+## 1.32.0 — Entrenar con una condición de salud
+
+- **Nueva sección Salud en Ajustes** (y en el alta, junto al perfil): podés marcar síndrome de Marfan, Ehlers-Danlos o hiperlaxitud, presión alta, soplo o problema de válvula, tiroides o embarazo. Es opcional.
+- **El descanso entre series se alarga**: con Marfan, presión alta o embarazo descansás al menos 2 minutos, y con las otras condiciones, 90 segundos, también en los ejercicios cortos y en los isométricos. En Ajustes, los descansos más cortos que ese mínimo quedan desactivados.
+- **Pesos más livianos, lejos del fallo**: el rango de repeticiones sube (con Marfan, 12 o más; con las demás, 10 o más) y el peso sugerido deja más repeticiones en reserva. Así la app nunca te lleva a series al límite.
+- **Cuidados a mano**: en Hoy y arriba de cada entreno aparece una tarjeta plegable con los cuidados de tu condición, como no aguantar el aire o cuándo parar.
+- **Embarazo**: los ejercicios boca arriba (press en banco o en el suelo, puente, pullover…) avisan que desde el 4.º mes conviene hacerlos con la espalda inclinada o cambiarlos.
+- No reemplaza lo que te indique tu médico.
+
 ## 1.31.0 — Muñeco nuevo
 
 - **El personaje de los ejercicios tiene cuerpo de verdad**: hombros anchos, bíceps, antebrazos, cuádriceps y gemelos con su forma, torso en V, cuello más firme. La remera es ajustada, con cuello y mangas marcadas, el short tiene cintura y ruedo, las zapatillas suela, las manos pulgar y la cara cejas que se fruncen con el esfuerzo.

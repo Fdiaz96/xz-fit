@@ -504,5 +504,20 @@ eq(L('routineChanges([[{slot:"a",ex:"z"},fr[0][1],fr[0][2]], fr[1]], fr)'), [], 
 eq(L('routineChanges([[fr[0][0],fr[0][2],{slot:null,ex:"c_1",pinned:true}], fr[1]], fr)'), [{ day: 0, kind: 'add', to: 'c_1' }, { day: 0, kind: 'del', from: 'x2' }], 'sumar uno propio y sacar otro');
 eq(L('routineChanges([[fr[0][1],fr[0][0],fr[0][2]], fr[1]], fr)'), [{ day: 0, kind: 'order' }], 'solo cambiar el orden');
 
+// Condiciones de salud: se combinan tomando lo más exigente
+eq(L('(({ rest, minReps, rir, tips }) => ({ rest, minReps, rir, tips: tips.length }))(condRules([]))'), { rest: 0, minReps: 0, rir: 2, tips: 0 }, 'sin condiciones: sin mínimo de descanso, sin piso de reps, RIR 2 de siempre');
+eq(L('(({ rest, minReps, rir }) => ({ rest, minReps, rir }))(condRules(["marfan", "eds"]))'), { rest: 120, minReps: 12, rir: 4 }, 'Marfan + Ehlers-Danlos: 2 min, 12 reps o más, RIR 4');
+eq(L('condRules(["tiroides"]).minReps'), 0, 'tiroides no sube las reps');
+eq(L('condRules(["zzz", undefined]).rest'), 0, 'una condición desconocida no cambia nada');
+eq(L('condRange([6, 12], 12)'), [12, 17], 'piso 12 sobre 6–12 → 12–17');
+eq(L('condRange([12, 20], 10)'), [12, 20], 'un rango que ya arranca arriba del piso no cambia');
+eq(L('condRange([8, 12], 0)'), [8, 12], 'sin piso no cambia');
+ctx.strong = { sex: 'h', weight: '100', exp: 'avanzado', age: '30' };
+ctx.st60 = Array.from({ length: 30 }, (_, i) => 2 + 2 * i);   // hasta 60 kg, para que el tope del equipo no iguale los pesos
+ok(L('guessWeight(strong, EXERCISES.goblet, st60, [12, 17], 1, 4) < guessWeight(strong, EXERCISES.goblet, st60, [12, 17], 1)'), 'con RIR 4 el peso sugerido es menor que con RIR 2');
+ok(L('calibrate(20, 10, 2, weightSteps(equip, "db"), [8, 12], 4).w < calibrate(20, 10, 2, weightSteps(equip, "db"), [8, 12]).w'), 'calibrar con RIR 4 da un peso de trabajo menor');
+ok(L('CONDITIONS.every((c) => c.name && c.hint && c.tips.length && c.rest >= 90 && c.rir >= 3)'), 'cada condición tiene nombre, aclaración, cuidados, descanso ≥ 90 s y RIR ≥ 3');
+ok(L('EXERCISES.press_banco.supine && EXERCISES.puente.supine && !EXERCISES.goblet.supine'), 'press en banco y puente están marcados boca arriba; la goblet no');
+
 console.log(failures ? `\n${failures} fallaron` : '\nTodo OK');
 process.exit(failures ? 1 : 0);
