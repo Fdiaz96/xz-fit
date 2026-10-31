@@ -9,7 +9,8 @@ Todos los cambios de XZ Fit, del más nuevo al más viejo.
 - **Pesos más livianos, lejos del fallo**: el rango de repeticiones sube (con Marfan, 12 o más; con las demás, 10 o más) y el peso sugerido deja más repeticiones en reserva. Así la app nunca te lleva a series al límite.
 - **Cuidados a mano**: en Hoy y arriba de cada entreno aparece una tarjeta plegable con los cuidados de tu condición, como no aguantar el aire o cuándo parar.
 - **Embarazo**: los ejercicios boca arriba (press en banco o en el suelo, puente, pullover…) avisan que desde el 4.º mes conviene hacerlos con la espalda inclinada o cambiarlos.
-- No reemplaza lo que te indique tu médico.
+- Marcar una condición pide confirmar que tu médico te autorizó a hacer ejercicio de fuerza.
+- **Términos de uso**: antes de usar la app hay que leer y aceptar los términos y el deslinde de responsabilidad, tildando cada punto. Dicen que XZ Fit no es un servicio médico, que hay que consultar a un médico, que entrenás bajo tu responsabilidad y que tenés 18 años o más. Sin aceptarlos, la app no se puede usar. Quien ya usaba la app los ve al abrirla. En Ajustes → Términos de uso podés releerlos o retirar tu aceptación.
 
 ## 1.31.0 — Muñeco nuevo
 

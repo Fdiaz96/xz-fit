@@ -34,6 +34,7 @@ const GUESS_TAG = '<span class="calib-tag">estimado</span>';
 // ——— Estado y guardado ———
 const DEFAULT = () => ({
   v: 1, onboarded: false, painMode: false, hidePainTip: false,
+  terms: null,   // aceptación de los términos y el deslinde: { v: TERMS_V, at: fecha y hora }; sin ella no se usa la app
   profile: { name: '', sex: 'h', weight: '', height: '', age: '', exp: 'novato', days: 2, conds: [] },
   equip: { db: { min: 2, max: 24, step: 2 }, kb: [], rings: false, bench: false, bar: false, band: false, machines: [] },
   equipBak: null,   // el equipo que había antes de elegir "Solo peso corporal", para devolverlo al destildarlo
@@ -1109,6 +1110,43 @@ function confirmWipe() {
     <button class="sec danger wipe-go" data-action="wipe-go" ${wipeOk() ? '' : 'disabled'}>Borrar todos los datos</button></div>`;
   if (!$('wipesheet').open) $('wipesheet').showModal();
 }
+// ——— Términos y deslinde de responsabilidad ———
+// Hay que aceptarlos (con cada casilla tildada) para usar la app. "No acepto" deja la app bloqueada; en Ajustes se releen o se retira la aceptación.
+let termsChecks = [], termsDenied = false, termsRead = false;
+const termsOk = () => S.terms?.v === TERMS_V;
+// Fecha completa ("31 de octubre de 2026"): la de la versión (día suelto) o la de la aceptación (fecha y hora, en hora local).
+const termsDate = (v) => new Date(v.length === 10 ? v + 'T12:00' : v).toLocaleDateString('es', { day: 'numeric', month: 'long', year: 'numeric' });
+function openTerms(read = false) {
+  termsRead = read; termsDenied = false; termsChecks = TERMS_CHECKS.map(() => false);
+  renderTerms(); if (!$('terms').open) $('terms').showModal();
+  $('terms').querySelector('.dlg').scrollTop = 0;
+}
+function renderTerms() {
+  const text = `<div class="terms-text">${TERMS.map(([h, p]) => `<h3>${esc(h)}</h3><p>${esc(p)}</p>`).join('')}</div>`;
+  let body;
+  if (termsRead) body = `<div class="dlg-head"><span></span><strong>Términos de uso</strong><button class="link" data-action="close" data-dlg="terms">Cerrar</button></div>
+    ${text}<p class="faint small">Versión del ${termsDate(TERMS_V)}. Los aceptaste el ${termsDate(S.terms.at)}.</p>`;
+  else if (termsDenied) body = `<div class="terms-denied"><h1>Sin aceptar los términos no podés usar XZ Fit</h1>
+    <p class="muted">La app sugiere pesos y ejercicios que pueden afectar tu salud, por eso solo se usa con estos términos aceptados. Tus datos siguen guardados en este teléfono.</p>
+    <button class="cta" data-action="terms-back">Volver a leer los términos</button></div>`;
+  else body = `<h1>Antes de empezar</h1><p class="muted small">Leé esto con atención. Para usar XZ Fit tenés que aceptarlo.</p>${text}
+    <p class="faint small">Versión del ${termsDate(TERMS_V)}.</p>
+    <h2 class="terms-ask">Para aceptar, confirmá cada punto</h2>
+    <div class="tiles one">${TERMS_CHECKS.map((t, i) => tile(`data-action="terms-check" data-i="${i}"`, termsChecks[i], esc(t))).join('')}</div>
+    <button class="cta" data-action="terms-accept" ${termsChecks.every(Boolean) ? '' : 'disabled'}>Acepto los términos</button>
+    <button class="link danger terms-deny" data-action="terms-deny">No acepto</button>`;
+  dlg('terms').html = `<div class="dlg terms">${body}</div>`;
+}
+function acceptTerms() {
+  if (!termsChecks.every(Boolean)) return;
+  S.terms = { v: TERMS_V, at: new Date().toISOString() }; persist();
+  $('terms').close(); render();
+  if (!S.onboarded) { renderOnb(); $('onb').showModal(); }
+}
+async function withdrawTerms() {
+  if (!await ask({ title: '¿Retirar tu aceptación?', text: 'Sin aceptar los términos no podés usar XZ Fit. Tus datos quedan guardados en este teléfono y vuelven cuando los aceptes de nuevo.', keep: 'Seguir aceptando', go: 'Retirar aceptación', danger: true })) return;
+  S.terms = null; await persist(); openTerms();
+}
 // Pregunta propia de la app (en vez de confirm()): título, qué pasa y dos botones. El de arriba es el que no
 // cambia nada; el de abajo hace la acción. Devuelve una promesa: true si tocó la acción, false si canceló o cerró.
 let askDone = null;
@@ -1124,7 +1162,7 @@ function ask({ title, text, note = '', keep = 'Cancelar', go, danger = false }) 
 function wipeAll() {
   if (!wipeOk()) return;
   $('wipesheet').close(); wipeQ = '';
-  clearLive(); S = DEFAULT(); resetRoutine(); persist(); onbStep = 0; onbPlanSet = false; onbCare = true; onbPainCheck = false; renderOnb(); $('onb').showModal();
+  clearLive(); const terms = S.terms; S = DEFAULT(); S.terms = terms; resetRoutine(); persist(); onbStep = 0; onbPlanSet = false; onbCare = true; onbPainCheck = false; renderOnb(); $('onb').showModal();
 }
 function saveSession(session) {
   S.sessions.unshift(session); persist(); render();
@@ -1729,6 +1767,9 @@ function renderSettings() {
     <p class="small backup-last${backupAge(today()) > BACKUP_EVERY && S.sessions.length ? ' due' : ''}">${lastBackupText(today())}</p>
     <input type="file" id="import-file" accept=".json,application/json" hidden>
     <p class="faint small" id="persist-status"></p></div>
+  <h2>Términos de uso</h2><div class="card">
+    <p class="muted small">XZ Fit no es un servicio médico. Los aceptaste el ${S.terms ? termsDate(S.terms.at) : '—'}.</p>
+    <div class="btns"><button class="sec" data-action="terms-read">Leer los términos</button><button class="sec danger" data-action="terms-withdraw">Retirar aceptación</button></div></div>
   <h2>Fuentes</h2><div class="card small">
     <p class="muted">Protocolo de tendones basado en:</p><ul>${SOURCES.map((s) => `<li><a href="${s.url}" target="_blank" rel="noopener">${esc(s.title)}</a></li>`).join('')}</ul>
     <p class="muted">Ilustraciones dibujadas para esta app (sin imágenes de terceros). XZ Fit no es un consejo médico: consultá a un profesional ante dolor agudo, hinchazón o pérdida de fuerza.</p>
@@ -1935,7 +1976,7 @@ async function importData(file) {
     if (!d.profile || !Array.isArray(d.sessions)) throw new Error('no es una copia de XZ Fit');
     const n = d.sessions.length;
     if (!await ask({ title: '¿Restaurar esta copia?', text: `Tus datos de este teléfono se reemplazan por los de la copia (${n === 1 ? '1 sesión' : `${n} sesiones`}). Lo que anotaste después de guardarla se pierde.`, keep: 'Mantener mis datos', go: 'Restaurar copia' })) return;
-    clearLive(); S = withDefaults(d); S.onboarded = true; applyTheme(); await persist(); render(); toast('Copia restaurada.');
+    clearLive(); const terms = S.terms; S = withDefaults(d); if (!termsOk()) S.terms = terms; S.onboarded = true; applyTheme(); await persist(); render(); toast('Copia restaurada.');
   } catch (e) { toast('No se pudo leer el archivo: ' + e.message); }
 }
 
@@ -1970,6 +2011,11 @@ document.addEventListener('click', (e) => {
       delete S.lifts[d.ex]; persist(); $('exsheet').close(); render();
     },
     'close': () => $(d.dlg).close(),
+    'terms-accept': acceptTerms,
+    'terms-deny': () => { termsDenied = true; renderTerms(); $('terms').querySelector('.dlg').scrollTop = 0; },
+    'terms-back': () => openTerms(),
+    'terms-read': () => openTerms(true),
+    'terms-withdraw': withdrawTerms,
     'start-rehab': startRehab,
     'rehab-go': rehabGo,
     'rehab-skip': rehabSkip,
@@ -2086,6 +2132,14 @@ document.addEventListener('click', (e) => {
   };
   actions[a]?.();
 });
+// Marcar una condición de salud pide confirmar el visto bueno médico; desmarcarla no pregunta nada.
+async function toggleCond(el) {
+  const c = CONDITIONS.find((x) => x.id === el.value), list = (S.profile.conds || []).filter((x) => x !== c.id);
+  if (el.checked && !await ask({ title: `${c.name}: con el visto bueno de tu médico`, text: 'La app va a alargar el descanso, bajar los pesos y mostrarte cuidados, pero son ajustes generales: no hacen que entrenar sea seguro para vos. Marcalo solo si tu médico te autorizó a hacer ejercicio de fuerza.', keep: 'Cancelar', go: 'Mi médico me autorizó, marcar' })) {
+    el.checked = false; return;
+  }
+  S.profile.conds = el.checked ? [...list, c.id] : list; persist(); $('onb').open ? renderOnb() : render();
+}
 document.addEventListener('change', (e) => {
   const el = e.target;
   if (el.dataset.set) return onSetField(el);
@@ -2093,10 +2147,8 @@ document.addEventListener('change', (e) => {
   const a = el.dataset.action;
   if (a === 'onb-care') onbCare = el.checked;
   if (a === 'pain-mode') { S.painMode = el.checked; persist(); render(); toast(el.checked ? 'Modo dolor activado.' : 'Modo dolor apagado: el entreno usa los pesos completos.'); }
-  if (a === 'cond-toggle') {
-    const list = (S.profile.conds || []).filter((c) => c !== el.value);
-    S.profile.conds = el.checked ? [...list, el.value] : list; persist(); $('onb').open ? renderOnb() : render();
-  }
+  if (a === 'terms-check') { termsChecks[+el.dataset.i] = el.checked; $('terms').querySelector('[data-action="terms-accept"]').disabled = !termsChecks.every(Boolean); }
+  if (a === 'cond-toggle') return toggleCond(el);
   if (a === 'zone-toggle') {
     const zone = el.dataset.zone, name = zoneName(zone).toLowerCase();
     if (el.checked) S.zones[zone] = $('onb').open ? newZone(zone, null, null) : newZone(zone);
@@ -2154,7 +2206,7 @@ document.addEventListener('toggle', (e) => {
   if (f === 'warmOpen') renderWorkout();
 }, true);
 $('asksheet').addEventListener('close', () => askDone?.(false));   // Cancelar, Esc o atrás: no hace nada
-document.addEventListener('cancel', (e) => { if (['wsheet', 'rsheet', 'painsheet', 'onb'].includes(e.target.id)) e.preventDefault(); }, true);
+document.addEventListener('cancel', (e) => { if (['wsheet', 'rsheet', 'painsheet', 'onb', 'terms'].includes(e.target.id)) e.preventDefault(); }, true);
 
 let installEvt = null;
 window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); installEvt = e; if (tab === 'home') render(); });
@@ -2167,7 +2219,8 @@ window.addEventListener('appinstalled', () => { installEvt = null; toast('¡App 
   applyTheme();
   if (!S.onboarded || !S.seenVersion) { S.seenVersion = S.onboarded ? '1.2.0' : APP_VERSION; }   // quien ya usaba la app ve las novedades nuevas
   render();
-  if (!S.onboarded) { renderOnb(); $('onb').showModal(); }
+  if (!termsOk()) openTerms();
+  else if (!S.onboarded) { renderOnb(); $('onb').showModal(); }
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && (W || R)) keepAwake(true); else if (W) saveLive(); });
   if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('sw.js');
 })();

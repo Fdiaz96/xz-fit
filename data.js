@@ -680,6 +680,27 @@ const EXPERIENCE = [
   { id: 'avanzado', name: 'Más de 2 años', mult: 2 },
 ];
 
+// Términos de uso y deslinde de responsabilidad. Hay que aceptarlos para usar la app; si cambia TERMS_V se vuelven a pedir.
+const TERMS_V = '2026-10-31';
+const TERMS = [
+  ['Qué es XZ Fit', 'XZ Fit es una herramienta de información y registro de entrenamiento. No es un servicio médico, de kinesiología ni de nutrición, y tampoco es un dispositivo médico: no diagnostica, no trata, no cura ni previene ninguna enfermedad o lesión.'],
+  ['Consultá antes de entrenar', 'Antes de empezar o cambiar un plan de ejercicio consultá a un médico. Hacelo sobre todo si tenés una enfermedad del corazón, de la aorta, presión alta, una condición del tejido conectivo, de tiroides, diabetes, una lesión, dolor, estás embarazada, tomás medicación o hace mucho que no entrenás. Lo que te indique un profesional está siempre por encima de lo que diga la app.'],
+  ['El ejercicio tiene riesgos', 'Entrenar con pesas o con tu propio peso puede causar lesiones y, en personas con ciertas condiciones, problemas graves de salud. Si sentís dolor de pecho, falta de aire, mareo, palpitaciones, desmayo, visión borrosa o un dolor fuerte, pará de inmediato. Si no se te pasa, llamá a emergencias.'],
+  ['Las sugerencias son generales', 'Los pesos, series, repeticiones, descansos y planes, y los ajustes por dolor o por condición de salud, los calcula la app automáticamente con fórmulas y guías generales publicadas. No los revisa ningún profesional ni están hechos para tu caso. Vos decidís qué hacer: elegí pesos que puedas manejar con buena técnica, usá equipo en buen estado y un lugar seguro.'],
+  ['Modo dolor y condiciones de salud', 'El modo dolor y los ajustes por condición de salud son orientativos. No reemplazan una evaluación, un tratamiento ni un plan de rehabilitación hecho por un profesional. Marcar una condición no significa que entrenar sea seguro para vos.'],
+  ['Tu responsabilidad', 'Usás XZ Fit por tu cuenta y bajo tu propia responsabilidad. La app se ofrece "tal cual", sin garantías de resultados ni de que sea exacta o esté libre de errores. En la medida en que la ley lo permita, sus autores no se hacen responsables por lesiones, problemas de salud, daños ni pérdidas que resulten de usarla o de seguir sus sugerencias.'],
+  ['Edad', 'Tenés que tener 18 años o más para usar XZ Fit.'],
+  ['Tus datos', 'Lo que cargás queda solo en este teléfono: la app no lo envía a ningún servidor. Guardar copias de seguridad es responsabilidad tuya.'],
+  ['Cambios', 'Si estos términos cambian, la app te los vuelve a mostrar y tenés que aceptarlos de nuevo para seguir usándola. En Ajustes podés releerlos o retirar tu aceptación cuando quieras.'],
+];
+// Lo que hay que confirmar, una por una, para aceptar.
+const TERMS_CHECKS = [
+  'Entiendo que XZ Fit no es un servicio médico y no reemplaza a un profesional de la salud.',
+  'Voy a consultar a un médico antes de entrenar, sobre todo si tengo alguna condición de salud, una lesión o estoy embarazada.',
+  'Entreno bajo mi propia responsabilidad y acepto el deslinde de responsabilidad de los autores.',
+  'Tengo 18 años o más.',
+];
+
 // Condiciones de salud que cambian el entreno: descanso mínimo entre series (s), piso del rango de reps (más reps = menos peso),
 // reps en reserva al sugerir el peso (lejos del fallo) y cuidados que se muestran. Con varias, manda lo más exigente de cada una.
 // Fuentes y criterio en .specs/analysis/condiciones-de-salud.md.

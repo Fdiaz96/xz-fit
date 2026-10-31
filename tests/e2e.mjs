@@ -34,7 +34,9 @@ const errorsBeforePlans = errors.length;
 let ps;   // estado leído en este bloque (s se declara en la sección 1)
 const wipeDb = () => page.evaluate(() => new Promise((r) => { const q = indexedDB.deleteDatabase('tendon-fuerte'); q.onsuccess = q.onerror = q.onblocked = r; }));
 // putData guarda un estado crudo; buildV114 lo arma en la página (fecha las sesiones con today()/addDays) y saveV114 devuelve lo guardado para compararlo.
+// Los datos de prueba vienen con los términos aceptados (salvo que traigan terms): el primer uso los prueba aparte.
 const putData = (d) => page.evaluate((d) => new Promise((res) => {
+  if (d.terms === undefined) d.terms = { v: TERMS_V, at: new Date().toISOString() };
   const r = indexedDB.open('tendon-fuerte', 1);
   r.onupgradeneeded = () => r.result.createObjectStore('kv');
   r.onsuccess = () => { const t = r.result.transaction('kv', 'readwrite'); t.objectStore('kv').put(d, 'data'); t.oncomplete = () => { r.result.close(); res(); }; };
@@ -399,8 +401,26 @@ ok(!(await pinnedNotice()), 'CK-12: ni al volver al inicio');
 await page.goto(URL);
 await page.evaluate(() => new Promise((r) => { const q = indexedDB.deleteDatabase('tendon-fuerte'); q.onsuccess = q.onerror = q.onblocked = r; }));
 await page.reload();
+// Términos: van antes que todo y sin aceptarlos no se usa la app
+await page.waitForSelector('#terms[open]');
+ok(await page.locator('#onb[open]').count() === 0, 'la primera vez abre los términos, antes de la bienvenida');
+ok(await page.locator('#terms .terms-text h3').count() >= 8 && (await page.locator('#terms').textContent()).includes('no es un servicio médico'), 'los términos dicen que no es un servicio médico');
+ok(await page.locator('#terms [data-action="terms-accept"]').isDisabled(), 'sin tildar nada no se puede aceptar');
+await page.keyboard.press('Escape'); await page.waitForTimeout(80);
+ok(await page.locator('#terms[open]').count() === 1, 'Esc no cierra los términos');
+await click('#terms [data-action="terms-deny"]');
+ok((await page.locator('#terms h1').textContent()).includes('no podés usar XZ Fit') && await page.locator('#terms[open]').count() === 1, '"No acepto" deja la app bloqueada');
+await page.reload(); await page.waitForSelector('#terms[open]');
+ok((await state()).terms === null, 'sin aceptar, al volver a abrir se piden de nuevo');
+const termChecks = page.locator('#terms [data-action="terms-check"]');
+for (let i = 0; i < await termChecks.count() - 1; i++) await termChecks.nth(i).check({ force: true });
+ok(await page.locator('#terms [data-action="terms-accept"]').isDisabled(), 'con un punto sin tildar todavía no se puede aceptar');
+await termChecks.last().check({ force: true });
+await shot('00-terminos');
+await click('#terms [data-action="terms-accept"]');
+ok((await state()).terms?.v === await page.evaluate(() => TERMS_V) && await page.locator('#terms[open]').count() === 0, 'al aceptar se guarda la versión y la fecha');
 await page.waitForSelector('#onb[open]');
-ok(true, 'la primera vez abre la bienvenida');
+ok(true, 'después de aceptar abre la bienvenida');
 await shot('01-bienvenida');
 await click('[data-action="onb-next"]');
 await click('[data-action="onb-next"]');
@@ -1371,6 +1391,11 @@ ok(kbView.con.impl === 'kb' && kbView.con.name === 'Swing con pesa rusa' && kbVi
   ok(await page.locator('#view-home .care').count() === 0, 'sin condiciones no hay tarjeta de cuidados');
   await click('[data-tab="settings"]');
   await page.locator('#view-settings [data-action="cond-toggle"][value="marfan"]').check({ force: true }); await page.waitForTimeout(80);
+  ok((await page.locator('#asksheet').textContent()).includes('visto bueno de tu médico'), 'marcar una condición pide confirmar el visto bueno médico');
+  await click('#asksheet .cta');
+  ok(!(await state()).profile.conds.includes('marfan') && !(await page.locator('#view-settings [data-action="cond-toggle"][value="marfan"]').isChecked()), 'si cancela, la condición no queda marcada');
+  await page.locator('#view-settings [data-action="cond-toggle"][value="marfan"]').check({ force: true }); await page.waitForTimeout(80);
+  await askYes();
   ok((await state()).profile.conds.includes('marfan'), 'marcar Marfan en Ajustes lo guarda en el perfil');
   ok(await page.locator('#view-settings [data-k="rest"][data-v="60"]').isDisabled() && await page.locator('#view-settings [data-k="rest"][data-v="90"]').isDisabled() && !(await page.locator('#view-settings [data-k="rest"][data-v="120"]').isDisabled()), 'con Marfan, 60 s y 90 s de descanso quedan desactivados');
   ok((await page.locator('#view-settings').textContent()).includes('Por tu condición descansás al menos 2 min'), 'Ajustes explica el descanso mínimo');
@@ -1388,6 +1413,17 @@ ok(kbView.con.impl === 'kb' && kbView.con.name === 'Swing con pesa rusa' && kbVi
   await page.evaluate(() => { S.profile.conds = ['embarazo']; S.equip.bench = true; S.routine.fb2[0][1] = { slot: S.routine.fb2[0][1].slot, ex: 'press_banco', pinned: true }; persist(); render(); });
   ok((await page.locator('#view-home .board').textContent()).includes('boca arriba'), 'con embarazo, el press en banco avisa en Hoy que es boca arriba');
   await page.evaluate(() => { S.profile.conds = []; persist(); render(); });
+}
+// Términos en Ajustes: se releen y se puede retirar la aceptación (la app vuelve a bloquearse)
+{
+  await click('[data-tab="settings"]');
+  await click('#view-settings [data-action="terms-read"]');
+  ok(await page.locator('#terms[open] [data-action="close"]').count() === 1 && await page.locator('#terms [data-action="terms-accept"]').count() === 0, 'releer los términos se cierra sin volver a aceptar');
+  await click('#terms [data-action="close"]');
+  await click('#view-settings [data-action="terms-withdraw"]');
+  await askYes(); await page.waitForTimeout(150);
+  ok((await state()).terms === null && await page.locator('#terms[open] [data-action="terms-accept"]').count() === 1, 'retirar la aceptación vuelve a pedir los términos');
+  await page.evaluate(() => { termsChecks = termsChecks.map(() => true); acceptTerms(); });
 }
 ok(nativeDialogs === 0, `ninguna pregunta nativa del navegador (confirm/alert): ${nativeDialogs}`);
 ok(errors.length === 0, `sin errores de JavaScript${errors.length ? ': ' + errors.join(' | ') : ''}`);

@@ -8,6 +8,7 @@ Todo el estado vive en un objeto `S` (`app.js`), guardado completo en IndexedDB 
 {
   v: 1, onboarded: false, painMode: false, hidePainTip: false, hideInstall?: true, seenVersion: '',
   profile: { name, sex: 'h'|'m'|'x', weight, height, age, exp: 'novato'|'medio'|'avanzado', days: 2|3, conds: [conditionId…] },   // conds: CONDITIONS de data.js (v1.32)
+  terms: { v: TERMS_V, at: ISO } | null,   // aceptación de los términos y el deslinde (v1.32); sin la versión vigente la app queda bloqueada
   equip: {
     db: { min, max, step, plates?: { on, bar, items: [{ kg, n }] } } | null,   // mancuernas (null = no tiene)
     kb: [kg…],                                                                // pesas rusas

@@ -363,6 +363,15 @@ button.add-ex { width: 100%; }
 .calib-intro p { margin: 0; font-size: 14px; line-height: 1.45; }
 .calib-intro p + p { margin-top: 6px; }
 .calib-intro .calib-tag { display: inline-block; vertical-align: 1px; }
+/* Términos de uso: texto largo para leer, cada punto a confirmar y el rechazo bien separado */
+.terms-text { margin: 12px 0; padding: 4px 16px 12px; border-radius: 16px; background: var(--card); }
+.terms-text h3 { margin: 14px 0 4px; font-size: 17px; }
+.terms-text p { margin: 0; font-size: 14px; line-height: 1.5; color: var(--muted); }
+.terms-ask { margin: 20px 0 8px; }
+.terms .tiles { margin-bottom: 16px; }
+.terms .tile b { font-weight: 500; line-height: 1.4; }
+.terms-deny { display: block; width: 100%; margin: 12px 0 4px; padding: 12px; }
+.terms-denied { min-height: 70vh; display: flex; flex-direction: column; justify-content: center; gap: 12px; }
 /* Cuidados por condición de salud: el mismo pliegue, con el filo naranja de lo que hay que cuidar */
 .care { box-shadow: inset 4px 0 0 var(--pain); }
 .care h3 { margin: 0 0 6px; }
